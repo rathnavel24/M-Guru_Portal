@@ -77,9 +77,13 @@ $RECYCLE.BIN/
 # Migrations 
 
 alembic/versions/
+alembic/__pycache__/
+alembic/versions/__pycache__/
 
 
 # Misc
 *.swp
 *.swo
 *.tmp
+__pycache__/
+*.pyc
