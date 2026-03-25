@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 
+
 class Users(Base):
     __tablename__ = "users"
 
@@ -10,9 +11,17 @@ class Users(Base):
     username = Column(String(100))
     email = Column(String(255), unique=True)
     password = Column(String(255))
-    type = Column(Enum('admin','merchant','user',name="user_type"),default='user')
-    status = Column(Enum('active','inactive','deleted',name="user_activity"),default='active')
+    type = Column(Enum("admin", "merchant", "user", name="user_type"), default="user")
+    status = Column(
+        Enum("active", "inactive", "deleted", name="user_activity"), default="active")
     is2FA = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
-    created_by = Column(String(100),default = "ADMIN")
+    created_by = Column(String(100), default="ADMIN")
+
+    # hari
+    sent_emails = relationship(
+        "Pay_email", foreign_keys="Pay_email.from_id", back_populates="sender")
+
+    received_emails = relationship(
+        "Pay_email", foreign_keys="Pay_email.to_id", back_populates="receiver")
