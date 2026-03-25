@@ -4,13 +4,13 @@ from fastapi.security import HTTPBearer
 from jose import jwt
 from fastapi import Depends, HTTPException
 
+
 def get_db():
     db = sessionLocal()
-    try :
+    try:
         yield db
     finally:
         db.close()
-
 
 
 security = HTTPBearer()
@@ -22,11 +22,7 @@ ALGORITHM = "HS256"
 def get_current_user(token=Depends(security)):
 
     try:
-        payload = jwt.decode(
-            token.credentials,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
-        )
+        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
 
         return payload
 
@@ -42,8 +38,7 @@ def role_required(allowed_roles: list):
 
         if user["role"] not in allowed_roles:
             raise HTTPException(
-                status_code=403,
-                detail="You are not authorized to perform this action"
+                status_code=403, detail="You are not authorized to perform this action"
             )
 
         return user
