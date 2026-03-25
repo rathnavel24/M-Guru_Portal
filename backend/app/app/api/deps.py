@@ -1,4 +1,4 @@
-from app.app.db.session import sessionLocal
+from backend.app.app.db.session import sessionLocal
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
 from jose import jwt
