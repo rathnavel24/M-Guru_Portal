@@ -1,7 +1,8 @@
+from datetime import date
 from unittest import result
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from starlette import status
 from backend.app.app.models.portal_users import Users
 from backend.app.app.core.security import get_password_hash, verify_password, create_access_token
@@ -77,11 +78,25 @@ class LoginUser:
             data={"user_id": user.user_id,
                   "role": user.type
                 })
-        db_token = Token(
-        token = token,
-        user_id = user.user_id
+        
+        today_token = self.db.query(Token).filter(
+        Token.user_id == user.user_id,
+        func.date(Token.login) == date.today()   # 👈 key logic
+        ).first()
+
+        if today_token:
+            
+            today_token.token = token
+            today_token.logout = None
+
+        else:
+            
+            new_token = Token(
+            token=token,
+            user_id=user.user_id
             )
-        self.db.add(db_token)
+
+            self.db.add(new_token)
         self.db.commit()
         return {
             "token": token,
