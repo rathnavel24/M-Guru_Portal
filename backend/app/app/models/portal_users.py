@@ -27,9 +27,6 @@ class Users(Base):
     received_emails = relationship(
         "Pay_email", foreign_keys="Pay_email.to_id", back_populates="receiver")
     
-
-    
-
     tokens = relationship("Token", back_populates="user")
 
 

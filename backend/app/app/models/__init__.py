@@ -1,4 +1,4 @@
-from .portal_users import *
+from .portal_users import Users
 from .Exam_user import *
 from .Exam_section import *
 from .Exam_questions import *
@@ -7,3 +7,4 @@ from .Exam_attempt import *
 from .Exam_assessment import *
 from .Exam_answer import *
 from .pay_email_table import * 
+from .user_token import Token

@@ -1,5 +1,5 @@
 from unittest import result
-
+from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
 from sqlalchemy import or_
 from starlette import status
@@ -77,7 +77,12 @@ class LoginUser:
             data={"user_id": user.user_id,
                   "role": user.type
                 })
-
+        db_token = Token(
+        token = token,
+        user_id = user.user_id
+            )
+        self.db.add(db_token)
+        self.db.commit()
         return {
             "token": token,
             "token_type": "bearer",
