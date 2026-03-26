@@ -1,3 +1,5 @@
+from unittest import result
+
 from fastapi import HTTPException
 from sqlalchemy import or_
 from starlette import status
@@ -82,3 +84,9 @@ class LoginUser:
             "token_type": "bearer",
             "user_type" : user.type
         }
+    
+class ViewUser:
+    def __init__(self, db):
+        self.db = db
+    def view_user(self,batch):
+        result=self.db.query(Users).filter(Users.batch==batch).all()

@@ -23,8 +23,7 @@ class Pay_email(Base):
     due_date = Column(TIMESTAMP) 
     upi_id=Column(string)
     is_complete=Column(Boolean)
-    status = Column(
-        Enum("active", "inactive", "deleted", name="user_activity"), default="active") 
+     
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100), default="ADMIN")
