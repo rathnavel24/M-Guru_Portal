@@ -4,7 +4,6 @@ from sqlalchemy import Column, Float, ForeignKey, Integer, String, Boolean, TIME
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
-from backend.app.app.models.enums import user_activity_enum
 
 
 class Pay_email(Base):
@@ -22,7 +21,7 @@ class Pay_email(Base):
     due_date = Column(TIMESTAMP) 
     upi_id=Column(String)
     is_complete=Column(Boolean)
-    status = Column(user_activity_enum, default='active') 
+    status = Column(Integer, default=1) 
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100), default="ADMIN")
