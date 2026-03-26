@@ -6,7 +6,7 @@ class UserSignUp(BaseModel):
     username : str
     email : EmailStr
     password : str 
-    type : Optional[str] = 'user'
+    type : Optional[int] = 2
     
 class UserLogin(BaseModel):
     email: str

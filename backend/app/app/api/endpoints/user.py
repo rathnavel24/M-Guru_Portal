@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks,Depends
 from backend.app.app.schemas.user_schema import UserSignUp,UserLogin,Paymentmail
 from sqlalchemy.orm import Session
-from backend.app.app.crud.user_crud import SignUpDetails,LoginUser
+from backend.app.app.crud.user_crud import SignUpDetails,LoginUser,ViewUser
 from backend.app.app.api.deps import get_db
 from backend.app.app.utils import send_invoice_email
 router = APIRouter(tags=["login"])
@@ -26,3 +26,10 @@ async def payment_mail(data:Paymentmail,db:Session = Depends(get_db)):
      except Exception as e:
         print("ERROR:", str(e))   # ✅ log in console
         return {"message": str(e)}
+
+#this is for view all user 
+@router.post("/view_user")
+async def viewuser(batch:int ,db: Session = Depends(get_db)):
+    return ViewUser(db).view_user(batch)
+
+
