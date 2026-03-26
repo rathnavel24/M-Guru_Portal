@@ -15,6 +15,6 @@ class Attempts(Base):
     percentage = Column(Integer)
     status = Column(String)
 
-    user = relationship("Users",back_populates="user_attempts")
+    user = relationship("ExamUsers",back_populates="user_attempts")
     att_assessment = relationship("Assessments",back_populates="user_assessments")
     attempt_answer = relationship("Answers",back_populates="answer")

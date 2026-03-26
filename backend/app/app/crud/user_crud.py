@@ -1,10 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy import or_
 from starlette import status
-from datetime import datetime,timedelta
 from backend.app.app.models.portal_users import Users
 from backend.app.app.core.security import get_password_hash, verify_password, create_access_token
-from backend.app.app.core.security import generate_otp , generate_otp_key
 from abc import ABC,abstractmethod
 from sqlalchemy.orm import Session
 
@@ -44,8 +42,12 @@ class SignUpDetails(SignUpAbstract):
                 #Users.username == self.new_user.username,
                 Users.email == self.new_user.email
             ),
+<<<<<<< HEAD
             Users.status == "active"
             
+=======
+            Users.status == 1
+>>>>>>> 44e1269516427744bcf80a3f4f825c69fed18c07
         ).first()
 
         if not user:
