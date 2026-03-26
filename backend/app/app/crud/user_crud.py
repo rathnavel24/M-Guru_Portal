@@ -28,7 +28,8 @@ class SignUpDetails(SignUpAbstract):
                 username = self.new_user.username,
                 email =  self.new_user.email,
                 password = get_password_hash(self.new_user.password),
-                type = self.new_user.type
+                type = self.new_user.type,
+                batch = self.new_user.batch
                 ))
             self.db.commit()
             return {
@@ -80,3 +81,38 @@ class LoginUser:
             "token_type": "bearer",
             "user_type" : user.type
         }
+    
+class UserServices:
+
+    def __init__(self,db:Session,data):
+        self.db = db
+        self.data = data
+
+    def get_usersby_batch(self,batch_id):
+        result = self.db.execute(
+        self.db.query(
+            Users.user_id,
+            Users.username,
+            Users.email,
+            Users.batch
+        )
+        .filter(Users.batch == batch_id,Users.status == 1)
+        .statement
+    )
+
+        return result.mappings().all()
+    
+    def soft_delete_user(self, user_id: int):
+        user = self.db.query(Users).filter(
+            Users.user_id == user_id,
+            Users.status == 1
+        ).first()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user.status = 0  
+        self.db.commit()
+
+        return {"msg": "User deleted successfully"}
+
