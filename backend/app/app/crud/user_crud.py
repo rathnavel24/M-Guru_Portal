@@ -1,10 +1,15 @@
-import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from operator import and_
 from unittest import result
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
 from sqlalchemy import Null, or_
+from datetime import date
+from unittest import result
+from backend.app.app.models.user_token import Token
+from fastapi import HTTPException
+from sqlalchemy import func, or_
 from starlette import status
 from backend.app.app.models.portal_users import Users
 from backend.app.app.models.user_token import Token
@@ -82,11 +87,25 @@ class LoginUser:
             data={"user_id": user.user_id,
                   "role": user.type
                 })
-        db_token = Token(
-        token = token,
-        user_id = user.user_id
+        
+        today_token = self.db.query(Token).filter(
+        Token.user_id == user.user_id,
+        func.date(Token.login) == date.today()   # 👈 key logic
+        ).first()
+
+        if today_token:
+            
+            today_token.token = token
+            today_token.logout = None
+
+        else:
+            
+            new_token = Token(
+            token=token,
+            user_id=user.user_id
             )
-        self.db.add(db_token)
+
+            self.db.add(new_token)
         self.db.commit()
         return {
             "token": token,
@@ -108,9 +127,17 @@ class Logout:
     def logout(self,current_user):
         user=current_user.get("user_id")
 
-        tokens = self.db.query(Token).filter(and_(Token.user_id==user,Token.logout==Null,Token.token!=Null)).first()
-        tokens.logout = datetime.now()
-        time_diff = datetime.now() - tokens.login  # timedelta
+
+        #tokens = self.db.query(Token).filter(and_(Token.user_id==user,Token.logout.is_(None),Token.token.isnot(None))).first()
+        tokens = (
+    self.db.query(Token)
+    .filter(Token.user_id == user)
+    .filter(Token.logout.is_(None))
+    .filter(Token.token.isnot(None))
+    .first()
+)
+        tokens.logout = datetime.utcnow()
+        time_diff = datetime.utcnow() - tokens.login  # timedelta
         tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
         tokens.token=None
         self.db.add(tokens)

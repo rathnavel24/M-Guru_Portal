@@ -1,11 +1,11 @@
 from decimal import Decimal
 from turtle import reset
 from unittest import result
+from datetime import datetime, timezone
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from backend.app.app.models import Token
-import datetime
 from backend.app.app.api.deps import get_db,sessionLocal
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -17,8 +17,8 @@ def logout_all_users():
         # Set logout time for all users who are logged in
         tokens = db.query(Token).filter(Token.logout.is_(None)).all()
         for token in tokens:
-            token.logout = datetime.now()
-            time_diff = datetime.now() - token.login  # timedelta
+            token.logout = datetime.utcnow()
+            time_diff = datetime.utcnow() - token.login  # timedelta
             token.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
             token.token=None
             db.add(token)
