@@ -1,5 +1,5 @@
 from typing import Optional
-
+from datetime import date
 from pydantic import BaseModel, EmailStr
 
 class UserSignUp(BaseModel):
@@ -12,3 +12,11 @@ class UserSignUp(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+
+class Paymentmail(BaseModel):
+    user_id:int
+    amount:float
+    due_date:date
+    note : Optional[str]=None 
+    upi_id:str
