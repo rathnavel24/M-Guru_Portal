@@ -1,3 +1,10 @@
+from datetime import datetime, timezone
+from decimal import Decimal
+from operator import and_
+from unittest import result
+from backend.app.app.models.user_token import Token
+from fastapi import HTTPException
+from sqlalchemy import Null, or_
 from datetime import date
 from unittest import result
 from backend.app.app.models.user_token import Token
@@ -5,6 +12,8 @@ from fastapi import HTTPException
 from sqlalchemy import func, or_
 from starlette import status
 from backend.app.app.models.portal_users import Users
+from backend.app.app.models.user_token import Token
+
 from backend.app.app.core.security import get_password_hash, verify_password, create_access_token
 from abc import ABC,abstractmethod
 from sqlalchemy.orm import Session
@@ -108,6 +117,34 @@ class UserServices:
 
     def __init__(self,db:Session,data):
         self.db = db
+    def view_user(self,batch):
+        result=self.db.query(Users).filter(Users.batch==batch).all()
+
+class Logout:
+    def __init__(self, db):
+        self.db = db
+
+    def logout(self,current_user):
+        user=current_user.get("user_id")
+
+
+        #tokens = self.db.query(Token).filter(and_(Token.user_id==user,Token.logout.is_(None),Token.token.isnot(None))).first()
+        tokens = (
+    self.db.query(Token)
+    .filter(Token.user_id == user)
+    .filter(Token.logout.is_(None))
+    .filter(Token.token.isnot(None))
+    .first()
+)
+        tokens.logout = datetime.utcnow()
+        time_diff = datetime.utcnow() - tokens.login  # timedelta
+        tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
+        tokens.token=None
+        self.db.add(tokens)
+        self.db.commit()
+        return {
+                "Logout" : "Successfully"
+                }
         self.data = data
 
     def get_usersby_batch(self,batch_id):
