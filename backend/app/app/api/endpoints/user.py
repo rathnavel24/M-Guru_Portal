@@ -18,7 +18,7 @@ async def login(data: UserLogin,background_tasks: BackgroundTasks, db: Session =
     return LoginUser(db, data.email, data.password).login(background_tasks)
 
 
-
+#this is for view all user 
 @router.post("/view_user")
 async def viewuser(batch:int ,db: Session = Depends(get_db)):
     return ViewUser(db).view_user(batch)

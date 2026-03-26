@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 
 
+
 class Users(Base):
     __tablename__ = "users"
 
@@ -11,10 +12,10 @@ class Users(Base):
     username = Column(String(100))
     email = Column(String(255), unique=True)
     password = Column(String(255))
-    type = Column(Enum("admin", "merchant", "user", name="user_type"), default="user")
-    status = Column(
-        Enum("active", "inactive", "deleted", name="user_activity"), default="active")
+    type = Column(Integer,default=2)
+    status = Column(Integer, default = 1)
     is2FA = Column(Boolean, default=False)
+    batch = Column(Integer)
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100), default="ADMIN")
