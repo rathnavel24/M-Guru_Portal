@@ -1,4 +1,5 @@
 import math
+from fastapi import BackgroundTasks
 
 def get_pagination(row_count=0, current_page_no=1, default_page_size=10):
     
@@ -24,3 +25,36 @@ def get_pagination(row_count=0, current_page_no=1, default_page_size=10):
         offset = 0
 
     return [total_pages, offset, limit]
+
+    
+
+def sendemail(from_mail,to_mail,data,bgtask:BackgroundTasks):
+
+    from_mail = ("")
+
+
+
+
+
+
+
+# def emailOTP(to: str, otp: int, text: str):
+
+#     myemail=os.getenv("myemail")
+   
+#     mypass=os.getenv("mypass")
+#     subject = text
+#     body = f""" Your OTP to reset pass is: {otp}
+
+#               This otp expires in 2 minutes"""
+
+#     msg = MIMEText(body)
+#     msg["Subject"] = subject
+#     msg["From"] = myemail
+#     msg["To"] = to
+
+#     server = smtplib.SMTP("smtp.gmail.com", 587)
+#     server.starttls()
+#     server.login(myemail, mypass)
+#     server.send_message(msg)
+#     server.quit()    
