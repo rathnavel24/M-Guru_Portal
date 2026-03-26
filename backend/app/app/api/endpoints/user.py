@@ -18,14 +18,13 @@ async def login(data: UserLogin,background_tasks: BackgroundTasks, db: Session =
 
     return LoginUser(db, data.email, data.password).login(background_tasks)
 
-@router.post("/payment_email")
-async def payment_mail(data:Paymentmail,db:Session = Depends(get_db)):
+@router.post("/payment_email") #send payment email to student
+async def payment_mail(data:Paymentmail,bgtask:BackgroundTasks,db:Session = Depends(get_db)):
      try:
-          await send_invoice_email(data,db)
+          bgtask.add_task(send_invoice_email,data,db)
           return {"message":"Payment mail sent succesfully"}
      except Exception as e:
-        print("ERROR:", str(e))   # ✅ log in console
-        return {"message": str(e)}
+          raise e
 
 #this is for view all user 
 @router.post("/view_user")

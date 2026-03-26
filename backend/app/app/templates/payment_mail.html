@@ -106,22 +106,23 @@
   <div class="container">
 
     <!-- Header -->
-    <div class="header">
-      <div>
-        <div class="brand">◆ PayMail</div>
-        <div class="sub">payment notification</div>
-      </div>
+  <table width="100%" style="border-collapse: collapse;">
+  <tr>
+    <!-- LEFT SIDE -->
+    <td align ="left" valign="top">
+      <div class="brand">◆ M-Guru</div>
+      <div class="sub">payment notification</div>
+    </td>
 
-      <div class="invoice-info">
-        <div><b>INVOICE</b></div>
-        <div><b>{{ invoice_id }}</b></div>
-        <div>{{ date }}</div>
-        <div style="font-size:12px;color:gray;">Issue Date</div>
-      </div>
-    </div>
-
-    <hr>
-
+    <!-- RIGHT SIDE -->
+    <td align ="right" valign="top" class="invoice-info">
+      <div><b>INVOICE</b></div>
+      <div><b>{{ invoice_id }}</b></div>
+      <div>{{ date }}</div>
+      <div style="font-size:12px;color:gray;">Issue Date</div>
+    </td>
+  </tr>
+  </table>
     <!-- Greeting -->
     <p class="title">Dear {{ name }},</p>
 
@@ -133,27 +134,27 @@
     <!-- Invoice Details -->
     <div class="box">
       <div class="row">
-        <span>Invoice No.</span>
+        <span>Invoice No :</span>
         <span>{{ invoice_id }}</span>
       </div>
 
       <div class="row">
-        <span>Customer</span>
+        <span>Customer : </span>
         <span>{{ name }}</span>
       </div>
 
       <div class="row">
-        <span>Due Date</span>
+        <span>Due Date :</span>
         <span>{{ due_date or "N/A" }}</span>
       </div>
 
       <div class="row">
-        <span>Status</span>
-        <span class="pending">PENDING</span>
+        <span>Status :</span>
+        <span class="pending">Pending... </span>
       </div>
 
       <div class="row">
-        <span class="amount">Amount Due</span>
+        <span class="amount">Amount :</span>
         <span class="amount">₹{{ "{:,.2f}".format(amount) }}</span>
       </div>
     </div>

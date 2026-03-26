@@ -17,4 +17,5 @@ class Paymentmail(BaseModel):
     user_id:int
     amount:float
     due_date:date
+    note : Optional[str]=None 
     upi_id:str

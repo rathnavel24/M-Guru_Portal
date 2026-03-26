@@ -21,11 +21,7 @@ class Pay_email(Base):
     due_date = Column(TIMESTAMP) 
     upi_id=Column(String)
     is_complete=Column(Boolean)
-<<<<<<< HEAD
-     
-=======
     status = Column(Integer, default=1) 
->>>>>>> b0a0962f1b730e79bf1a83378244fdc10aa61212
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100), default="ADMIN")
