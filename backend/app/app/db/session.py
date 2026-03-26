@@ -6,9 +6,14 @@ import os
 load_dotenv()
 
 conn  = os.getenv("DB_CONNECTION")
-engine  = create_engine(conn)
 
-sessionLocal = sessionmaker(bind = engine)
+
+if conn and "pgbouncer=" in conn.lower():
+    conn = conn.split("?")[0]
+engine  = create_engine(conn,pool_pre_ping=True)
+
+sessionLocal = sessionmaker(autocommit=False,
+    autoflush=False,bind = engine)
 
 
 
