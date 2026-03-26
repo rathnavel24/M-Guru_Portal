@@ -7,6 +7,7 @@ class UserSignUp(BaseModel):
     email : EmailStr
     password : str 
     type : Optional[int] = 2
+    batch : Optional[int] = None
     
 class UserLogin(BaseModel):
     email: str
