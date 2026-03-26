@@ -1,8 +1,9 @@
 from fastapi import APIRouter, BackgroundTasks,Depends
-from backend.app.app.schemas.user_schema import UserSignUp,UserLogin
+from backend.app.app.schemas.user_schema import UserSignUp,UserLogin,Paymentmail
 from sqlalchemy.orm import Session
 from backend.app.app.crud.user_crud import SignUpDetails,LoginUser
 from backend.app.app.api.deps import get_db
+from backend.app.app.utils import send_invoice_email
 router = APIRouter(tags=["login"])
 
 @router.post("/signup")
@@ -16,3 +17,12 @@ async def signup(user_data:UserSignUp,db:Session =  Depends(get_db)):
 async def login(data: UserLogin,background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
 
     return LoginUser(db, data.email, data.password).login(background_tasks)
+
+@router.post("/payment_email")
+async def payment_mail(data:Paymentmail,db:Session = Depends(get_db)):
+     try:
+          await send_invoice_email(data,db)
+          return {"message":"Payment mail sent succesfully"}
+     except Exception as e:
+        print("ERROR:", str(e))   # ✅ log in console
+        return {"message": str(e)}

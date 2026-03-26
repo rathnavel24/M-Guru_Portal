@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
+from backend.app.app.models.enums import user_activity_enum,user_role_enum
+
 
 
 class Users(Base):
@@ -11,9 +13,8 @@ class Users(Base):
     username = Column(String(100))
     email = Column(String(255), unique=True)
     password = Column(String(255))
-    type = Column(Enum("admin", "merchant", "user", name="user_type"), default="user")
-    status = Column(
-        Enum("active", "inactive", "deleted", name="user_activity"), default="active")
+    type = Column(user_role_enum, default="student")
+    status = Column(user_activity_enum, default="active")
     is2FA = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())

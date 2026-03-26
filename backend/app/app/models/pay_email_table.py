@@ -1,11 +1,10 @@
 
-import string
 from psycopg2 import Timestamp
 from sqlalchemy import Column, Float, ForeignKey, Integer, String, Boolean, TIMESTAMP, Enum,DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
-
+from backend.app.app.models.enums import user_activity_enum
 
 
 class Pay_email(Base):
@@ -13,18 +12,17 @@ class Pay_email(Base):
 
 
     id=Column(Integer,primary_key=True)
-    invoice_no=Column(string,unique=True)
+    invoice_no=Column(String,unique=True)
 
     from_id=Column(Integer,ForeignKey('users.user_id'))
     to_id=Column(Integer,ForeignKey('users.user_id'))
     note=Column(Text)
-    email_type=Column(string)
+    email_type=Column(String)
     amount=Column(Float)
     due_date = Column(TIMESTAMP) 
-    upi_id=Column(string)
+    upi_id=Column(String)
     is_complete=Column(Boolean)
-    status = Column(
-        Enum("active", "inactive", "deleted", name="user_activity"), default="active") 
+    status = Column(user_activity_enum, default='active') 
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100), default="ADMIN")
