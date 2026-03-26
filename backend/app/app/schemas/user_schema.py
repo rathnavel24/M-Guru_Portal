@@ -19,4 +19,5 @@ class Paymentmail(BaseModel):
     amount:float
     due_date:date
     note : Optional[str]=None 
+    email_type : int #1=invoice ,2=remainder,3=confirmation 
     upi_id:str

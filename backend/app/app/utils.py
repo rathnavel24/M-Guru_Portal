@@ -85,7 +85,12 @@ async def send_invoice_email(data: Paymentmail, db: Session):
             raise ValueError("User not found")
 
         #  Load HTML template
-        template = env.get_template("payment_invoice_mail.html")
+        if data.email_type == 1:
+            template = env.get_template("payment_invoice_mail.html")
+        elif data.email_type == 2:
+            template = env.get_template("payment_remainder_mail.html")
+        else:
+            template = env.get_template("payment_confirmation_mail.html")    
 
         gen_invoice_id = generate_invoice_id(data.user_id)
 
@@ -99,10 +104,12 @@ async def send_invoice_email(data: Paymentmail, db: Session):
             due_date=data.due_date,
             upi_id=data.upi_id,
         )
-
+        qr_buffer = None
+        if data.email_type in [1,2]:
         #  Generate QR
-        qr_buffer = generate_upi_qr(data.upi_id, data.amount)
-        qr_buffer.seek(0)
+            qr_buffer = generate_upi_qr(data.upi_id, data.amount)
+            qr_buffer.seek(0)
+
         # Create Email
         msg = EmailMessage()
         msg["Subject"] = f"Invoice {gen_invoice_id} - Payment Request"
@@ -112,9 +119,10 @@ async def send_invoice_email(data: Paymentmail, db: Session):
         msg.set_content("Please view this email in HTML format.")
         msg.add_alternative(html_content, subtype="html")#  Add HTML
         #  Attach QR image
-        msg.get_payload()[1].add_related(
-            qr_buffer.read(), maintype="image", subtype="png", cid="<qrcode>"
-        )
+        if qr_buffer:
+            msg.get_payload()[1].add_related(
+                qr_buffer.read(), maintype="image", subtype="png", cid="<qrcode>"
+            )
         await send_email(msg)
 
         add_log = Pay_email(
@@ -122,7 +130,7 @@ async def send_invoice_email(data: Paymentmail, db: Session):
             #from_id=data.sender_id,
             to_id=data.user_id,
             note=data.note,
-            email_type="INVOICE",
+            email_type="REMAINDER",
             amount=data.amount,
             due_date=data.due_date,
             upi_id=data.upi_id,
@@ -137,17 +145,4 @@ async def send_invoice_email(data: Paymentmail, db: Session):
 
     except:
         {"message":"Invailid"}  
-
-def remainder_email(data: Paymentmail, db: Session):
-    user = (
-            db.query(Users.username, Users.email)
-            .filter(Users.user_id == data.user_id)
-            .first()
-        )
-
-    if not user:
-            raise ValueError("User not found")
-
-
-
 
