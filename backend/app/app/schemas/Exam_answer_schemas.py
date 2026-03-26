@@ -11,3 +11,6 @@ class ReviewResponse(BaseModel):
     question_id : int
     selected_option_id : int
     is_skipped : bool    
+
+    class Config:
+        from_attributes = True
