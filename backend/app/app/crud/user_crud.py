@@ -45,6 +45,7 @@ class SignUpDetails(SignUpAbstract):
                 Users.email == self.new_user.email
             ),
             Users.status == "active"
+            
         ).first()
 
         if not user:
