@@ -4,7 +4,7 @@ from backend.app.app.db.base import Base
 from sqlalchemy.orm import relationship
 
 
-class Users(Base):
+class ExamUsers(Base):
     __tablename__ = "exam_user"
 
     user_id = Column(Integer, primary_key=True)

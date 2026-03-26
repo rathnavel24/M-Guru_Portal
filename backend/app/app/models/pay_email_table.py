@@ -27,7 +27,6 @@ class Pay_email(Base):
     created_by = Column(String(100), default="ADMIN")
 
 
-    #hari
     sender = relationship("Users", foreign_keys=[from_id], back_populates="sent_emails")
     receiver = relationship("Users", foreign_keys=[to_id], back_populates="received_emails")
 
