@@ -92,8 +92,8 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['question_id'], ['exam_questions.question_id'], ),
     sa.PrimaryKeyConstraint('option_id')
     )
-    # op.drop_table('pay_email')
-    # op.drop_table('users')
+    op.drop_table('pay_email')
+    op.drop_table('users')
     # ### end Alembic commands ###
 
 
