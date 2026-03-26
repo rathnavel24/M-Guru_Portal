@@ -1,5 +1,4 @@
 from decimal import Decimal
-from turtle import reset
 from unittest import result
 from datetime import datetime, timezone
 
@@ -38,7 +37,10 @@ class Attendance:
     def __init__(self,db):
         self.db = db
     def attendance(self,usr_id):
-        result=self.db.query(Token.login,Token.logout,Token.ideal_time).filter(Token.user_id==usr_id).all()
+        result=self.db.query(Token.login,
+                             Token.logout,
+                             Token.ideal_time).filter(
+                                 Token.user_id==usr_id).all()
 
 
-        return result
+        return [row._asdict() for row in result]
