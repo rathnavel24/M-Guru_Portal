@@ -12,7 +12,6 @@ def get_db():
         db.close()
 
 
-
 security = HTTPBearer()
 
 SECRET_KEY = "MqbU2rs3hlCKUWrt3ZvTeg7NxVTgTBPlJkRLWLpgoDttc8IG6I0NTzDwwzJsk"
