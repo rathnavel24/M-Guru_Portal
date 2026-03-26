@@ -4,6 +4,8 @@ from datetime import datetime
 import random
 import string
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 def get_pagination(row_count=0, current_page_no=1, default_page_size=10):
@@ -46,12 +48,14 @@ BASE_DIR = Path(__file__).resolve().parent
 env = Environment(loader=FileSystemLoader(BASE_DIR / "templates"))  # load html file
 
 async def send_email(msg: EmailMessage):
+    # print("USERNAME:", os.getenv("user"))
+    # print("PASSWORD:", os.getenv("password"))
     await aiosmtplib.send(
         msg,
         hostname="smtp.gmail.com",
         port=587,
         start_tls=True,
-        username=os.getenv("username"),
+        username=os.getenv("user"),
         password=os.getenv("password"),
     )
     
@@ -81,7 +85,7 @@ async def send_invoice_email(data: Paymentmail, db: Session):
             raise ValueError("User not found")
 
         #  Load HTML template
-        template = env.get_template("payment_mail.html")
+        template = env.get_template("payment_invoice_mail.html")
 
         gen_invoice_id = generate_invoice_id(data.user_id)
 
@@ -90,6 +94,7 @@ async def send_invoice_email(data: Paymentmail, db: Session):
             email=user.email,
             amount=data.amount,
             invoice_id=gen_invoice_id,
+            note = data.note,
             date=datetime.now().strftime("%d %b %Y"),
             due_date=data.due_date,
             upi_id=data.upi_id,
@@ -101,7 +106,7 @@ async def send_invoice_email(data: Paymentmail, db: Session):
         # Create Email
         msg = EmailMessage()
         msg["Subject"] = f"Invoice {gen_invoice_id} - Payment Request"
-        msg["From"] = "rathnavelwork@gmail.com"
+        msg["From"] = os.getenv("user")
         msg["To"] = user.email
 
         msg.set_content("Please view this email in HTML format.")
@@ -110,7 +115,7 @@ async def send_invoice_email(data: Paymentmail, db: Session):
         msg.get_payload()[1].add_related(
             qr_buffer.read(), maintype="image", subtype="png", cid="<qrcode>"
         )
-        await send_email(msg)#send Email
+        await send_email(msg)
 
         add_log = Pay_email(
             invoice_no=gen_invoice_id,
