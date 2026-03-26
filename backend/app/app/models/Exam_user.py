@@ -4,13 +4,13 @@ from backend.app.app.db.base import Base
 from sqlalchemy.orm import relationship
 
 
+
 class ExamUsers(Base):
     __tablename__ = "exam_user"
 
-    user_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, primary_key=True , index=True)
     username = Column(String(100), unique=True)
-    password = Column(String(255))
-    usertype = Column(String(20))
+    password = Column(String(255), unique=True)
     Created_At = Column(DateTime, server_default=func.now())
     Updated_At = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

@@ -7,7 +7,7 @@ class Attempts(Base):
     __tablename__ = "exam_attempts"
 
     attempt_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.user_id"))
+    user_id = Column(Integer, ForeignKey("exam_user.user_id"))
     assessment_id = Column(Integer, ForeignKey("exam_assessments.assessment_id"))
     started_at = Column(TIMESTAMP, default=func.now())
     submitted_at = Column(TIMESTAMP, default=func.now())
