@@ -42,12 +42,7 @@ class SignUpDetails(SignUpAbstract):
                 #Users.username == self.new_user.username,
                 Users.email == self.new_user.email
             ),
-<<<<<<< HEAD
-            Users.status == "active"
-            
-=======
             Users.status == 1
->>>>>>> 44e1269516427744bcf80a3f4f825c69fed18c07
         ).first()
 
         if not user:
