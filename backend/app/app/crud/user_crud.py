@@ -1,9 +1,14 @@
+import datetime
+from decimal import Decimal
+from operator import and_
 from unittest import result
 
 from fastapi import HTTPException
-from sqlalchemy import or_
+from sqlalchemy import Null, or_
 from starlette import status
 from backend.app.app.models.portal_users import Users
+from backend.app.app.models.user_token import Token
+
 from backend.app.app.core.security import get_password_hash, verify_password, create_access_token
 from abc import ABC,abstractmethod
 from sqlalchemy.orm import Session
@@ -88,3 +93,21 @@ class ViewUser:
         self.db = db
     def view_user(self,batch):
         result=self.db.query(Users).filter(Users.batch==batch).all()
+
+class Logout:
+    def __init__(self, db):
+        self.db = db
+
+    def logout(self,current_user):
+        user=current_user.get("user_id")
+
+        tokens = self.db.query(Token).filter(and_(Token.user_id==user,Token.logout==Null,Token.token!=Null)).first()
+        tokens.logout = datetime.now()
+        time_diff = datetime.now() - tokens.login  # timedelta
+        tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
+        tokens.token=None
+        self.db.add(tokens)
+        self.db.commit()
+        return {
+                "Logout" : "Successfully"
+                }
