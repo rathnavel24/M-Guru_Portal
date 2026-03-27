@@ -17,6 +17,7 @@ from backend.app.app.models.user_token import Token
 from sqlalchemy import select, desc
 from backend.app.app.models.portal_users import Users
 from backend.app.app.utils import get_pagination
+from sqlalchemy import select, desc, func
 
 from backend.app.app.core.security import (
     get_password_hash,
@@ -171,9 +172,9 @@ class GetEmail:
     def __init__(self, db):
         
         self.db = db
-    from sqlalchemy import select, desc, func
+  
 
-    def get_all_emails(self, page_no: int = 1, page_size: int = 10):
+    def get_all_emails(self,page_no: int = 1, page_size: int = 10):
 
         #total count
         total_rows = self.db.query(func.count(Pay_email.id)).filter(
@@ -262,26 +263,7 @@ class GetEmail:
             "data": data
         }
 
-    def get_all_emails(self):
-        return (
-            self.db.execute(
-                select(
-                    Pay_email.id,
-                    Pay_email.invoice_no,
-                    Pay_email.amount,
-                    Pay_email.created_at,
-                    Users.username.label("receiver_name"),
-                    Users.email.label("receiver_email"),
-                    Pay_email.email_type,
-                    Pay_email.is_complete,
-                )
-                .join(Users, Users.user_id == Pay_email.to_id)
-                .where(Pay_email.status == 1)
-                .order_by(desc(Pay_email.created_at))
-            )
-            .mappings()
-            .all()
-        )
+
 class Logout:
     def __init__(self, db):
         self.db = db
