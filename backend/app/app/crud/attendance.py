@@ -1,46 +1,59 @@
 from decimal import Decimal
 from unittest import result
-from datetime import datetime, timezone
-
-from fastapi import Depends
+from datetime import datetime
+from pytz import timezone
+from fastapi import Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from backend.app.app.models import Token
-from backend.app.app.api.deps import get_db,sessionLocal
-from apscheduler.schedulers.background import BackgroundScheduler
+from backend.app.app.api.deps import get_db, sessionLocal
+from datetime import timezone
 
-scheduler = BackgroundScheduler()
 
 def logout_all_users():
-    db: Session = sessionLocal() 
+    db: Session = sessionLocal()
     try:
-        # Set logout time for all users who are logged in
         tokens = db.query(Token).filter(Token.logout.is_(None)).all()
+        now = db.query(func.now()).scalar()
+
+        # Make now naive to match DB login
+        if now.tzinfo:
+            now_naive = now.replace(tzinfo=None)
+        else:
+            now_naive = now
+
         for token in tokens:
-            token.logout = datetime.utcnow()
-            time_diff = datetime.utcnow() - token.login  # timedelta
-            token.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
-            token.token=None
+            token.logout = now_naive
+
+            if token.login:
+                diff = now_naive - token.login  # both naive → works
+                token.ideal_time = Decimal(diff.total_seconds() / 3600).quantize(Decimal("0.01"))
+
+            token.token = None
             db.add(token)
+
         db.commit()
-        #print(f"[{datetime.now()}] Logout job executed. Total users logged out: {len(tokens)}")
+
     except Exception as e:
-        print(f"Error in logout job: {e}")
+        return e
     finally:
         db.close()
 
-# Schedule the job daily at 6:30 PM
-scheduler.add_job(logout_all_users, 'cron', hour=18, minute=30)
-scheduler.start()
-
 
 class Attendance:
-    def __init__(self,db):
+    def __init__(self, db):
         self.db = db
-    def attendance(self,usr_id):
-        result=self.db.query(Token.login,
-                             Token.logout,
-                             Token.ideal_time).filter(
-                                 Token.user_id==usr_id).all()
 
+    def attendance(self, usr_id):
+        try:
+            result = (
+                self.db.query(Token.login, Token.logout, Token.ideal_time)
+                .filter(Token.user_id == usr_id)
+                .all()
+            )
 
-        return [row._asdict() for row in result]
+            if not result:
+                raise HTTPException(status_code=404, detail="User not found")
+            return [row._asdict() for row in result]
+        except Exception as e:
+            return e
