@@ -37,7 +37,7 @@ app.include_router(Exam_user.router)
 
 scheduler = BackgroundScheduler()
 
-
+'''
 def run_if_missed():
     now = datetime.now()
     target_time = now.replace(hour=18, minute=30, second=0, microsecond=0)
@@ -56,3 +56,4 @@ def start_scheduler():
 
     if not scheduler.running:
         scheduler.start()
+'''
