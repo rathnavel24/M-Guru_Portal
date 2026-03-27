@@ -3,6 +3,7 @@ from decimal import Decimal
 from operator import and_
 from unittest import result
 from backend.app.app.models.pay_email_table import Pay_email
+from backend.app.app.models.portaluserfee import Fee
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
 from sqlalchemy import Null, or_
@@ -46,21 +47,47 @@ class SignUpDetails(SignUpAbstract):
 
     def user_signup(self):
 
-        if self.user_verification():
-            self.db.add(
-                Users(
-                    username=self.new_user.username,
-                    email=self.new_user.email,
-                    password=get_password_hash(self.new_user.password),
-                    type=self.new_user.type,
-                    batch=self.new_user.batch,
-                )
+        if not self.user_verification():
+            raise HTTPException(
+                status_code=409,
+                detail="User already Exists"
             )
+
+        try:
+            new_user = Users(
+                username=self.new_user.username,
+                email=self.new_user.email,
+                password=get_password_hash(self.new_user.password),
+                type=self.new_user.type,
+                batch=self.new_user.batch,
+            )
+
+            self.db.add(new_user)
+
+            # get user_id before commit
+            self.db.flush()
+
+            #create fee entry
+            new_fee = Fee(
+                user_id=new_user.user_id,
+                total_fee=self.new_user.total_fee or 0,
+                paid_amount=0,
+                status=1,
+                created_by="ADMIN"
+            )
+
+            self.db.add(new_fee)
+
             self.db.commit()
-            return {"msg": "User Created Successfully"}
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="User already Exists"
-        )
+
+            return {
+                "msg": "User Created Successfully",
+                "user_id": new_user.user_id
+            }
+
+        except Exception as e:
+            self.db.rollback()
+            raise e
 
     def user_verification(self) -> bool:
         user = (
@@ -164,6 +191,43 @@ class UserServices:
                                             .distinct().all()
         return [r[0] for r in result]
 
+    def get_all_users(self, page_no: int = 1, page_size: int = 10):
+        """
+        Fetch all active users with pagination
+        """
+        # total count of active users
+        total_rows = self.db.query(func.count(Users.user_id)).filter(
+            Users.status == 1
+        ).scalar()
+
+        # pagination calculation
+        total_pages, offset, limit = get_pagination(
+            row_count=total_rows,
+            current_page_no=page_no,
+            default_page_size=page_size
+        )
+
+        # fetch paginated users
+        users = self.db.query(
+            Users.user_id,
+            Users.username,
+            Users.email,
+            Users.batch
+        ).filter(
+            Users.status == 1
+        ).offset(offset).limit(limit).all()
+
+        # convert to dict for JSON
+        users = [row._asdict() for row in users]
+
+        return {
+            "total_pages": total_pages,
+            "current_page": page_no,
+            "page_size": page_size,
+            "total_records": total_rows,
+            "data": users
+        }
+
 
 
 class GetEmail:
@@ -238,6 +302,7 @@ class GetEmail:
         Pay_email.amount,
         Pay_email.is_complete,
         Pay_email.created_at,
+        Pay_email.email_type,
         Users.username.label("receiver_name"),
         Users.email.label("receiver_email"),
         Users.batch
