@@ -6,3 +6,6 @@ class AssessmentResponse(BaseModel):
     total_questions : int
     duration_minutes : int 
     pass_mark : int
+
+    class Config:
+        from_attributes = True

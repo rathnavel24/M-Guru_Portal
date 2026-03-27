@@ -7,8 +7,7 @@ class QuestionResponse(BaseModel):
     level : str
     marks : int
 
-class OptionResponse(BaseModel):
-    id : int
-    question_id : int
-    options_label : str
-    option_text : str    
+ 
+
+    class Config:
+        from_attributes = True
