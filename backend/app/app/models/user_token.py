@@ -17,6 +17,5 @@ class Token(Base):
     ideal_time=Column(Numeric(10, 2))
 
 
-    user = relationship("Users", back_populates="fees")
-    
+    tokens = relationship("Token", back_populates="user")
    
