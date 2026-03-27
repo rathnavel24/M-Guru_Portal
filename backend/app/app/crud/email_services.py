@@ -102,8 +102,6 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
             )
         await send_email(msg)
 
-        if data.email_type ==1 :
-            return "Invoice"
         add_log = Pay_email(
             invoice_no=gen_invoice_id,
             from_id= sender_id,
@@ -119,7 +117,6 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
             updated_at=datetime.now(),
             created_by="ADMIN",
         )
-        print(add_log.email_type)
         db.add(add_log)
         db.commit()
 
