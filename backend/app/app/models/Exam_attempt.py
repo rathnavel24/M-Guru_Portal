@@ -9,10 +9,14 @@ class Attempts(Base):
     attempt_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("exam_user.user_id"))
     assessment_id = Column(Integer, ForeignKey("exam_assessments.assessment_id"))
+    # assessment_id = Column(Integer, autoincrement=True)
     started_at = Column(TIMESTAMP, default=func.now())
-    submitted_at = Column(TIMESTAMP, default=func.now())
-    score = Column(Integer)
-    percentage = Column(Integer)
+    submitted_at = Column(TIMESTAMP,nullable=True)
+
+    aptitude_score = Column(Integer)
+    technical_score = Column(Integer)
+    total_score = Column(Integer)
+    total_percentage = Column(Integer)
     status = Column(String)
 
     user = relationship("ExamUsers",back_populates="user_attempts")

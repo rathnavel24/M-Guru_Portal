@@ -5,5 +5,5 @@ class AssessmentCrud:
     def __init__(self, db: Session):
         self.db = db
 
-def get_assessments(self):
-    return self.db.query(Assessments).all()
+    def get_assessments(self):
+        return self.db.query(Assessments).all()
