@@ -1,13 +1,14 @@
 
 from pydantic import BaseModel
-
-class SignUpRequest(BaseModel):
-    username: str
-    password: str
+from pydantic import BaseModel, EmailStr
+from typing import Optional
   
 
 class LoginRequest(BaseModel):
     username: str
     password: str
+    email: Optional[str] = None
+    name: Optional[str] = None
+
    
 
