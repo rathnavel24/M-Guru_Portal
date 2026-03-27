@@ -5,6 +5,7 @@ from backend.app.app.crud.user_crud import SignUpDetails,LoginUser,Logout,GetEma
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, Logout
 from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, UserServices
+from backend.app.app.crud.dashboard import dashboard
 from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.email_services import send_invoice_email
 
@@ -47,6 +48,9 @@ async def payment_mail(
     bgtask.add_task(send_invoice_email, data,current_user, db)
     return{"message": "Payment mail sent succesfully"}
 
+@router.post("/dashboard")
+async def get_dashboard(batch_id: int = None, db: Session = Depends(get_db)):
+    return dashboard(batch_id,db)
 
 # this is for view all user
 
