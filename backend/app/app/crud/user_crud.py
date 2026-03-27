@@ -283,7 +283,11 @@ class Logout:
         now =self.db.query(func.now()).scalar()
         tokens.logout = now.replace(tzinfo=None)
         time_diff = (now.replace(tzinfo=None)) - tokens.login  # timedelta
-        tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
+        
+        mins= Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
+        if tokens.ideal_time is None:
+            tokens.ideal_time = mins  # initialize if None
+        tokens.ideal_time += mins
         tokens.token=None
         self.db.add(tokens)
         self.db.commit()
