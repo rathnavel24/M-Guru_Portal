@@ -5,10 +5,9 @@ from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, Logout
 from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, UserServices
 from backend.app.app.api.deps import get_db, role_required
-from backend.app.app.utils import send_invoice_email
+from backend.app.app.crud.email_services import send_invoice_email
 
 router = APIRouter(tags=["login"])
-
 
 @router.post("/signup")
 async def signup(
@@ -20,8 +19,7 @@ async def signup(
         return SignUpDetails(db, user_data).user_signup()
     except Exception as e:
         raise e
-
-
+    
 @router.post("/login")
 async def login(
     data: UserLogin, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
@@ -45,22 +43,17 @@ async def payment_mail(
     current_user=Depends(role_required([1])),
     db: Session = Depends(get_db),
 ):
-    try:
-        bgtask.add_task(send_invoice_email, data, db)
-        return {"message": "Payment mail sent succesfully"}
-    except Exception as e:
-        raise e
+    bgtask.add_task(send_invoice_email, data,current_user, db)
+    return{"message": "Payment mail sent succesfully"}
 
 
 # this is for view all user
-
 
 @router.get("/get_userby_batch/{batch_id}")
 async def get_userby_batch(
     batch_id, db: Session = Depends(get_db), current_user=Depends(role_required([1]))
 ):
     return UserServices(db, None).get_usersby_batch(batch_id)
-
 
 @router.delete("/users/{user_id}")
 def delete_user(
@@ -69,3 +62,5 @@ def delete_user(
     current_user=Depends(role_required([1])),  # only admin
 ):
     return UserServices(db, None).soft_delete_user(user_id)
+
+
