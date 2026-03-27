@@ -17,4 +17,4 @@ class Fee(Base):
     created_by = Column(String(100), default="ADMIN")
 
     user = relationship("Users",back_populates="fees")
-    tokens = relationship("Token", back_populates="user")
+    

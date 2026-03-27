@@ -16,6 +16,5 @@ class Token(Base):
     logout = Column(TIMESTAMP)
     ideal_time=Column(Numeric(10, 2))
 
-
-    tokens = relationship("Token", back_populates="user")
+    user = relationship("Users", back_populates="tokens")
    
