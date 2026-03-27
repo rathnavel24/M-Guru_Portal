@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from operator import and_
 from unittest import result
+from backend.app.app.models.pay_email_table import Pay_email
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
 from sqlalchemy import Null, or_
@@ -13,6 +14,8 @@ from sqlalchemy import func, or_
 from starlette import status
 from backend.app.app.models.portal_users import Users
 from backend.app.app.models.user_token import Token
+from sqlalchemy import select, desc
+from backend.app.app.models.portal_users import Users
 
 from backend.app.app.core.security import get_password_hash, verify_password, create_access_token
 from abc import ABC,abstractmethod
@@ -175,3 +178,22 @@ class Logout:
 
         return {"msg": "User deleted successfully"}
 
+class GetEmail:
+    def __init__(self,db):
+        self.db = db
+    def get_all_emails(self):
+        return self.db.execute(
+            select(
+                Pay_email.id,
+                Pay_email.invoice_no,
+                Pay_email.amount,
+                Pay_email.created_at,
+                Users.username.label("receiver_name"),
+                Users.email.label("receiver_email"),
+                Pay_email.email_type,
+                Pay_email.is_complete
+            )
+            .join(Users, Users.user_id == Pay_email.to_id)
+            .where(Pay_email.status == 1)
+            .order_by(desc(Pay_email.created_at))
+        ).mappings().all()

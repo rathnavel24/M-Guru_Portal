@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks,Depends
 from backend.app.app.schemas.user_schema import UserSignUp,UserLogin,Paymentmail
 from sqlalchemy.orm import Session
-from backend.app.app.crud.user_crud import SignUpDetails,LoginUser,Logout
+from backend.app.app.crud.user_crud import SignUpDetails,LoginUser,Logout,GetEmail
 from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.user_crud import SignUpDetails,LoginUser,UserServices
 from backend.app.app.api.deps import get_db, role_required
@@ -50,3 +50,8 @@ def delete_user(
     current_user=Depends(role_required([1]))  #only admin
 ):
     return UserServices(db, None).soft_delete_user(user_id)
+
+@router.get("/emails")
+def get_all_emails(db: Session = Depends(get_db),
+                   current_user=Depends(role_required([1]))):  #only admin):
+    return GetEmail(db).get_all_emails()
