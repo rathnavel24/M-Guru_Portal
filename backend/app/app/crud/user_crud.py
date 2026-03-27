@@ -16,6 +16,7 @@ from backend.app.app.models.portal_users import Users
 from backend.app.app.models.user_token import Token
 from sqlalchemy import select, desc
 from backend.app.app.models.portal_users import Users
+from backend.app.app.utils import get_pagination
 
 from backend.app.app.core.security import (
     get_password_hash,
@@ -129,46 +130,12 @@ class LoginUser:
 class UserServices:
 
     def __init__(self, db: Session, data):
+        self.data = data
         self.db = db
 
     def view_user(self, batch):
         result = self.db.query(Users).filter(Users.batch == batch).all()
 
-
-class Logout:
-    def __init__(self, db):
-        self.db = db
-
-    def logout(self, current_user):
-        user = current_user.get("user_id")
-
-        # tokens = self.db.query(Token).filter(and_(Token.user_id==user,Token.logout.is_(None),Token.token.isnot(None))).first()
-        tokens = (
-            self.db.query(Token)
-            .filter(Token.user_id == user)
-            .filter(Token.logout.is_(None))
-            .filter(Token.token.isnot(None))
-            .first()
-        )
-        if not tokens:
-            return {"message": "No active session found"}
-        #now = datetime.now()
-        now=self.db.query(func.now()).scalar()
-        login_aware = tokens.login.replace(tzinfo=timezone.utc)
-        tokens.logout = now
-        if tokens.login:
-            #time_diff = now - tokens.login
-            time_diff = now - login_aware
-
-            tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(
-                Decimal("0.01")
-            )
-
-        tokens.token = None
-        self.db.add(tokens)
-        self.db.commit()
-        return {"Logout": "Successfully"}
-        self.data = data
 
     def get_usersby_batch(self, batch_id):
         result = self.db.execute(
@@ -193,11 +160,107 @@ class Logout:
         self.db.commit()
 
         return {"msg": "User deleted successfully"}
+    def get_all_batches(self):
+        result = self.db.query(Users.batch).filter(Users.batch != None) \
+                                            .distinct().all()
+        return [r[0] for r in result]
+
 
 
 class GetEmail:
     def __init__(self, db):
+        
         self.db = db
+    from sqlalchemy import select, desc, func
+
+    def get_all_emails(self, page_no: int = 1, page_size: int = 10):
+
+        #total count
+        total_rows = self.db.query(func.count(Pay_email.id)).filter(
+            Pay_email.status == 1
+        ).scalar()
+
+        #pagination
+        total_pages, offset, limit = get_pagination(
+            row_count=total_rows,
+            current_page_no=page_no,
+            default_page_size=page_size
+        )
+
+        #fetch paginated data
+        data = self.db.execute(
+            select(
+                Pay_email.id,
+                Pay_email.invoice_no,
+                Pay_email.amount,
+                Pay_email.is_complete,
+                Pay_email.created_at,
+                Pay_email.email_type,
+                Users.username.label("receiver_name"),
+                Users.email.label("receiver_email"),
+                Users.batch
+            )
+            .where(Pay_email.status == 1)
+            .order_by(desc(Pay_email.created_at))
+            .offset(offset)
+            .limit(limit)
+        ).mappings().all()
+
+        return {
+            "total_pages": total_pages,
+            "current_page": page_no,
+            "page_size": page_size,
+            "total_records": total_rows,
+            "data": data
+        }
+
+
+    def get_all_emails_bybatch(self, batch_id: int, page_no: int = 1, page_size: int = 10):
+
+        # total count (with batch filter)
+        total_rows = self.db.query(func.count(Pay_email.id)) \
+            .join(Users, Users.user_id == Pay_email.to_id) \
+            .filter(
+                Pay_email.status == 1,
+                Users.batch == batch_id
+            ).scalar()
+
+        #pagination
+        total_pages, offset, limit = get_pagination(
+            row_count=total_rows,
+            current_page_no=page_no,
+            default_page_size=page_size
+        )
+
+        #fetch paginated data
+        data = self.db.execute(
+            select(
+                Pay_email.id,
+                Pay_email.invoice_no,
+                Pay_email.amount,
+                Pay_email.is_complete,
+                Pay_email.created_at,
+                Users.username.label("receiver_name"),
+                Users.email.label("receiver_email"),
+                Users.batch
+            )
+            .join(Users, Users.user_id == Pay_email.to_id)
+            .where(
+                Pay_email.status == 1,
+                Users.batch == batch_id
+            )
+            .order_by(desc(Pay_email.created_at))
+            .offset(offset)
+            .limit(limit)
+        ).mappings().all()
+
+        return {
+            "total_pages": total_pages,
+            "current_page": page_no,
+            "page_size": page_size,
+            "total_records": total_rows,
+            "data": data
+        }
 
     def get_all_emails(self):
         return (
@@ -219,3 +282,29 @@ class GetEmail:
             .mappings()
             .all()
         )
+class Logout:
+    def __init__(self, db):
+        self.db = db
+
+    def logout(self,current_user):
+        user=current_user.get("user_id")
+
+
+        #tokens = self.db.query(Token).filter(and_(Token.user_id==user,Token.logout.is_(None),Token.token.isnot(None))).first()
+        tokens = (
+    self.db.query(Token)
+    .filter(Token.user_id == user)
+    .filter(Token.logout.is_(None))
+    .filter(Token.token.isnot(None))
+    .first()
+)
+        tokens.logout = datetime.utcnow()
+        time_diff = datetime.utcnow() - tokens.login  # timedelta
+        tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
+        tokens.token=None
+        self.db.add(tokens)
+        self.db.commit()
+        return {
+                "Logout" : "Successfully"
+                }
+        

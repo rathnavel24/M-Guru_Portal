@@ -71,7 +71,7 @@ async def get_userby_batch(
 
 
 @router.delete("/users/{user_id}")
-def delete_user(
+async def delete_user(
     user_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(role_required([1])),  # only admin
@@ -80,7 +80,24 @@ def delete_user(
 
 
 @router.get("/emails")
-def get_all_emails(
-    db: Session = Depends(get_db), current_user=Depends(role_required([1]))
-):  # only admin):
-    return GetEmail(db).get_all_emails()
+async def get_emails(
+    page_no: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1]))
+):
+    return GetEmail(db).get_all_emails(page_no, page_size)
+
+@router.get("/emails/{batch_id}")
+async def get_emails(
+    batch_id: int,
+    page_no: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1]))
+):
+    return GetEmail(db).get_all_emails_bybatch(batch_id, page_no, page_size)
+
+@router.get("/batches")
+async def get_batches(db: Session = Depends(get_db),current_user=Depends(role_required([1]))):
+    return UserServices(db, None).get_all_batches()
