@@ -142,13 +142,16 @@ class LoginUser:
             )
             .first()
         )
+        now=datetime.utcnow()
         if today_token:
+            
 
             today_token.token = None
-            new_token = Token(token=token, user_id=user.user_id)
+            new_token = Token(token=token, user_id=user.user_id,last_activity =now,productive_minutes = 0)
+
 
         else:
-            new_token = Token(token=token, user_id=user.user_id)
+            new_token = Token(token=token, user_id=user.user_id,last_activity =now,productive_minutes = 0)
 
         self.db.add(new_token)
         self.db.commit()
