@@ -10,10 +10,10 @@ class Questions(Base):
     assessments_id = Column(Integer, ForeignKey("exam_assessments.assessment_id"))
 
     question_type = Column(String(255))
-    question_text = Column(JSON)
+    question_text = Column(TEXT)
     question_section = Column(String(255))
     section_id = Column(Integer,ForeignKey("exam_section.section_id"))
-    correct_option = Column(String(1))
+    # correct_option = Column(String(1))
 
     assessment = relationship("Assessments", back_populates="que_assessment")
     user_questions = relationship("Options", back_populates="questions")
