@@ -223,7 +223,7 @@ class GetEmail:
             .join(Users, Users.user_id == Pay_email.to_id) \
             .filter(
                 Pay_email.status == 1,
-                Users.batch == batch_id
+                Users.batch == int(batch_id)
             ).scalar()
 
         #pagination
@@ -234,26 +234,27 @@ class GetEmail:
         )
 
         #fetch paginated data
-        data = self.db.execute(
-            select(
-                Pay_email.id,
-                Pay_email.invoice_no,
-                Pay_email.amount,
-                Pay_email.is_complete,
-                Pay_email.created_at,
-                Users.username.label("receiver_name"),
-                Users.email.label("receiver_email"),
-                Users.batch
-            )
-            .join(Users, Users.user_id == Pay_email.to_id)
-            .where(
-                Pay_email.status == 1,
-                Users.batch == batch_id
-            )
-            .order_by(desc(Pay_email.created_at))
-            .offset(offset)
-            .limit(limit)
-        ).mappings().all()
+        data = self.db.query(
+        Pay_email.id,
+        Pay_email.invoice_no,
+        Pay_email.amount,
+        Pay_email.is_complete,
+        Pay_email.created_at,
+        Users.username.label("receiver_name"),
+        Users.email.label("receiver_email"),
+        Users.batch
+    ).join(
+        Users, Users.user_id == Pay_email.to_id
+    ).filter(
+        Pay_email.status == 1,
+        Users.batch == batch_id
+    ).order_by(
+        desc(Pay_email.created_at)
+    ).offset(offset).limit(limit).all()
+
+        data = [row._asdict() for row in data]
+
+
 
         return {
             "total_pages": total_pages,
