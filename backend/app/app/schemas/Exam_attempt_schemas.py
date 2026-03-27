@@ -24,6 +24,7 @@ class ResultResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class AttemptHistoryResponse(BaseModel):
     id : int 
     assessment_id : int
@@ -33,3 +34,16 @@ class AttemptHistoryResponse(BaseModel):
 
     class Config:
         from_attributes = True      
+
+
+class FinalResultSchema(BaseModel):
+    test_type: str | None = None
+    correct_answers: int
+    wrong_answers: int
+    skipped_answers: int
+    total_questions: int
+    score: int
+    percentage: int
+    time_taken: int
+    aptitude_score: int = 0
+    technical_score: int = 0
