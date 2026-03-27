@@ -109,7 +109,7 @@ class LoginUser:
             self.db.query(Token)
             .filter(
                 Token.user_id == user.user_id,
-                func.date(Token.login) == date.today(),  # 👈 key logic
+                func.date(Token.login) == date.today(),  # ðŸ‘ˆ key logic
             )
             .first()
         )
