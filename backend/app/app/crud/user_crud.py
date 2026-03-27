@@ -280,8 +280,9 @@ class Logout:
     .filter(Token.token.isnot(None))
     .first()
 )
-        tokens.logout = datetime.utcnow()
-        time_diff = datetime.utcnow() - tokens.login  # timedelta
+        now =self.db.query(func.now()).scalar()
+        tokens.logout = now.replace(tzinfo=None)
+        time_diff = (now.replace(tzinfo=None)) - tokens.login  # timedelta
         tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
         tokens.token=None
         self.db.add(tokens)
