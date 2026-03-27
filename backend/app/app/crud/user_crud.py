@@ -60,6 +60,8 @@ class SignUpDetails(SignUpAbstract):
                 password=get_password_hash(self.new_user.password),
                 type=self.new_user.type,
                 batch=self.new_user.batch,
+                phone=self.new_user.phone,
+                tech_stack=self.new_user.tech_stack
             )
 
             self.db.add(new_user)
@@ -165,7 +167,7 @@ class UserServices:
 
     def get_usersby_batch(self, batch_id):
         result = self.db.execute(
-            self.db.query(Users.user_id, Users.username, Users.email, Users.batch)
+            self.db.query(Users.user_id, Users.username, Users.email, Users.batch,Users.phone,Users.tech_stack)
             .filter(Users.batch == batch_id, Users.status == 1)
             .statement
         )

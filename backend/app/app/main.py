@@ -38,21 +38,21 @@ app.include_router(Exam_user.router)
 scheduler = BackgroundScheduler()
 
 
-def run_if_missed():
-    now = datetime.now()
-    target_time = now.replace(hour=18, minute=30, second=0, microsecond=0)
+# def run_if_missed():
+#     now = datetime.now()
+#     target_time = now.replace(hour=18, minute=30, second=0, microsecond=0)
 
-    if now > target_time:
-        logout_all_users()
+#     if now > target_time:
+#         logout_all_users()
 
 
-@app.on_event("startup")
-def start_scheduler():
-    # âœ… Run missed job if server was down
-    run_if_missed()
+# @app.on_event("startup")
+# def start_scheduler():
+#     # âœ… Run missed job if server was down
+#     run_if_missed()
 
-    # âœ… Schedule daily job
-    scheduler.add_job(logout_all_users, "cron", hour=18, minute=30)
+#     # âœ… Schedule daily job
+#     scheduler.add_job(logout_all_users, "cron", hour=18, minute=30)
 
-    if not scheduler.running:
-        scheduler.start()
+#     if not scheduler.running:
+#         scheduler.start()
