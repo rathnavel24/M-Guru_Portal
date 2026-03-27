@@ -8,3 +8,4 @@ from .Exam_assessment import *
 from .Exam_answer import *
 from .pay_email_table import * 
 from .user_token import Token
+from .portaluserfee import *

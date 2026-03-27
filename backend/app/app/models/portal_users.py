@@ -20,7 +20,12 @@ class Users(Base):
     updated_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100), default="ADMIN")
 
-    # hari
+    
+    fees = relationship(
+        "Fee",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
     sent_emails = relationship(
         "Pay_email", foreign_keys="Pay_email.from_id", back_populates="sender")
 
