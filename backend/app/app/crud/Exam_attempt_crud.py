@@ -20,18 +20,28 @@ class AttemptCrud:
         return attempt
     
     def submit_test(self, attempt_id: int):
+        
         attempt = self.db.query(Attempts).filter(
             Attempts.attempt_id == attempt_id
         ).first()
 
+        #  check if attempt exists
         if not attempt:
-            return{"error": "Attempt not found"}
+            return {"error": "Attempt not found"}
 
+        #  update values
         attempt.submitted_at = datetime.utcnow()
         attempt.status = "completed"
 
         self.db.commit()
-        return attempt
+        self.db.refresh(attempt)
+
+        #  return proper response
+        return {
+            "attempt_id": attempt.attempt_id,
+            "status": attempt.status,
+            "submitted_at": attempt.submitted_at
+        }
     
     def get_result(self, attempt_id: int):
         attempt = self.db.query(Attempts).filter(
