@@ -90,6 +90,8 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
         msg["Subject"] = f"Invoice {gen_invoice_id} - Payment Request"
         msg["From"] = os.getenv("user")
         msg["To"] = user.email
+        if not user.email:
+            raise ValueError("User email is missing")
 
         msg.set_content("Please view this email in HTML format.")
         msg.add_alternative(html_content, subtype="html")  #  Add HTML
