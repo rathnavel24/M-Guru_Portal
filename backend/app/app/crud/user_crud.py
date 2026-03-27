@@ -113,17 +113,15 @@ class LoginUser:
             )
             .first()
         )
-
         if today_token:
 
-            today_token.token = token
-            today_token.logout = None
-
-        else:
-
+            today_token.token = None
             new_token = Token(token=token, user_id=user.user_id)
 
-            self.db.add(new_token)
+        else:
+            new_token = Token(token=token, user_id=user.user_id)
+
+        self.db.add(new_token)
         self.db.commit()
         return {"token": token, "token_type": "bearer", "user_type": user.type}
 
@@ -284,10 +282,7 @@ class Logout:
         tokens.logout = now.replace(tzinfo=None)
         time_diff = (now.replace(tzinfo=None)) - tokens.login  # timedelta
         
-        mins= Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
-        if tokens.ideal_time is None:
-            tokens.ideal_time = mins  # initialize if None
-        tokens.ideal_time += mins
+        tokens.ideal_time= Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
         tokens.token=None
         self.db.add(tokens)
         self.db.commit()
