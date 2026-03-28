@@ -261,7 +261,7 @@ class AttemptCrud:
         self.db.refresh(attempt)
 
         return {
-            "test_type": data.get("test_type"),
+
             "aptitude_score": data.get("aptitude_score", 0),
             "technical_score": data.get("technical_score", 0),
             "correct_answers": data.get("correct_answers", 0),
