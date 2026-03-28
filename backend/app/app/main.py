@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timezone
+from datetime import datetime
 from fastapi import FastAPI
 from backend.app.app.api.endpoints import user
 from backend.app.app.api.endpoints import Exam_assessment
@@ -48,10 +48,8 @@ def run_if_missed():
 
 @app.on_event("startup")
 def start_scheduler():
-    # âœ… Run missed job if server was down
     run_if_missed()
 
-    # âœ… Schedule daily job
     scheduler.add_job(logout_all_users, "cron", hour=18, minute=30)
 
     if not scheduler.running:

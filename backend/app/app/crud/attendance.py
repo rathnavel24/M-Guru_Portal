@@ -1,15 +1,11 @@
 from decimal import Decimal
-from unittest import result
 from datetime import datetime
-from pytz import timezone
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from backend.app.app.models import Token
-from backend.app.app.api.deps import get_db, sessionLocal
-from datetime import timezone
+from backend.app.app.api.deps import sessionLocal
 from sqlalchemy import func, cast, Date
-
 
 def logout_all_users():
     db: Session = sessionLocal()

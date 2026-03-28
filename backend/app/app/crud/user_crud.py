@@ -3,7 +3,6 @@ from decimal import Decimal
 from operator import and_
 from unittest import result
 from backend.app.app.models.Exam_user import ExamUsers
-
 from alembic.command import current
 from backend.app.app.models.pay_email_table import Pay_email
 from backend.app.app.models.portaluserfee import Fee
