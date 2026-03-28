@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from backend.app.app.models.Exam_attempt import Attempts
@@ -243,7 +244,17 @@ class AttemptCrud:
     
 
     def save_result_from_frontend(self, user_id: int, data: dict):
-        
+        existing_attempt = (
+            self.db.query(Attempts)
+            .filter(Attempts.user_id == user_id)
+            .first()
+        )
+
+        if existing_attempt:
+            raise HTTPException(
+                status_code=400,
+                detail="User has already attempted the exam"
+            )
         attempt = Attempts(
             user_id=user_id,
             assessment_id=data.get("assessment_id", 1),
