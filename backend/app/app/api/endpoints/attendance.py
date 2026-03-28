@@ -19,6 +19,6 @@ async def view(
 
 
 @router.post("/viewbyuser")
-async def view(current_user=Depends(role_required([2])), db: Session = Depends(get_db)):
+async def view(current_user=Depends(role_required([1,2])), db: Session = Depends(get_db)):
     user_id = current_user.get("user_id")
     return Attendance(db).attendance(user_id)
