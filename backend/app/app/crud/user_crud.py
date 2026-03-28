@@ -197,40 +197,154 @@ class UserServices:
         return [r[0] for r in result]
 
     def get_all_users(self, page_no: int = 1, page_size: int = 10):
-        """
-        Fetch all active users with pagination
-        """
-        # total count of active users
+
+        # total count
         total_rows = self.db.query(func.count(Users.user_id)).filter(
             Users.status == 1
         ).scalar()
 
-        # pagination calculation
+        # pagination
         total_pages, offset, limit = get_pagination(
             row_count=total_rows,
             current_page_no=page_no,
             default_page_size=page_size
         )
 
-        # fetch paginated users
+        # main query with fee aggregation
         users = self.db.query(
             Users.user_id,
             Users.username,
             Users.email,
-            Users.batch
+            Users.phone,
+            Users.batch,
+            Users.tech_stack,
+
+            func.coalesce(func.sum(Fee.total_fee), 0).label("total_fee"),
+            func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount")
+
+        ).outerjoin(
+            Fee, Fee.user_id == Users.user_id
         ).filter(
             Users.status == 1
+        ).group_by(
+            Users.user_id,
+            Users.username,
+            Users.email,
+            Users.phone,
+            Users.batch,
+            Users.tech_stack
         ).offset(offset).limit(limit).all()
 
-        # convert to dict for JSON
-        users = [row._asdict() for row in users]
+        # convert + calculate due
+        result = []
+        for row in users:
+            row_dict = row._asdict()
+
+            total_fee = row_dict["total_fee"]
+            paid_amount = row_dict["paid_amount"]
+
+            row_dict["due_amount"] = total_fee - paid_amount
+
+            result.append(row_dict)
 
         return {
             "total_pages": total_pages,
             "current_page": page_no,
             "page_size": page_size,
             "total_records": total_rows,
-            "data": users
+            "data": result
+    }
+    def get_user(self, user_id: int):
+        user = self.db.query(Users).filter(
+            Users.user_id == user_id,
+            Users.status == 1
+        ).first()
+
+        if not user:
+            return None
+
+        # assuming one fee record (or take latest)
+        fee = user.fees[0] if user.fees else None
+
+        return {
+            "user_id": user.user_id,
+            "username": user.username,
+            "email": user.email,
+            "phno" : user.phone,
+            "batch": user.batch,
+            "tech_stack" : user.tech_stack,
+            "total_fee": fee.total_fee if fee else 0,
+            "paid_amount": fee.paid_amount if fee else 0,
+            "due_amount": (fee.total_fee - fee.paid_amount) if fee else 0
+        }
+    def update_user(self, user_id: int, data):
+
+        user = self.db.query(Users).filter(
+            Users.user_id == user_id,
+            Users.status == 1
+        ).first()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # email update (IMPORTANT)
+        if data.email is not None:
+            existing_user = self.db.query(Users).filter(
+                Users.email == data.email,
+                Users.user_id != user_id
+            ).first()
+
+            if existing_user:
+                raise HTTPException(status_code=409, detail="Email already exists")
+
+            user.email = data.email
+
+        # other fields
+        if data.username is not None:
+            user.username = data.username
+
+        if data.phone is not None:
+            user.phone = data.phone
+
+        if data.batch is not None:
+            user.batch = data.batch
+
+        if data.tech_stack is not None:
+            user.tech_stack = data.tech_stack
+
+        # fee handling
+        fee = self.db.query(Fee).filter(Fee.user_id == user_id).first()
+
+        if not fee:
+            fee = Fee(
+                user_id=user_id,
+                total_fee=data.total_fee or 0,
+                paid_amount=data.paid_amount or 0
+            )
+            self.db.add(fee)
+        else:
+            if data.total_fee is not None:
+                fee.total_fee = data.total_fee
+
+            if data.paid_amount is not None:
+                fee.paid_amount = data.paid_amount
+
+        self.db.commit()
+        self.db.refresh(user)
+
+        total_fee = fee.total_fee or 0
+        paid_amount = fee.paid_amount or 0
+
+        return {
+            "user_id": user.user_id,
+            "username": user.username,
+            "email": user.email,
+            "phno": user.phone,
+            "batch": user.batch,
+            "tech_stack": user.tech_stack,
+            "total_fee": total_fee,
+            "paid_amount": paid_amount,
+            "due_amount": total_fee - paid_amount
         }
 
 

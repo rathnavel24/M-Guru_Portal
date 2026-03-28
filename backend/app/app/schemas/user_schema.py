@@ -24,3 +24,12 @@ class Paymentmail(BaseModel):
     note : Optional[str]=None 
     email_type : int #1=invoice ,2=remainder,3=confirmation 
     upi_id:str
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    batch: Optional[int] = None
+    tech_stack: Optional[str] = None
+    total_fee: Optional[float] = None
+    paid_amount: Optional[float] = None

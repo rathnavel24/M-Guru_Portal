@@ -1,6 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, Depends
 from backend.app.app.models.portal_users import Users
-from backend.app.app.schemas.user_schema import UserSignUp, UserLogin, Paymentmail
+from backend.app.app.schemas.user_schema import UserSignUp, UserLogin, Paymentmail, UserUpdate
 from sqlalchemy.orm import Session
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, Logout, GetEmail
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, Logout
@@ -116,11 +116,17 @@ async def get_all_users(
     return UserServices(db, None).get_all_users(page_no, page_size)
 
 @router.get("/me")
-def get_me(current_user: Users = Depends(get_current_user)):
-    return {
-        "user_id": current_user.user_id,
-        "username": current_user.username,
-        "email": current_user.email,
-        "batch": current_user.batch,
-        "role": current_user.type
-    }
+def get_user(
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1,2]))
+):
+    return UserServices(db,None).get_user(current_user.get("user_id"))
+
+@router.put("/update_users/{user_id}")
+def update_user(
+    user_id: int,
+    data: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1]))  # optional admin only
+):
+    return UserServices(db,None).update_user(user_id, data)
