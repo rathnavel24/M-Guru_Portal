@@ -69,3 +69,28 @@ class ExamLoginDetails:
             raise HTTPException(status_code=400, detail="Incorrect password")
         
         return {"message" : "Login Successful", "user" : username}
+
+# from backend.app.app.models import Attempts, ExamUsers
+
+# def get_user_results(self):
+
+#     results = (
+#         self.db.query(
+#             Attempts.user_id,
+#             ExamUsers.username,
+#             Attempts.total_score,
+#             Attempts.total_percentage
+#         )
+#         .join(ExamUsers, ExamUsers.user_id == Attempts.user_id)
+#         .all()
+#     )
+
+#     return [
+#         {
+#             "user_id": r.user_id,
+#             "username": r.username,
+#             "score": r.total_score,
+#             "percentage": r.total_percentage
+#         }
+#         for r in results
+#     ]
