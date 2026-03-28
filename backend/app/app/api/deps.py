@@ -63,7 +63,11 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
 
         now = datetime.utcnow()
         if db_token.last_activity:
-            diff_minutes = (now - db_token.last_activity).total_seconds() / 60
+            diff_minutess = (now - db_token.last_activity).total_seconds() / 60
+            diff_minutes = round(diff_minutess, 2)
+            
+
+            #tokens.ideal_time = Decimal((now - db_token.last_activity).total_seconds() / 3600).quantize(Decimal("0.01")
             
             if diff_minutes <= IDLE_TIMEOUT_MINUTES:
                 # User is active, count time

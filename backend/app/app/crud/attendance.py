@@ -49,7 +49,7 @@ class Attendance:
     def attendance(self, usr_id):
         try:
             result = (
-                self.db.query(Token.login, Token.logout, Token.ideal_time,Token.productive_minutes)
+                self.db.query(Token.login, Token.logout,Token.productive_minutes)
                 .filter(Token.user_id == usr_id)
                 .all()
             )
