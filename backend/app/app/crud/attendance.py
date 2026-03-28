@@ -14,7 +14,9 @@ def logout_all_users():
     db: Session = sessionLocal()
     try:
         tokens = db.query(Token).filter(Token.logout.is_(None)).all()
-        now = db.query(func.now()).scalar()
+        #now = db.query(func.now()).scalar()
+
+        now = datetime.utcnow()
 
         # Make now naive to match DB login
         if now.tzinfo:
@@ -47,7 +49,7 @@ class Attendance:
     def attendance(self, usr_id):
         try:
             result = (
-                self.db.query(Token.login, Token.logout, Token.ideal_time)
+                self.db.query(Token.login, Token.logout, Token.ideal_time,Token.productive_minutes)
                 .filter(Token.user_id == usr_id)
                 .all()
             )

@@ -2,6 +2,7 @@ from sqlalchemy import Column, DateTime, Integer, String, TIMESTAMP
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 from sqlalchemy.orm import relationship
+from sqlalchemy import Enum
 
 
 
