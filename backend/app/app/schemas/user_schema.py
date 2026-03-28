@@ -8,6 +8,9 @@ class UserSignUp(BaseModel):
     password : str 
     type : Optional[int] = 2
     batch : Optional[int] = None
+    total_fee: Optional[float] = 0
+    phone: Optional[str]
+    tech_stack: str   
     
 class UserLogin(BaseModel):
     email: str

@@ -8,6 +8,7 @@ from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, UserService
 from backend.app.app.crud.dashboard import dashboard
 from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.email_services import send_invoice_email
+from fastapi import Query
 
 router = APIRouter(tags=["login"])
 
@@ -101,3 +102,14 @@ async def get_emails(
 @router.get("/batches")
 async def get_batches(db: Session = Depends(get_db),current_user=Depends(role_required([1]))):
     return UserServices(db, None).get_all_batches()
+
+
+
+@router.get("/get_all_users")
+async def get_all_users(
+    page_no: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1]))  # only admin
+):
+    return UserServices(db, None).get_all_users(page_no, page_size)
