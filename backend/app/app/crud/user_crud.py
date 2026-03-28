@@ -48,10 +48,7 @@ class SignUpDetails(SignUpAbstract):
     def user_signup(self):
 
         if not self.user_verification():
-            raise HTTPException(
-                status_code=409,
-                detail="User already Exists"
-            )
+            raise HTTPException(status_code=409, detail="User already Exists")
 
         try:
             new_user = Users(
@@ -61,7 +58,7 @@ class SignUpDetails(SignUpAbstract):
                 type=self.new_user.type,
                 batch=self.new_user.batch,
                 phone=self.new_user.phone,
-                tech_stack=self.new_user.tech_stack
+                tech_stack=self.new_user.tech_stack,
             )
 
             self.db.add(new_user)
@@ -69,23 +66,20 @@ class SignUpDetails(SignUpAbstract):
             # get user_id before commit
             self.db.flush()
 
-            #create fee entry
+            # create fee entry
             new_fee = Fee(
                 user_id=new_user.user_id,
                 total_fee=self.new_user.total_fee or 0,
                 paid_amount=0,
                 status=1,
-                created_by="ADMIN"
+                created_by="ADMIN",
             )
 
             self.db.add(new_fee)
 
             self.db.commit()
 
-            return {
-                "msg": "User Created Successfully",
-                "user_id": new_user.user_id
-            }
+            return {"msg": "User Created Successfully", "user_id": new_user.user_id}
 
         except Exception as e:
             self.db.rollback()
@@ -138,20 +132,28 @@ class LoginUser:
             self.db.query(Token)
             .filter(
                 Token.user_id == user.user_id,
-                func.date(Token.login) == date.today(),  # ðŸ‘ˆ key logic
+                func.date(Token.login) == date.today(),
             )
             .first()
         )
-        now=datetime.utcnow()
+        now = datetime.utcnow()
         if today_token:
-            
 
             today_token.token = None
-            new_token = Token(token=token, user_id=user.user_id,last_activity =now,productive_minutes = 0)
-
+            new_token = Token(
+                token=token,
+                user_id=user.user_id,
+                last_activity=now,
+                productive_minutes=0,
+            )
 
         else:
-            new_token = Token(token=token, user_id=user.user_id,last_activity =now,productive_minutes = 0)
+            new_token = Token(
+                token=token,
+                user_id=user.user_id,
+                last_activity=now,
+                productive_minutes=0,
+            )
 
         self.db.add(new_token)
         self.db.commit()
@@ -167,10 +169,16 @@ class UserServices:
     def view_user(self, batch):
         result = self.db.query(Users).filter(Users.batch == batch).all()
 
-
     def get_usersby_batch(self, batch_id):
         result = self.db.execute(
-            self.db.query(Users.user_id, Users.username, Users.email, Users.batch,Users.phone,Users.tech_stack)
+            self.db.query(
+                Users.user_id,
+                Users.username,
+                Users.email,
+                Users.batch,
+                Users.phone,
+                Users.tech_stack,
+            )
             .filter(Users.batch == batch_id, Users.status == 1)
             .statement
         )
@@ -191,23 +199,23 @@ class UserServices:
         self.db.commit()
 
         return {"msg": "User deleted successfully"}
+
     def get_all_batches(self):
-        result = self.db.query(Users.batch).filter(Users.batch != None) \
-                                            .distinct().all()
+        result = self.db.query(Users.batch).filter(Users.batch != None).distinct().all()
         return [r[0] for r in result]
 
     def get_all_users(self, page_no: int = 1, page_size: int = 10):
-
-        # total count
-        total_rows = self.db.query(func.count(Users.user_id)).filter(
-            Users.status == 1
-        ).scalar()
+        """
+        Fetch all active users with pagination
+        """
+        # total count of active users
+        total_rows = (
+            self.db.query(func.count(Users.user_id)).filter(Users.status == 1).scalar()
+        )
 
         # pagination
         total_pages, offset, limit = get_pagination(
-            row_count=total_rows,
-            current_page_no=page_no,
-            default_page_size=page_size
+            row_count=total_rows, current_page_no=page_no, default_page_size=page_size
         )
 
         # main query with fee aggregation
@@ -234,6 +242,14 @@ class UserServices:
             Users.batch,
             Users.tech_stack
         ).offset(offset).limit(limit).all()
+        # fetch paginated users
+        users = (
+            self.db.query(Users.user_id, Users.username, Users.email, Users.batch)
+            .filter(Users.status == 1)
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
 
         # convert + calculate due
         result = []
@@ -348,30 +364,76 @@ class UserServices:
         }
 
 
-
 class GetEmail:
     def __init__(self, db):
-        
+
         self.db = db
-  
 
-    def get_all_emails(self,page_no: int = 1, page_size: int = 10):
+    def get_all_emails(self, page_no: int = 1, page_size: int = 10):
 
-        #total count
-        total_rows = self.db.query(func.count(Pay_email.id)).filter(
-            Pay_email.status == 1
-        ).scalar()
-
-        #pagination
-        total_pages, offset, limit = get_pagination(
-            row_count=total_rows,
-            current_page_no=page_no,
-            default_page_size=page_size
+        # total count
+        total_rows = (
+            self.db.query(func.count(Pay_email.id))
+            .filter(Pay_email.status == 1)
+            .scalar()
         )
 
-        #fetch paginated data
-        data = self.db.execute(
-            select(
+        # pagination
+        total_pages, offset, limit = get_pagination(
+            row_count=total_rows, current_page_no=page_no, default_page_size=page_size
+        )
+
+        # fetch paginated data
+        data = (
+            self.db.execute(
+                select(
+                    Pay_email.id,
+                    Pay_email.invoice_no,
+                    Pay_email.amount,
+                    Pay_email.is_complete,
+                    Pay_email.created_at,
+                    Pay_email.email_type,
+                    Users.username.label("receiver_name"),
+                    Users.email.label("receiver_email"),
+                    Users.batch,
+                )
+                .where(Pay_email.status == 1)
+                .order_by(desc(Pay_email.created_at))
+                .offset(offset)
+                .limit(limit)
+            )
+            .mappings()
+            .all()
+        )
+
+        return {
+            "total_pages": total_pages,
+            "current_page": page_no,
+            "page_size": page_size,
+            "total_records": total_rows,
+            "data": data,
+        }
+
+    def get_all_emails_bybatch(
+        self, batch_id: int, page_no: int = 1, page_size: int = 10
+    ):
+
+        # total count (with batch filter)
+        total_rows = (
+            self.db.query(func.count(Pay_email.id))
+            .join(Users, Users.user_id == Pay_email.to_id)
+            .filter(Pay_email.status == 1, Users.batch == int(batch_id))
+            .scalar()
+        )
+
+        # pagination
+        total_pages, offset, limit = get_pagination(
+            row_count=total_rows, current_page_no=page_no, default_page_size=page_size
+        )
+
+        # fetch paginated data
+        data = (
+            self.db.query(
                 Pay_email.id,
                 Pay_email.invoice_no,
                 Pay_email.amount,
@@ -380,70 +442,24 @@ class GetEmail:
                 Pay_email.email_type,
                 Users.username.label("receiver_name"),
                 Users.email.label("receiver_email"),
-                Users.batch
+                Users.batch,
             )
-            .where(Pay_email.status == 1)
+            .join(Users, Users.user_id == Pay_email.to_id)
+            .filter(Pay_email.status == 1, Users.batch == batch_id)
             .order_by(desc(Pay_email.created_at))
             .offset(offset)
             .limit(limit)
-        ).mappings().all()
-
-        return {
-            "total_pages": total_pages,
-            "current_page": page_no,
-            "page_size": page_size,
-            "total_records": total_rows,
-            "data": data
-        }
-
-
-    def get_all_emails_bybatch(self, batch_id: int, page_no: int = 1, page_size: int = 10):
-
-        # total count (with batch filter)
-        total_rows = self.db.query(func.count(Pay_email.id)) \
-            .join(Users, Users.user_id == Pay_email.to_id) \
-            .filter(
-                Pay_email.status == 1,
-                Users.batch == int(batch_id)
-            ).scalar()
-
-        #pagination
-        total_pages, offset, limit = get_pagination(
-            row_count=total_rows,
-            current_page_no=page_no,
-            default_page_size=page_size
+            .all()
         )
-
-        #fetch paginated data
-        data = self.db.query(
-        Pay_email.id,
-        Pay_email.invoice_no,
-        Pay_email.amount,
-        Pay_email.is_complete,
-        Pay_email.created_at,
-        Pay_email.email_type,
-        Users.username.label("receiver_name"),
-        Users.email.label("receiver_email"),
-        Users.batch
-    ).join(
-        Users, Users.user_id == Pay_email.to_id
-    ).filter(
-        Pay_email.status == 1,
-        Users.batch == batch_id
-    ).order_by(
-        desc(Pay_email.created_at)
-    ).offset(offset).limit(limit).all()
 
         data = [row._asdict() for row in data]
 
-
-
         return {
             "total_pages": total_pages,
             "current_page": page_no,
             "page_size": page_size,
             "total_records": total_rows,
-            "data": data
+            "data": data,
         }
 
 
@@ -451,27 +467,25 @@ class Logout:
     def __init__(self, db):
         self.db = db
 
-    def logout(self,current_user):
-        user=current_user.get("user_id")
+    def logout(self, current_user):
+        user = current_user.get("user_id")
 
-
-        #tokens = self.db.query(Token).filter(and_(Token.user_id==user,Token.logout.is_(None),Token.token.isnot(None))).first()
+        # tokens = self.db.query(Token).filter(and_(Token.user_id==user,Token.logout.is_(None),Token.token.isnot(None))).first()
         tokens = (
-    self.db.query(Token)
-    .filter(Token.user_id == user)
-    .filter(Token.logout.is_(None))
-    .filter(Token.token.isnot(None))
-    .first()
-)
-        now =self.db.query(func.now()).scalar()
+            self.db.query(Token)
+            .filter(Token.user_id == user)
+            .filter(Token.logout.is_(None))
+            .filter(Token.token.isnot(None))
+            .first()
+        )
+        now = self.db.query(func.now()).scalar()
         tokens.logout = now.replace(tzinfo=None)
         time_diff = (now.replace(tzinfo=None)) - tokens.login  # timedelta
-        
-        tokens.ideal_time= Decimal(time_diff.total_seconds() / 3600).quantize(Decimal("0.01"))
-        tokens.token=None
+
+        tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(
+            Decimal("0.01")
+        )
+        tokens.token = None
         self.db.add(tokens)
         self.db.commit()
-        return {
-                "Logout" : "Successfully"
-                }
-        
+        return {"Logout": "Successfully"}
