@@ -37,7 +37,8 @@ class AttemptHistoryResponse(BaseModel):
 
 
 class FinalResultSchema(BaseModel):
-    test_type: str | None = None
+    aptitude_score: int = 0
+    technical_score: int = 0
     correct_answers: int
     wrong_answers: int
     skipped_answers: int
@@ -45,5 +46,3 @@ class FinalResultSchema(BaseModel):
     score: int
     percentage: int
     time_taken: int
-    aptitude_score: int = 0
-    technical_score: int = 0
