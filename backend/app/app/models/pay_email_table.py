@@ -19,7 +19,6 @@ class Pay_email(Base):
     email_type=Column(String)
     amount=Column(Float)
     due_date = Column(TIMESTAMP) 
-    upi_id=Column(String)
     is_complete=Column(Boolean)
     status = Column(Integer, default=1) 
     created_at = Column(TIMESTAMP, default=func.now())

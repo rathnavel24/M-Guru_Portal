@@ -48,7 +48,8 @@ def generate_invoice_id(user_id):
 
 
 async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
-    sender_id =current_user["user_id"] 
+    sender_id =current_user["user_id"]
+
     try:
         user = (
             db.query(Users.username, Users.email)
@@ -90,6 +91,8 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
         msg["Subject"] = f"Invoice {gen_invoice_id} - Payment Request"
         msg["From"] = os.getenv("user")
         msg["To"] = user.email
+        if not user.email:
+            raise ValueError("User email is missing")
 
         msg.set_content("Please view this email in HTML format.")
         msg.add_alternative(html_content, subtype="html")  #  Add HTML
@@ -105,7 +108,7 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
             from_id= sender_id,
             to_id=data.user_id,
             note=data.note,
-            email_type="REMAINDER",
+            email_type=data.email_type,
             amount=data.amount,
             due_date=data.due_date,
             upi_id=data.upi_id,
@@ -115,6 +118,7 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
             updated_at=datetime.now(),
             created_by="ADMIN",
         )
+
         db.add(add_log)
         db.commit()
 
