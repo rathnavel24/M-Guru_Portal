@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from operator import and_
 from unittest import result
+from backend.app.app.models.Exam_user import ExamUsers
 from backend.app.app.models.pay_email_table import Pay_email
 from backend.app.app.models.portaluserfee import Fee
 from backend.app.app.models.user_token import Token
@@ -19,6 +20,7 @@ from sqlalchemy import select, desc
 from backend.app.app.models.portal_users import Users
 from backend.app.app.utils import get_pagination
 from sqlalchemy import select, desc, func
+import re
 
 from backend.app.app.core.security import (
     get_password_hash,
@@ -111,8 +113,34 @@ class LoginUser:
         self.db = db
         self.email = email
         self.password = password
-
     def login(self, background_tasks):
+
+        # check if input is exam user (user1, user2...)
+        if re.match(r"^user\d+$", self.email):   # using email field as username input
+
+            return self.login_exam_user(self.email, self.password)
+
+        # otherwise normal user login
+        return self.login_main_user(background_tasks)
+    def login_exam_user(self, username: str, password: str):
+
+        user = self.db.query(ExamUsers).filter(
+            ExamUsers.username == username
+        ).first()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="Exam user not found")
+
+        if user.password != password:
+            raise HTTPException(status_code=401, detail="Incorrect password")
+
+        return {
+            "token_type": None,
+            "token" : None,
+            "user_id": user.user_id,
+            "user_type": 3
+        }
+    def login_main_user(self, background_tasks):
 
         user = self.db.query(Users).filter(Users.email == self.email).first()
 
@@ -157,7 +185,11 @@ class LoginUser:
 
         self.db.add(new_token)
         self.db.commit()
-        return {"token": token, "token_type": "bearer", "user_type": user.type}
+        return {"token": token, 
+                "user_id": user.user_id,
+                "token_type": "bearer", 
+                "user_type": user.type
+                }
 
 
 class UserServices:
@@ -242,14 +274,6 @@ class UserServices:
             Users.batch,
             Users.tech_stack
         ).offset(offset).limit(limit).all()
-        # fetch paginated users
-        users = (
-            self.db.query(Users.user_id, Users.username, Users.email, Users.batch)
-            .filter(Users.status == 1)
-            .offset(offset)
-            .limit(limit)
-            .all()
-        )
 
         # convert + calculate due
         result = []
