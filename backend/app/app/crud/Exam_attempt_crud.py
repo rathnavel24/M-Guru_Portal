@@ -72,6 +72,7 @@ class AttemptCrud:
             Attempts.status == "in_progress"
         ).order_by(Attempts.started_at.desc()).first()
 
+        #  check if attempt exists
         if not attempt:
             return {"error": "No active attempt found"}
 

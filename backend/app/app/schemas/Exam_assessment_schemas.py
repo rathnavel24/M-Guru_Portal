@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class AssessmentResponse(BaseModel):
-    id : int 
+    assessment_id : int 
     name : str
     total_questions : int
     duration_minutes : int 

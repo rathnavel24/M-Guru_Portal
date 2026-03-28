@@ -4,7 +4,6 @@ from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 
 
-
 class Users(Base):
     __tablename__ = "users"
 
@@ -12,27 +11,23 @@ class Users(Base):
     username = Column(String(100))
     email = Column(String(255), unique=True)
     password = Column(String(255))
-    type = Column(Integer,default=2)
-    status = Column(Integer, default = 1)
+    type = Column(Integer, default=2)
+    status = Column(Integer, default=1)
     is2FA = Column(Boolean, default=False)
     batch = Column(Integer)
+    phone = Column(String)
+    tech_stack = Column(String)
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100), default="ADMIN")
 
-    
-    fees = relationship(
-        "Fee",
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
+    fees = relationship("Fee", back_populates="user", cascade="all, delete-orphan")
     sent_emails = relationship(
-        "Pay_email", foreign_keys="Pay_email.from_id", back_populates="sender")
+        "Pay_email", foreign_keys="Pay_email.from_id", back_populates="sender"
+    )
 
     received_emails = relationship(
-        "Pay_email", foreign_keys="Pay_email.to_id", back_populates="receiver")
-    
+        "Pay_email", foreign_keys="Pay_email.to_id", back_populates="receiver"
+    )
+
     tokens = relationship("Token", back_populates="user")
-
-
-    
