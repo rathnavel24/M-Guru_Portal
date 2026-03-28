@@ -34,7 +34,7 @@ app.include_router(Exam_section.router)
 app.include_router(attendance.router)
 app.include_router(Exam_user.router)
 
-
+'''
 scheduler = BackgroundScheduler()
 
 
@@ -56,3 +56,4 @@ def start_scheduler():
 
     if not scheduler.running:
         scheduler.start()
+'''
