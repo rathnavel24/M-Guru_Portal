@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from operator import and_
 from unittest import result
+from backend.app.app.models.Exam_attempt import Attempts
 from backend.app.app.models.Exam_user import ExamUsers
 
 from alembic.command import current
@@ -124,6 +125,8 @@ class LoginUser:
 
         # otherwise normal user login
         return self.login_main_user(background_tasks)
+    from datetime import datetime
+
     def login_exam_user(self, username: str, password: str):
 
         user = self.db.query(ExamUsers).filter(
@@ -131,15 +134,40 @@ class LoginUser:
         ).first()
 
         if not user:
-            raise HTTPException(status_code=404, detail="Exam user not found")
+            raise HTTPException(404, "Exam user not found")
 
         if user.password != password:
-            raise HTTPException(status_code=401, detail="Incorrect password")
+            raise HTTPException(401, "Incorrect password")
+
+        # Check if attempt already exists
+        attempt = self.db.query(Attempts).filter(
+            Attempts.user_id == user.user_id
+        ).first()
+
+        if attempt:
+            # Optional: block re-login if already completed
+            if attempt.status == "completed":
+                raise HTTPException(400, "Exam already completed")
+
+            # If already started → just allow resume
+        else:
+            # Create new attempt
+            attempt = Attempts(
+                user_id=user.user_id,
+                assessment_id=1,  # or dynamic
+                started_at=datetime.utcnow(),
+                status="in_progress"
+            )
+            self.db.add(attempt)
+            self.db.commit()
+            self.db.refresh(attempt)
 
         return {
             "token_type": None,
-            "token" : None,
+            "token": None,
             "user_id": user.user_id,
+            "attempt_id": attempt.attempt_id,   # important
+            "status": attempt.status,
             "user_type": 3
         }
     def login_main_user(self, background_tasks):
@@ -158,35 +186,36 @@ class LoginUser:
 
         token = create_access_token(data={"user_id": user.user_id, "role": user.type})
 
-        today_token = (self.db.query(Token).filter(
-                Token.user_id == user.user_id,
-                func.date(Token.login) == date.today()).first())
-        
         now = datetime.utcnow()
+
+        today_token = self.db.query(Token).filter(
+            Token.user_id == user.user_id,
+            func.date(Token.login) == date.today(),
+            Token.logout == None   # 🔥 IMPORTANT
+        ).first()
+
         if today_token:
-
+            #properly close old session
             today_token.token = None
-            today_token.logout=today_token.last_activity
+            today_token.logout = now
+            today_token.last_activity = now
 
-            new_token = Token(
-                token=token,
-                user_id=user.user_id,
-                last_activity=now,
-                productive_minutes=0,
-            )
+            # optional: flush to DB before inserting new row
+            self.db.flush()
 
-        else:
-            new_token = Token(
-                token=token,
-                user_id=user.user_id,
-                last_activity=now,
-                productive_minutes=0,
-            )
+        #always create new token
+        new_token = Token(
+            token=token,
+            user_id=user.user_id,
+            login=now,
+            last_activity=now,
+            productive_minutes=0,
+        )
 
         self.db.add(new_token)
         self.db.commit()
         return {"token": token, 
-                "user_id": user.user_id,
+                "user_id": None,
                 "token_type": "bearer", 
                 "user_type": user.type
                 }

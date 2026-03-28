@@ -244,42 +244,103 @@ class AttemptCrud:
     
 
     def save_result_from_frontend(self, user_id: int, data: dict):
-        existing_attempt = (
-            self.db.query(Attempts)
-            .filter(Attempts.user_id == user_id)
-            .first()
-        )
+        
+        attempt = self.db.query(Attempts).filter(
+            Attempts.user_id == user_id
+        ).first()
 
-        if existing_attempt:
-            raise HTTPException(
-                status_code=400,
-                detail="User has already attempted the exam"
-            )
-        attempt = Attempts(
-            user_id=user_id,
-            assessment_id=data.get("assessment_id", 1),
-            started_at=datetime.utcnow() - timedelta(seconds=data.get("time_taken", 0)),
-            submitted_at=datetime.utcnow(),
-            status="completed",
-            aptitude_score=data.get("aptitude_score", 0),
-            technical_score=data.get("technical_score", 0),
-            total_score=data.get("score", 0),
-            total_percentage=data.get("percentage", 0),
-        )
+        if not attempt:
+            raise HTTPException(404, "No attempt found. Submit sections first")
 
-        self.db.add(attempt)
+        # Update based on test_type
+        test_type = data.get("test_type")
+
+        if test_type == "aptitude":
+
+            if attempt.aptitude_score is not None:
+                raise HTTPException(400, "Aptitude already submitted")
+
+            attempt.aptitude_score = data.get("score", 0)
+            attempt.aptitude_correct = data.get("correct_answers", 0)
+            attempt.aptitude_wrong = data.get("wrong_answers", 0)
+            attempt.aptitude_skipped = data.get("skipped_answers", 0)
+
+        elif test_type == "technical":
+
+            if attempt.technical_score is not None:
+                raise HTTPException(400, "Technical already submitted")
+
+            attempt.technical_score = data.get("score", 0)
+            attempt.technical_correct = data.get("correct_answers", 0)
+            attempt.technical_wrong = data.get("wrong_answers", 0)
+            attempt.technical_skipped = data.get("skipped_answers", 0)
+
+        else:
+            raise HTTPException(400, "Invalid test_type")
+
+        # Calculate totals
+        aptitude = attempt.aptitude_score or 0
+        technical = attempt.technical_score or 0
+
+        attempt.total_score = aptitude + technical
+
+        # total questions = sum of both sections
+        total_questions = data.get("total_questions", 1)
+
+        # safer percentage calc
+        if total_questions > 0:
+            attempt.total_percentage = int((attempt.total_score / total_questions) * 100)
+
+        # Mark completed only if BOTH sections submitted
+        if attempt.aptitude_score is not None and attempt.technical_score is not None:
+            attempt.status = "completed"
+            attempt.submitted_at = datetime.utcnow()
+        else:
+            attempt.status = "in_progress"
+
         self.db.commit()
         self.db.refresh(attempt)
 
         return {
-
-            "aptitude_score": data.get("aptitude_score", 0),
-            "technical_score": data.get("technical_score", 0),
-            "correct_answers": data.get("correct_answers", 0),
-            "wrong_answers": data.get("wrong_answers", 0),
-            "skipped_answers": data.get("skipped_answers", 0),
-            "total_questions": data.get("total_questions", 0),
-            "score": data.get("score", 0),
-            "percentage": data.get("percentage", 0),
-            "time_taken": data.get("time_taken", 0)
+            "user_id": user_id,
+            "test_type": test_type,
+            "aptitude_score": attempt.aptitude_score,
+            "technical_score": attempt.technical_score,
+            "total_score": attempt.total_score,
+            "percentage": attempt.total_percentage,
+            "status": attempt.status
         }
+    def get_user_exam_status(self, user_id: int):
+
+        attempt = self.db.query(Attempts).filter(
+            Attempts.user_id == user_id
+        ).order_by(Attempts.attempt_id.desc()).first()
+
+        # No attempt
+        if not attempt:
+            return {
+                "status": "not_started",
+                "message": "User has not started any test"
+            }
+
+        #In Progress
+        if attempt.status == "in_progress":
+            return {
+                "attempt_id": attempt.attempt_id,
+                "status": "in_progress",
+                "aptitude_score": attempt.aptitude_score or 0,
+                "technical_score": attempt.technical_score or 0,
+                "message": "Test is in progress"
+            }
+
+        # Completed
+        if attempt.status == "completed":
+            return {
+                "attempt_id": attempt.attempt_id,
+                "status": "completed",
+                "aptitude_score": attempt.aptitude_score or 0,
+                "technical_score": attempt.technical_score or 0,
+                "total_score": attempt.total_score or 0,
+                "percentage": attempt.total_percentage or 0,
+                "submitted_at": attempt.submitted_at
+            }

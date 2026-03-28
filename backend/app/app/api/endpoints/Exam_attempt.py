@@ -44,6 +44,7 @@ def submit_test(user_id: int, db: Session = Depends(get_db)):
 def get_result(user_id: int, db: Session = Depends(get_db)):
     return AttemptCrud(db).get_result(user_id)
 
+
 @router.post("/submit-final-result/{user_id}")
 def submit_final_result(
     user_id: int,
@@ -52,3 +53,8 @@ def submit_final_result(
 ):
     service = AttemptCrud(db)
     return service.save_result_from_frontend(user_id, data.dict())
+
+@router.get("/users/{user_id}/test-status")
+def get_test_status(user_id: int, db: Session = Depends(get_db)):
+    
+    return AttemptCrud(db).get_user_exam_status(user_id)
