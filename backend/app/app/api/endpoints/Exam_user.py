@@ -40,7 +40,6 @@ def get_singleuser_results_endpoint(user_id: int, db: Session = Depends(get_db))
     service = ExamUserCRUD(db)
     return service.get_single_user_results(user_id)
 
-
 @router.get("/{user_id}")
 def read_user(user_id: int, db: Session = Depends(get_db)):
     service = ExamUserCRUD(db)
