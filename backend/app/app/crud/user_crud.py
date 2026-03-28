@@ -4,7 +4,6 @@ from operator import and_
 from unittest import result
 from backend.app.app.models.Exam_attempt import Attempts
 from backend.app.app.models.Exam_user import ExamUsers
-
 from alembic.command import current
 from backend.app.app.models.pay_email_table import Pay_email
 from backend.app.app.models.portaluserfee import Fee
@@ -116,22 +115,20 @@ class LoginUser:
         self.db = db
         self.email = email
         self.password = password
+
     def login(self, background_tasks):
 
         # check if input is exam user (user1, user2...)
-        if re.match(r"^user\d+$", self.email):   # using email field as username input
+        if re.match(r"^user\d+$", self.email):  # using email field as username input
 
             return self.login_exam_user(self.email, self.password)
 
         # otherwise normal user login
         return self.login_main_user(background_tasks)
-    from datetime import datetime
 
     def login_exam_user(self, username: str, password: str):
 
-        user = self.db.query(ExamUsers).filter(
-            ExamUsers.username == username
-        ).first()
+        user = self.db.query(ExamUsers).filter(ExamUsers.username == username).first()
 
         if not user:
             raise HTTPException(404, "Exam user not found")
@@ -170,6 +167,7 @@ class LoginUser:
             "status": attempt.status,
             "user_type": 3
         }
+
     def login_main_user(self, background_tasks):
 
         user = self.db.query(Users).filter(Users.email == self.email).first()
@@ -186,6 +184,14 @@ class LoginUser:
 
         token = create_access_token(data={"user_id": user.user_id, "role": user.type})
 
+        today_token = (
+            self.db.query(Token)
+            .filter(
+                Token.user_id == user.user_id, func.date(Token.login) == date.today()
+            )
+            .first()
+        )
+
         now = datetime.utcnow()
 
         today_token = self.db.query(Token).filter(
@@ -197,8 +203,7 @@ class LoginUser:
         if today_token:
             #properly close old session
             today_token.token = None
-            today_token.logout = now
-            today_token.last_activity = now
+            today_token.logout = today_token.last_activity
 
             # optional: flush to DB before inserting new row
             self.db.flush()
@@ -280,29 +285,31 @@ class UserServices:
         )
 
         # main query with fee aggregation
-        users = self.db.query(
-            Users.user_id,
-            Users.username,
-            Users.email,
-            Users.phone,
-            Users.batch,
-            Users.tech_stack,
-
-            func.coalesce(func.sum(Fee.total_fee), 0).label("total_fee"),
-            func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount")
-
-        ).outerjoin(
-            Fee, Fee.user_id == Users.user_id
-        ).filter(
-            Users.status == 1
-        ).group_by(
-            Users.user_id,
-            Users.username,
-            Users.email,
-            Users.phone,
-            Users.batch,
-            Users.tech_stack
-        ).offset(offset).limit(limit).all()
+        users = (
+            self.db.query(
+                Users.user_id,
+                Users.username,
+                Users.email,
+                Users.phone,
+                Users.batch,
+                Users.tech_stack,
+                func.coalesce(func.sum(Fee.total_fee), 0).label("total_fee"),
+                func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount"),
+            )
+            .outerjoin(Fee, Fee.user_id == Users.user_id)
+            .filter(Users.status == 1)
+            .group_by(
+                Users.user_id,
+                Users.username,
+                Users.email,
+                Users.phone,
+                Users.batch,
+                Users.tech_stack,
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
 
         # convert + calculate due
         result = []
@@ -321,13 +328,15 @@ class UserServices:
             "current_page": page_no,
             "page_size": page_size,
             "total_records": total_rows,
-            "data": result
-    }
+            "data": result,
+        }
+
     def get_user(self, user_id: int):
-        user = self.db.query(Users).filter(
-            Users.user_id == user_id,
-            Users.status == 1
-        ).first()
+        user = (
+            self.db.query(Users)
+            .filter(Users.user_id == user_id, Users.status == 1)
+            .first()
+        )
 
         if not user:
             return None
@@ -339,29 +348,32 @@ class UserServices:
             "user_id": user.user_id,
             "username": user.username,
             "email": user.email,
-            "phno" : user.phone,
+            "phno": user.phone,
             "batch": user.batch,
-            "tech_stack" : user.tech_stack,
+            "tech_stack": user.tech_stack,
             "total_fee": fee.total_fee if fee else 0,
             "paid_amount": fee.paid_amount if fee else 0,
-            "due_amount": (fee.total_fee - fee.paid_amount) if fee else 0
+            "due_amount": (fee.total_fee - fee.paid_amount) if fee else 0,
         }
+
     def update_user(self, user_id: int, data):
 
-        user = self.db.query(Users).filter(
-            Users.user_id == user_id,
-            Users.status == 1
-        ).first()
+        user = (
+            self.db.query(Users)
+            .filter(Users.user_id == user_id, Users.status == 1)
+            .first()
+        )
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
         # email update (IMPORTANT)
         if data.email is not None:
-            existing_user = self.db.query(Users).filter(
-                Users.email == data.email,
-                Users.user_id != user_id
-            ).first()
+            existing_user = (
+                self.db.query(Users)
+                .filter(Users.email == data.email, Users.user_id != user_id)
+                .first()
+            )
 
             if existing_user:
                 raise HTTPException(status_code=409, detail="Email already exists")
@@ -388,7 +400,7 @@ class UserServices:
             fee = Fee(
                 user_id=user_id,
                 total_fee=data.total_fee or 0,
-                paid_amount=data.paid_amount or 0
+                paid_amount=data.paid_amount or 0,
             )
             self.db.add(fee)
         else:
@@ -413,7 +425,7 @@ class UserServices:
             "tech_stack": user.tech_stack,
             "total_fee": total_fee,
             "paid_amount": paid_amount,
-            "due_amount": total_fee - paid_amount
+            "due_amount": total_fee - paid_amount,
         }
 
 
@@ -532,8 +544,8 @@ class Logout:
             .first()
         )
 
-        #now = self.db.query(func.now()).scalar()
-        now=datetime.utcnow()
+        # now = self.db.query(func.now()).scalar()
+        now = datetime.utcnow()
         tokens.logout = now
         time_diff = now - tokens.login  # timedelta
 
