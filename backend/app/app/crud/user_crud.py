@@ -3,6 +3,8 @@ from decimal import Decimal
 from operator import and_
 from unittest import result
 from backend.app.app.models.Exam_user import ExamUsers
+
+from alembic.command import current
 from backend.app.app.models.pay_email_table import Pay_email
 from backend.app.app.models.portaluserfee import Fee
 from backend.app.app.models.user_token import Token
@@ -156,18 +158,16 @@ class LoginUser:
 
         token = create_access_token(data={"user_id": user.user_id, "role": user.type})
 
-        today_token = (
-            self.db.query(Token)
-            .filter(
+        today_token = (self.db.query(Token).filter(
                 Token.user_id == user.user_id,
-                func.date(Token.login) == date.today(),
-            )
-            .first()
-        )
+                func.date(Token.login) == date.today()).first())
+        
         now = datetime.utcnow()
         if today_token:
 
             today_token.token = None
+            today_token.logout=today_token.last_activity
+
             new_token = Token(
                 token=token,
                 user_id=user.user_id,
@@ -502,9 +502,11 @@ class Logout:
             .filter(Token.token.isnot(None))
             .first()
         )
-        now = self.db.query(func.now()).scalar()
-        tokens.logout = now.replace(tzinfo=None)
-        time_diff = (now.replace(tzinfo=None)) - tokens.login  # timedelta
+
+        #now = self.db.query(func.now()).scalar()
+        now=datetime.utcnow()
+        tokens.logout = now
+        time_diff = now - tokens.login  # timedelta
 
         tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(
             Decimal("0.01")
