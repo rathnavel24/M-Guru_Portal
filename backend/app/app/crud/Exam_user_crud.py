@@ -7,10 +7,15 @@ from backend.app.app.models import ExamUsers
 from backend.app.app.models.Exam_attempt import Attempts
 
 
+<<<<<<< HEAD
 class ExamUserCRUD:
 
     def __init__(self, db: Session):
         self.db = db
+=======
+username_pattern = re.compile(r"^user([1-9]|[1-4][0-9]|50)$")
+password_pattern = re.compile(r"^User@\d{4}$")
+>>>>>>> 9099ffa45ce7d146ecebfaa98d603ded974cec66
 
     username_pattern = re.compile(r"^user([1-9]|[1-2][0-9]|30)$")
     password_pattern = re.compile(r"^User@\d{4}$")
@@ -83,6 +88,7 @@ class ExamUserCRUD:
             .all()
         )
 
+<<<<<<< HEAD
         return [
             {
                 "user_id": r.user_id,
@@ -130,3 +136,6 @@ class ExamUserCRUD:
             "score": result.total_score,
             "percentage": result.total_percentage
         }
+=======
+    return user
+>>>>>>> 9099ffa45ce7d146ecebfaa98d603ded974cec66
