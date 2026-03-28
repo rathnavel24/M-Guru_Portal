@@ -8,7 +8,6 @@ class AnswerCrud:
           self.db = db
      def save_answer(self, attempt_id: int, question_id: int, option_index: int, is_skipped: bool = False):
 
-          # IMPORTANT: enforce stable order (THIS FIXES YOUR BUG)
           options = self.db.query(Options).filter(
                Options.question_id == question_id
           ).order_by(Options.option_id.asc()).all()
@@ -16,7 +15,6 @@ class AnswerCrud:
           if not options:
                return {"error": "No options found"}
 
-          # skipped handling
           if is_skipped:
                selected_option_id = None
           else:
@@ -25,7 +23,6 @@ class AnswerCrud:
 
                selected_option_id = options[option_index].option_id
 
-          # remove previous answer
           existing = self.db.query(Answers).filter(
                Answers.attempt_id == attempt_id,
                Answers.question_id == question_id
@@ -34,7 +31,6 @@ class AnswerCrud:
           if existing:
                self.db.delete(existing)
 
-          # save answer
           answer = Answers(
                attempt_id=attempt_id,
                question_id=question_id,

@@ -26,7 +26,7 @@ def logout_all_users():
             token.logout = now_naive
 
             if token.login:
-                diff = now_naive - token.login  # both naive → works
+                diff = now_naive - token.login  # both naive â†’ works
                 token.ideal_time = Decimal(diff.total_seconds() / 3600).quantize(Decimal("0.01"))
 
             token.token = None

@@ -60,6 +60,8 @@ class SignUpDetails(SignUpAbstract):
                 password=get_password_hash(self.new_user.password),
                 type=self.new_user.type,
                 batch=self.new_user.batch,
+                phone=self.new_user.phone,
+                tech_stack=self.new_user.tech_stack
             )
 
             self.db.add(new_user)
@@ -136,17 +138,20 @@ class LoginUser:
             self.db.query(Token)
             .filter(
                 Token.user_id == user.user_id,
-                func.date(Token.login) == date.today(),  # 👈 key logic
+                func.date(Token.login) == date.today(),  # ðŸ‘ˆ key logic
             )
             .first()
         )
+        now=datetime.utcnow()
         if today_token:
+            
 
             today_token.token = None
-            new_token = Token(token=token, user_id=user.user_id)
+            new_token = Token(token=token, user_id=user.user_id,last_activity =now,productive_minutes = 0)
+
 
         else:
-            new_token = Token(token=token, user_id=user.user_id)
+            new_token = Token(token=token, user_id=user.user_id,last_activity =now,productive_minutes = 0)
 
         self.db.add(new_token)
         self.db.commit()
@@ -165,7 +170,7 @@ class UserServices:
 
     def get_usersby_batch(self, batch_id):
         result = self.db.execute(
-            self.db.query(Users.user_id, Users.username, Users.email, Users.batch)
+            self.db.query(Users.user_id, Users.username, Users.email, Users.batch,Users.phone,Users.tech_stack)
             .filter(Users.batch == batch_id, Users.status == 1)
             .statement
         )
