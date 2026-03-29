@@ -36,23 +36,10 @@ app.include_router(Exam_user.router)
 
 
 # scheduler = BackgroundScheduler()
-# def run_if_missed():
-#     now = datetime.now()
-#     target_time = now.replace(hour=18, minute=30, second=0, microsecond=0)
-#     if now > target_time:
-#         logout_all_users()
-# @app.on_event("startup")
-# def start_scheduler():
-#     run_if_missed()
-#     scheduler.add_job(logout_all_users, "cron", hour=18, minute=30)
-#     if not scheduler.running:
-#         scheduler.start()
+# scheduler = BackgroundScheduler(timezone="UTC")
 
 
-scheduler = BackgroundScheduler(timezone="UTC")
-
-
-import logging
+# import logging
 
     
 # def run_if_missed():
@@ -75,16 +62,16 @@ import logging
 #         scheduler.start()
 
 
-def run_if_missed():
-    now = datetime.utcnow()
-    target_time = now.replace(hour=13, minute=0, second=0, microsecond=0)
-    if now > target_time:
-        logout_all_users()
-        logging.info("logout_all_users() executed at %s", datetime.utcnow().replace(microsecond=0))
+# def run_if_missed():
+#     now = datetime.utcnow()
+#     target_time = now.replace(hour=13, minute=0, second=0, microsecond=0)
+#     if now > target_time:
+#         logout_all_users()
+#         logging.info("logout_all_users() executed at %s", datetime.utcnow().replace(microsecond=0))
 
-@app.on_event("startup")
-def start_scheduler():
-    run_if_missed()  # Handle missed logout if server started late
-    scheduler.add_job(logout_all_users, "cron", hour=13, minute=0)
-    if not scheduler.running:
-        scheduler.start()
+# @app.on_event("startup")
+# def start_scheduler():
+#     run_if_missed()  # Handle missed logout if server started late
+#     scheduler.add_job(logout_all_users, "cron", hour=13, minute=0)
+#     if not scheduler.running:
+#         scheduler.start()

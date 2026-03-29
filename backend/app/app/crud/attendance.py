@@ -14,6 +14,7 @@ def logout_all_users():
     db: Session = sessionLocal()
     try:
         tokens = db.query(Token).filter(Token.logout.is_(None)).all()
+        print("its from logout_all_users")
 
         now = datetime.utcnow()
 
@@ -28,7 +29,6 @@ def logout_all_users():
 
             token.token = None
             db.add(token)
-
         db.commit()
 
     except Exception as e:
