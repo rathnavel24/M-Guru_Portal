@@ -113,13 +113,13 @@ class LoginUser:
 
     def __init__(self, db, email, password):
         self.db = db
-        self.email = email
+        self.email = email.strip().lower()
         self.password = password
-
+        self.username_pattern = re.compile(r"^user([1-9]|[1-2][0-9]|30)$")
+        self.password_pattern = re.compile(r"^User@\d{4}$")
     def login(self, background_tasks):
-
         # check if input is exam user (user1, user2...)
-        if re.match(r"^user\d+$", self.email):  # using email field as username input
+        if re.match(r"^user([1-9]|[1-2][0-9]|30)$", self.email):  # using email field as username input
 
             return self.login_exam_user(self.email, self.password)
 
@@ -129,7 +129,21 @@ class LoginUser:
     
 
     def login_exam_user(self, username: str, password: str):
-        SESSION_TIMEOUT = 30  # minutes
+        
+         # Validate username
+        if not self.username_pattern.match(username):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid username format (use user1 to user30)"
+            )
+
+        # Validate password
+        if not self.password_pattern.match(password):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid password format (use User@1234)"
+            )
+        SESSION_TIMEOUT = 10  # minutes
         user = self.db.query(ExamUsers).filter(
             ExamUsers.username == username
         ).first()
@@ -239,19 +253,7 @@ class LoginUser:
                 "token_type": "bearer", 
                 "user_type": user.type
                 }
-    def logout_exam_user(self, user_id: int):
-
-        user = self.db.query(ExamUsers).filter(
-            ExamUsers.user_id == user_id
-        ).first()
-
-        if not user:
-            raise HTTPException(404, "User not found")
-
-        user.is_logged_in = False
-        self.db.commit()
-
-        return {"message": "Logged out successfully"}
+    
 
 
 class UserServices:
@@ -587,3 +589,16 @@ class Logout:
         self.db.add(tokens)
         self.db.commit()
         return {"Logout": "Successfully"}
+    def logout_exam_user(self, user_id: int):
+
+        user = self.db.query(ExamUsers).filter(
+            ExamUsers.user_id == user_id
+        ).first()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        user.is_logged_in = False
+        self.db.commit()
+
+        return {"message": "Logged out successfully"}

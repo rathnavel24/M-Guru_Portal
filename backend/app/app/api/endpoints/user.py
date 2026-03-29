@@ -155,4 +155,4 @@ def update_user(
 
 @router.post("/exam/logout")
 def exam_logout(user_id: int, db: Session = Depends(get_db)):
-    return LoginUser(db,None,None).logout_exam_user(user_id)
+    return Logout(db).logout_exam_user(user_id)
