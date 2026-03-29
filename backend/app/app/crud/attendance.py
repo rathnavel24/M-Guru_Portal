@@ -20,11 +20,11 @@ def logout_all_users():
         for token in tokens:
             token.logout = now
 
-            if token.login:
-                diff = now - token.login
-                token.ideal_time = Decimal(diff.total_seconds() / 3600).quantize(
-                    Decimal("0.01")
-                )
+            # if token.login:
+            #     diff = now - token.login
+            #     token.ideal_time = Decimal(diff.total_seconds() / 3600).quantize(
+            #         Decimal("0.01")
+            #     )
 
             token.token = None
             db.add(token)

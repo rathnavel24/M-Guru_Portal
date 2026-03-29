@@ -528,8 +528,7 @@ class GetEmail:
             "total_records": total_rows,
             "data": data,
         }
-
-
+    
 class Logout:
     def __init__(self, db):
         self.db = db
