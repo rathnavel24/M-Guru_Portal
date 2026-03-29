@@ -5,7 +5,7 @@ from jinja2 import Environment, FileSystemLoader
 from io import BytesIO
 import qrcode
 from sqlalchemy.orm import Session
-from backend.app.app.models import Users, Pay_email
+from backend.app.app.models import Users, Pay_email,Fee
 from backend.app.app.schemas.user_schema import Paymentmail
 from pathlib import Path
 from email.message import EmailMessage
@@ -115,11 +115,15 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
                     raise ValueError("Payment already completed")
 
                 existing.status = 2
+                if existing.status == 2:
+                    fee = db.query(Fee).filter(Fee.user_id == existing.to_id).first()
+                if not fee:
+                    raise ValueError("Fee record not found")
+                # Add invoice amount to paid_amount
+                fee.paid_amount = (fee.paid_amount or 0) + existing.amount
                 existing.is_complete = True
                 existing.updated_at = datetime.now()
-
                 db.commit()
-
                 status = 2
                 is_complete = True
 
