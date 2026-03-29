@@ -1,6 +1,11 @@
 from fastapi import APIRouter, BackgroundTasks, Depends
 from backend.app.app.models.portal_users import Users
-from backend.app.app.schemas.user_schema import UserSignUp, UserLogin, Paymentmail, UserUpdate
+from backend.app.app.schemas.user_schema import (
+    UserSignUp,
+    UserLogin,
+    Paymentmail,
+    UserUpdate,
+)
 from sqlalchemy.orm import Session
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, Logout, GetEmail
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, Logout
@@ -8,7 +13,7 @@ from backend.app.app.api.deps import get_current_user, get_db, role_required
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, UserServices
 from backend.app.app.crud.dashboard import dashboard
 from backend.app.app.api.deps import get_db, role_required
-from backend.app.app.crud.email_services import send_invoice_email,get_bankdetail
+from backend.app.app.crud.email_services import send_invoice_email, get_bankdetail
 from fastapi import Query
 
 router = APIRouter(tags=["login"])
@@ -47,36 +52,40 @@ async def payment_mail(
     data: Paymentmail,
     current_user=Depends(role_required([1])),
     db: Session = Depends(get_db),
-):  
+):
     try:
-       send_invoice_email(data, current_user, db)
-       return {
-        "message":"email sent to the user"
-    }
+        send_invoice_email(data, current_user, db)
+        return {"message": "email sent to the user"}
     except Exception as e:
         raise e
+
 
 @router.post("/dashboard")
 async def get_dashboard(
     batch_id: int = None,
-    current_user=Depends(role_required([1])),#only admin
+    current_user=Depends(role_required([1])),  # only admin
     db: Session = Depends(get_db),
 ):
     return dashboard(batch_id, db)
 
+
 @router.post("/get_bankdetails")
-async def get_bankdetails(invoice_no:str,current_user=Depends(role_required([1])),db:Session=Depends(get_db)):
+async def get_bankdetails(
+    invoice_no: str,
+    current_user=Depends(role_required([1])),
+    db: Session = Depends(get_db),
+):
     try:
-        get_bankdetail(invoice_no,db)
-    except :
-        return " Invalid error "   
-    
+        get_bankdetail(invoice_no, db)
+    except:
+        return " Invalid error "
+
 # this is for view all user
-
-
 @router.get("/get_userby_batch/{batch_id}")
 async def get_userby_batch(
-    batch_id, db: Session = Depends(get_db), current_user=Depends(role_required([1]))#only admin
+    batch_id,
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1])),  # only admin
 ):
     return UserServices(db, None).get_usersby_batch(batch_id)
 
@@ -95,9 +104,10 @@ async def get_emails(
     page_no: int = 1,
     page_size: int = 10,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1]))
+    current_user=Depends(role_required([1])),
 ):
     return GetEmail(db).get_all_emails(page_no, page_size)
+
 
 @router.get("/emails/{batch_id}")
 async def get_emails(
@@ -105,14 +115,16 @@ async def get_emails(
     page_no: int = 1,
     page_size: int = 10,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1]))
+    current_user=Depends(role_required([1])),
 ):
     return GetEmail(db).get_all_emails_bybatch(batch_id, page_no, page_size)
 
-@router.get("/batches")
-async def get_batches(db: Session = Depends(get_db),current_user=Depends(role_required([1]))):
-    return UserServices(db, None).get_all_batches()
 
+@router.get("/batches")
+async def get_batches(
+    db: Session = Depends(get_db), current_user=Depends(role_required([1]))
+):
+    return UserServices(db, None).get_all_batches()
 
 
 @router.get("/get_all_users")
@@ -120,22 +132,23 @@ async def get_all_users(
     page_no: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1]))  # only admin
+    current_user=Depends(role_required([1])),  # only admin
 ):
     return UserServices(db, None).get_all_users(page_no, page_size)
 
+
 @router.get("/me")
 def get_user(
-    db: Session = Depends(get_db),
-    current_user=Depends(role_required([1,2]))
+    db: Session = Depends(get_db), current_user=Depends(role_required([1, 2]))
 ):
-    return UserServices(db,None).get_user(current_user.get("user_id"))
+    return UserServices(db, None).get_user(current_user.get("user_id"))
+
 
 @router.put("/update_users/{user_id}")
 def update_user(
     user_id: int,
     data: UserUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1]))  # optional admin only
+    current_user=Depends(role_required([1])),  # optional admin only
 ):
-    return UserServices(db,None).update_user(user_id, data)
+    return UserServices(db, None).update_user(user_id, data)
