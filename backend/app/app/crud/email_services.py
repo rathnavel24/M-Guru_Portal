@@ -1,6 +1,5 @@
 import aiosmtplib
 from email.message import EmailMessage
-from fastapi import BackgroundTasks 
 from jinja2 import Environment, FileSystemLoader
 from io import BytesIO
 import qrcode
@@ -162,7 +161,7 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
         msg.set_content("Please view this email in HTML format.")
         msg.add_alternative(html_content, subtype="html")
 
-        BackgroundTasks.add_task(send_email,msg)
+        await send_email(msg)
 
         add_log = Pay_email(
             invoice_no=gen_invoice_id,

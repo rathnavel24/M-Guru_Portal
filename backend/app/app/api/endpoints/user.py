@@ -54,7 +54,7 @@ async def payment_mail(
     db: Session = Depends(get_db),
 ):
     try:
-        send_invoice_email(data, current_user, db)
+        await send_invoice_email(data, current_user, db)
         return {"message": "email sent to the user"}
     except Exception as e:
         raise e
