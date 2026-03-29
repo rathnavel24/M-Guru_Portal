@@ -452,26 +452,27 @@ class GetEmail:
 
         # fetch paginated data
         data = (
-            self.db.execute(
-                select(
-                    Pay_email.id,
-                    Pay_email.invoice_no,
-                    Pay_email.amount,
-                    Pay_email.is_complete,
-                    Pay_email.created_at,
-                    Pay_email.email_type,
-                    Users.username.label("receiver_name"),
-                    Users.email.label("receiver_email"),
-                    Users.batch,
+                self.db.execute(
+                    select(
+                        Pay_email.id,
+                        Pay_email.invoice_no,
+                        Pay_email.amount,
+                        Pay_email.is_complete,
+                        Pay_email.created_at,
+                        Pay_email.email_type,
+                        Users.username.label("receiver_name"),
+                        Users.email.label("receiver_email"),
+                        Users.batch,
+                    )
+                    .join(Users, Users.user_id == Pay_email.from_id)  # ✅ corrected
+                    .where(Pay_email.status == 1)
+                    .order_by(desc(Pay_email.created_at))
+                    .offset(offset)
+                    .limit(limit)
                 )
-                .where(Pay_email.status == 1)
-                .order_by(desc(Pay_email.created_at))
-                .offset(offset)
-                .limit(limit)
+                .mappings()
+                .all()
             )
-            .mappings()
-            .all()
-        )
 
         return {
             "total_pages": total_pages,
