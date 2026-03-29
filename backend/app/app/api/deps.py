@@ -37,7 +37,7 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
         db_token = (db.query(Token).filter(Token.token == token.credentials, Token.logout == None).first())
         
         if not db_token:
-            raise HTTPException(status_code=401, detail="Token invalid or logged out")
+            raise HTTPException(status_code=401, detail="session timeout or logged out")
         
         # Track productive time
         #user_id = payload.get("user_id")  # assuming 'sub' is user id
