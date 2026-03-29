@@ -51,21 +51,40 @@ app.include_router(Exam_user.router)
 
 scheduler = BackgroundScheduler(timezone="UTC")
 
+
+import logging
+
+    
+# def run_if_missed():
+#     now = datetime.utcnow()
+#     target_time = now.replace(hour=13, minute=0, second=0, microsecond=0)
+#     if now > target_time:
+#         logout_all_users()
+#         logging.warning("logout_all_users() called at %s", datetime.utcnow())
+
+
+# @app.on_event("startup")
+# def start_scheduler():
+#     # Run missed logout if server started after 18:30 UTC
+#     run_if_missed()
+
+#     # Schedule daily logout at 18:30 UTC
+#     scheduler.add_job(logout_all_users, "cron", hour=13, minute=0)
+
+#     if not scheduler.running:
+#         scheduler.start()
+
+
 def run_if_missed():
     now = datetime.utcnow()
     target_time = now.replace(hour=13, minute=0, second=0, microsecond=0)
-
     if now > target_time:
         logout_all_users()
-
+        logging.info("logout_all_users() executed at %s", datetime.utcnow().replace(microsecond=0))
 
 @app.on_event("startup")
 def start_scheduler():
-    # Run missed logout if server started after 18:30 UTC
-    run_if_missed()
-
-    # Schedule daily logout at 18:30 UTC
+    run_if_missed()  # Handle missed logout if server started late
     scheduler.add_job(logout_all_users, "cron", hour=13, minute=0)
-
     if not scheduler.running:
         scheduler.start()
