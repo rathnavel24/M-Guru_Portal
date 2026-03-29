@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from backend.app.app.api.deps import get_db
+from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.schemas.Exam_attempt_schemas import FinalResultSchema, StartAttempt, SubmitTest
 from backend.app.app.crud.Exam_attempt_crud import AttemptCrud
 
@@ -58,3 +58,7 @@ def submit_final_result(
 def get_test_status(user_id: int, db: Session = Depends(get_db)):
     
     return AttemptCrud(db).get_user_exam_status(user_id)
+
+@router.get("/exam-summary")
+def exam_summary(db=Depends(get_db),current_user=Depends(role_required([1]))):
+    return AttemptCrud(db).get_exam_summary()

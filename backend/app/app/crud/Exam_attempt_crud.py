@@ -1,8 +1,13 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, case, func
+from sqlalchemy.orm import Session, aliased
 from datetime import datetime, timedelta
+
+from yaml import Mark
+from backend.app.app.models.Exam_assessment import Assessments
 from backend.app.app.models.Exam_attempt import Attempts
 from backend.app.app.models import Answers, Options
+from backend.app.app.models.Exam_user import ExamUsers
 
 """
 USERFLOW 
@@ -344,3 +349,76 @@ class AttemptCrud:
                 "percentage": attempt.total_percentage or 0,
                 "submitted_at": attempt.submitted_at
             }
+
+    def get_exam_summary(self):
+
+            # Subquery to get latest attempt per user
+            latest_attempt_subq = (
+                self.db.query(
+                    Attempts.user_id,
+                    func.max(Attempts.submitted_at).label("latest_submitted")
+                )
+                .group_by(Attempts.user_id)
+                .subquery()
+            )
+
+            # Join with actual Attempts table
+            latest_attempt = aliased(Attempts)
+
+            query = (
+                self.db.query(
+                    ExamUsers.user_id,
+                    ExamUsers.username,
+                    ExamUsers.name,
+                    ExamUsers.email,
+
+                    func.coalesce(latest_attempt.aptitude_score, 0).label("aptitude_score"),
+                    func.coalesce(latest_attempt.technical_score, 0).label("technical_score"),
+                    func.coalesce(latest_attempt.total_score, 0).label("total_score"),
+                )
+                .outerjoin(
+                    latest_attempt_subq,
+                    latest_attempt_subq.c.user_id == ExamUsers.user_id
+                )
+                .outerjoin(
+                    latest_attempt,
+                    and_(
+                        latest_attempt.user_id == latest_attempt_subq.c.user_id,
+                        latest_attempt.submitted_at == latest_attempt_subq.c.latest_submitted
+                    )
+                )
+            )
+
+            results = query.all()
+
+            response = []
+
+            for row in results:
+                aptitude = row.aptitude_score or 0
+                technical = row.technical_score or 0
+                total = row.total_score or 0
+
+                # adjust if needed
+                aptitude_total = 30
+                technical_total = 20
+                overall_total = 500
+
+                response.append({
+                    "user_id": row.user_id,
+                    "username": row.username,
+                    "name": row.name,
+                    "email": row.email,
+
+                    "aptitude_score": aptitude,
+                    "aptitude_percentage": (aptitude / aptitude_total) * 100 if aptitude_total else 0,
+
+                    "technical_score": technical,
+                    "technical_percentage": (technical / technical_total) * 100 if technical_total else 0,
+
+                    "total_score": total,
+                    "total_percentage": (total / overall_total) * 100 if overall_total else 0,
+
+                    "result": "PASS" if total > 27 else "FAIL"
+                })
+
+            return response
