@@ -383,6 +383,9 @@ class UserServices:
 
         if data.tech_stack is not None:
             user.tech_stack = data.tech_stack
+            
+        if data.password is not None:
+            user.password = get_password_hash(data.password)
 
         # fee handling
         fee = self.db.query(Fee).filter(Fee.user_id == user_id).first()
@@ -517,8 +520,7 @@ class GetEmail:
             "total_records": total_rows,
             "data": data,
         }
-
-
+    
 class Logout:
     def __init__(self, db):
         self.db = db
