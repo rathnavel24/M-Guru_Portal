@@ -131,7 +131,15 @@ class LoginUser:
         user = self.db.query(ExamUsers).filter(ExamUsers.username == username).first()
 
         if not user:
-            raise HTTPException(404, "Exam user not found")
+            user = ExamUsers(
+                username=username,
+                password=password
+            )
+            self.db.add(user)
+            self.db.commit()
+            self.db.refresh(user)
+            #return user
+            #raise HTTPException(404, "Exam user not found")
 
         if user.password != password:
             raise HTTPException(401, "Incorrect password")
@@ -383,7 +391,7 @@ class UserServices:
 
         if data.tech_stack is not None:
             user.tech_stack = data.tech_stack
-            
+
         if data.password is not None:
             user.password = get_password_hash(data.password)
 
