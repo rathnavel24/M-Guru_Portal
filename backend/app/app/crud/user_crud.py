@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+import datetime
 from decimal import Decimal
 from operator import and_
 from unittest import result
@@ -545,7 +545,7 @@ class Logout:
         )
 
         # now = self.db.query(func.now()).scalar()
-        now = datetime.utcnow()
+        now = datetime.datetime.utcnow()
         tokens.logout = now
         time_diff = now - tokens.login  # timedelta
 

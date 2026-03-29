@@ -27,7 +27,7 @@ security = HTTPBearer()
 SECRET_KEY = "MqbU2rs3hlCKUWrt3ZvTeg7NxVTgTBPlJkRLWLpgoDttc8IG6I0NTzDwwzJsk"
 ALGORITHM = "HS256"
 
-def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
+def get_current_userr(token=Depends(security), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
 
@@ -66,13 +66,12 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
             diff_minutess = (now - db_token.last_activity).total_seconds() / 60
             diff_minutes = round(diff_minutess, 2)
             
-
-            #tokens.ideal_time = Decimal((now - db_token.last_activity).total_seconds() / 3600).quantize(Decimal("0.01")
             
             if diff_minutes <= IDLE_TIMEOUT_MINUTES:
                 # User is active, count time
                 db_token.last_activity=now
-                db_token.productive_minutes += diff_minutes
+                #db_token.productive_minutes += diff_minutes
+                db_token.productive_minutes = (db_token.productive_minutes or 0) + diff_minutes
             else:
                 current_user=payload
                 Logout(db).logout(current_user)
