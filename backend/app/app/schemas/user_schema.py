@@ -33,6 +33,8 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    password : Optional[str] = None
+    user_type : Optional[int] = 2
     batch: Optional[int] = None
     tech_stack: Optional[str] = None
     total_fee: Optional[float] = None
