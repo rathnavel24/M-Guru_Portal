@@ -24,7 +24,7 @@ async def send_email(msg: EmailMessage):
     await aiosmtplib.send(
         msg,
         hostname="smtp.gmail.com",
-        port=587,
+        port=465,
         start_tls=True,
         username=os.getenv("user"),
         password=os.getenv("password"),
