@@ -35,12 +35,25 @@ app.include_router(attendance.router)
 app.include_router(Exam_user.router)
 
 
-scheduler = BackgroundScheduler()
+# scheduler = BackgroundScheduler()
+# def run_if_missed():
+#     now = datetime.now()
+#     target_time = now.replace(hour=18, minute=30, second=0, microsecond=0)
+#     if now > target_time:
+#         logout_all_users()
+# @app.on_event("startup")
+# def start_scheduler():
+#     run_if_missed()
+#     scheduler.add_job(logout_all_users, "cron", hour=18, minute=30)
+#     if not scheduler.running:
+#         scheduler.start()
 
+
+scheduler = BackgroundScheduler(timezone="UTC")
 
 def run_if_missed():
-    now = datetime.now()
-    target_time = now.replace(hour=18, minute=30, second=0, microsecond=0)
+    now = datetime.utcnow()
+    target_time = now.replace(hour=13, minute=0, second=0, microsecond=0)
 
     if now > target_time:
         logout_all_users()
@@ -48,9 +61,11 @@ def run_if_missed():
 
 @app.on_event("startup")
 def start_scheduler():
+    # Run missed logout if server started after 18:30 UTC
     run_if_missed()
 
-    scheduler.add_job(logout_all_users, "cron", hour=18, minute=30)
+    # Schedule daily logout at 18:30 UTC
+    scheduler.add_job(logout_all_users, "cron", hour=13, minute=0)
 
     if not scheduler.running:
         scheduler.start()

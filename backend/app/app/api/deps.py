@@ -27,33 +27,13 @@ security = HTTPBearer()
 SECRET_KEY = "MqbU2rs3hlCKUWrt3ZvTeg7NxVTgTBPlJkRLWLpgoDttc8IG6I0NTzDwwzJsk"
 ALGORITHM = "HS256"
 
-def get_current_userr(token=Depends(security), db: Session = Depends(get_db)):
-    try:
-        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-
-        db_token = (
-            db.query(Token)
-            .filter(Token.token == token.credentials, Token.logout == None)
-            .first())
-
-        if not db_token:
-            raise HTTPException(status_code=401, detail="Token invalid or logged out")
-        
-        return payload
-
-    except jwt.JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-
 
 def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
 
-        db_token = (db.query(Token).filter(Token.token == token.credentials,
-                     #Token.logout == None
-                     ).first())
-
+        db_token = (db.query(Token).filter(Token.token == token.credentials, Token.logout == None).first())
+        
         if not db_token:
             raise HTTPException(status_code=401, detail="Token invalid or logged out")
         

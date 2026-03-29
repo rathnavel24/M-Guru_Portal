@@ -183,14 +183,6 @@ class LoginUser:
             )
         token = create_access_token(data={"user_id": user.user_id, "role": user.type})
 
-        today_token = (
-            self.db.query(Token)
-            .filter(
-                Token.user_id == user.user_id, func.date(Token.login) == date.today()
-            )
-            .first()
-        )
-
         now = dt.utcnow()
 
         today_token = self.db.query(Token).filter(
