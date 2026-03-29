@@ -6,26 +6,22 @@ from sqlalchemy.orm import Session
 from backend.app.app.models import Token
 from backend.app.app.api.deps import sessionLocal
 from sqlalchemy import func, cast, Date
+from decimal import Decimal
+from datetime import datetime
+from sqlalchemy.orm import Session
 
 def logout_all_users():
     db: Session = sessionLocal()
     try:
         tokens = db.query(Token).filter(Token.logout.is_(None)).all()
-        # now = db.query(func.now()).scalar()
 
         now = datetime.utcnow()
 
-        # Make now naive to match DB login
-        if now.tzinfo:
-            now_naive = now.replace(tzinfo=None)
-        else:
-            now_naive = now
-
         for token in tokens:
-            token.logout = now_naive
+            token.logout = now
 
             if token.login:
-                diff = now_naive - token.login  # both naive â†’ works
+                diff = now - token.login
                 token.ideal_time = Decimal(diff.total_seconds() / 3600).quantize(
                     Decimal("0.01")
                 )
@@ -36,7 +32,9 @@ def logout_all_users():
         db.commit()
 
     except Exception as e:
-        return e
+        db.rollback()
+        raise e
+
     finally:
         db.close()
 
