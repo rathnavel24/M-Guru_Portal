@@ -401,7 +401,7 @@ class AttemptCrud:
                 # adjust if needed
                 aptitude_total = 30
                 technical_total = 20
-                overall_total = 500
+                overall_total = 50
 
                 response.append({
                     "user_id": row.user_id,
