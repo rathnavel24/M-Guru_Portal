@@ -192,12 +192,7 @@ class LoginUser:
             .first()
         )
 
-<<<<<<< HEAD
-        now = datetime.datetime.utcnow()
-        if today_token:
-=======
         now = datetime.utcnow()
->>>>>>> 6eefa584b24917d88a2275c30d157b6d001f45ec
 
         today_token = self.db.query(Token).filter(
             Token.user_id == user.user_id,
