@@ -8,7 +8,7 @@ from backend.app.app.api.deps import get_current_user, get_db, role_required
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, UserServices
 from backend.app.app.crud.dashboard import dashboard
 from backend.app.app.api.deps import get_db, role_required
-from backend.app.app.crud.email_services import send_invoice_email
+from backend.app.app.crud.email_services import send_invoice_email,get_bankdetail
 from fastapi import Query
 
 router = APIRouter(tags=["login"])
@@ -45,12 +45,11 @@ async def log_out(
 @router.post("/payment_email")  # send payment email to student
 async def payment_mail(
     data: Paymentmail,
-    bgtask: BackgroundTasks,
     current_user=Depends(role_required([1])),
     db: Session = Depends(get_db),
 ):  
     try:
-       bgtask.add_task(send_invoice_email, data, current_user, db)
+       send_invoice_email(data, current_user, db)
        return {
         "message":"email sent to the user"
     }
@@ -65,7 +64,13 @@ async def get_dashboard(
 ):
     return dashboard(batch_id, db)
 
-
+@router.post("/get_bankdetails")
+async def get_bankdetails(invoice_no:str,current_user=Depends(role_required([1])),db:Session=Depends(get_db)):
+    try:
+        get_bankdetail(invoice_no,db)
+    except :
+        return " Invalid error "   
+    
 # this is for view all user
 
 
