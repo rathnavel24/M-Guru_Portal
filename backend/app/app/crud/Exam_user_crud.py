@@ -1,71 +1,132 @@
 from fastapi import HTTPException
 import re
 from sqlalchemy.orm import Session
-from backend.app.app.schemas import Exam_user_schemas 
+from sqlalchemy import func
+
 from backend.app.app.models import ExamUsers
+from backend.app.app.models.Exam_attempt import Attempts
 
 
-# users_db = {}
+class ExamUserCRUD:
 
-username_pattern = re.compile(r"^user([1-9]|[1-2][0-9]|30)$")
-password_pattern = re.compile(r"^User@\d{4}$")
-
-
-class ExamSignUpDetails:
-    def __init__(self, db: Session, user_data:Exam_user_schemas):
+    def __init__(self, db: Session):
         self.db = db
-        self.user_data = user_data
 
-    def user_signup(self):
-        username = self.user_data.username
-        password = self.user_data.password
+    username_pattern = re.compile(r"^user([1-9]|[1-2][0-9]|30)$")
+    password_pattern = re.compile(r"^User@\d{4}$")
 
-        if not username_pattern.match(username):
-            raise HTTPException(status_code=404, detail="Invalid username (use user1 to user30)")
-        
-        if not password_pattern.match(password):
-            raise HTTPException(status_code=400, detail="Password must be like User@1234")
-        
-        existing_user = self.db.query(ExamUsers).filter(ExamUsers.username == username).first()
-
-        if existing_user:
-            raise HTTPException(status_code=400,detail="Username already exists")
-        
-        existing_password = self.db.query(ExamUsers).filter(ExamUsers.password == password).first()
-
-        if existing_password:
-            raise HTTPException(status_code=400,detail="Password already exists")
-        
-    
-        new_user = ExamUsers(
-            username = username,
-            password = password
-        )
-        self.db.add(new_user)
-        self.db.commit()
-        self.db.refresh(new_user)
-
-        print("user inserted successfully")
-
-        return {"message": "Signup Successful" , "user" : username}
-       
-        
-       
-class ExamLoginDetails:
-    def __init__(self, db:Session, user_data:Exam_user_schemas):
-        self.db = db
-        self.user_data = user_data
-
-    def user_login(self):
-        username  = self.user_data.username
-        password = self.user_data.password
-
+    def login_user(self, username: str, password: str):
         user = self.db.query(ExamUsers).filter(ExamUsers.username == username).first()
 
         if not user:
-            raise HTTPException(status_code=400,detail="User not found")
-        
+            user = ExamUsers(
+                username=username,
+                password=password
+            )
+            self.db.add(user)
+            self.db.commit()
+            self.db.refresh(user)
+            return user
+
         if user.password != password:
             raise HTTPException(status_code=400, detail="Incorrect password")
-        
-        return {"message" : "Login Successful", "user" : username}
+
+        return user
+
+    def create_user_details(self, user_id: int, name: str, email: str):
+        user = self.db.query(ExamUsers).filter(ExamUsers.user_id == user_id).first()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        user.name = name
+        user.email = email
+
+        self.db.commit()
+        self.db.refresh(user)
+
+        return user
+
+    def get_user(self, user_id: int):
+        user = self.db.query(ExamUsers).filter(ExamUsers.user_id == user_id).first()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return user
+
+    def get_user_results(self):
+
+        subquery = (
+            self.db.query(
+                Attempts.user_id,
+                func.max(Attempts.attempt_id).label("latest_attempt")
+            )
+            .group_by(Attempts.user_id)
+            .subquery()
+        )
+
+        results = (
+            self.db.query(
+                Attempts.user_id,
+                ExamUsers.username,
+                Attempts.total_score,
+                Attempts.total_percentage
+            )
+            .join(ExamUsers, ExamUsers.user_id == Attempts.user_id)
+            .join(
+                subquery,
+                (Attempts.user_id == subquery.c.user_id) &
+                (Attempts.attempt_id == subquery.c.latest_attempt)
+            )
+            .order_by(Attempts.user_id.asc())
+            .all()
+        )
+
+        return [
+            {
+                "user_id": r.user_id,
+                "username": r.username,
+                "score": r.total_score,
+                "percentage": r.total_percentage
+            }
+            for r in results
+        ]
+
+    def get_single_user_results(self, user_id: int):
+
+        subquery = (
+            self.db.query(
+                Attempts.user_id,
+                func.max(Attempts.attempt_id).label("latest_attempt")
+            )
+            .filter(Attempts.user_id == user_id)
+            .group_by(Attempts.user_id)
+            .subquery()
+        )
+
+        result = (
+            self.db.query(
+                Attempts.user_id,
+                ExamUsers.username,
+                Attempts.total_score,
+                Attempts.total_percentage
+            )
+            .join(ExamUsers, ExamUsers.user_id == Attempts.user_id)
+            .join(
+                subquery,
+                (Attempts.user_id == subquery.c.user_id) &
+                (Attempts.attempt_id == subquery.c.latest_attempt)
+            )
+            .first()
+        )
+
+        if not result:
+            raise HTTPException(status_code=404, detail="User not found or no attempts")
+
+        return {
+            "user_id": result.user_id,
+            "username": result.username,
+            "score": result.total_score,
+            "percentage": result.total_percentage
+        }

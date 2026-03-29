@@ -2,6 +2,7 @@ from sqlalchemy import Column, DateTime, Integer, String, TIMESTAMP
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 from sqlalchemy.orm import relationship
+from sqlalchemy import Enum
 
 
 
@@ -11,6 +12,8 @@ class ExamUsers(Base):
     user_id = Column(Integer, primary_key=True , index=True)
     username = Column(String(100), unique=True)
     password = Column(String(255), unique=True)
+    name = Column(String(255), nullable=True)
+    email = Column(String(255), unique=True)
     Created_At = Column(DateTime, server_default=func.now())
     Updated_At = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

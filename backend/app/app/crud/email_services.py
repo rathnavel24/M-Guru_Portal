@@ -54,6 +54,10 @@ def generate_invoice_id(db: Session):
 async def send_invoice_email(data: Paymentmail, current_user, db: Session):
     sender_id = current_user["user_id"]
 
+
+async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
+    sender_id =current_user["user_id"]
+
     try:
         user = (
             db.query(Users.username, Users.email)
@@ -173,7 +177,6 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
             updated_at=datetime.now(),
             created_by="ADMIN",
         )
-        print("ACCOUNT:", add_log.account_name, add_log.account_no, add_log.ifsc, add_log.bank_name)
         db.add(add_log)
         db.commit()
 

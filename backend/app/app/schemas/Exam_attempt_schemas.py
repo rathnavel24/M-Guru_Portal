@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -24,6 +26,7 @@ class ResultResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class AttemptHistoryResponse(BaseModel):
     id : int 
     assessment_id : int
@@ -33,3 +36,15 @@ class AttemptHistoryResponse(BaseModel):
 
     class Config:
         from_attributes = True      
+
+
+class FinalResultSchema(BaseModel):
+    test_type: Literal["aptitude", "technical"]  # 🔥 REQUIRED
+
+    correct_answers: int
+    wrong_answers: int
+    skipped_answers: int
+    total_questions: int
+
+    score: int
+    time_taken: int
