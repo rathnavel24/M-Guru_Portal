@@ -29,6 +29,7 @@ def logout_all_users():
 
             token.token = None
             db.add(token)
+            print("all user token deleted")
         db.commit()
 
     except Exception as e:
