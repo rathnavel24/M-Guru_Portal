@@ -46,10 +46,14 @@ async def payment_mail(
     bgtask: BackgroundTasks,
     current_user=Depends(role_required([1])),
     db: Session = Depends(get_db),
-):
-    bgtask.add_task(send_invoice_email, data, current_user, db)
-    return {"message": "Payment mail sent succesfully"}
-
+):  
+    try:
+       bgtask.add_task(send_invoice_email, data, current_user, db)
+       return {
+        "message":"email sent to the user"
+    }
+    except Exception as e:
+        raise e
 
 @router.post("/dashboard")
 async def get_dashboard(

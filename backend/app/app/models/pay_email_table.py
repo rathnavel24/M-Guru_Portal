@@ -11,7 +11,7 @@ class Pay_email(Base):
 
 
     id=Column(Integer,primary_key=True)
-    invoice_no=Column(String,unique=True)
+    invoice_no=Column(String)
 
     from_id=Column(Integer,ForeignKey('users.user_id'))
     to_id=Column(Integer,ForeignKey('users.user_id'))
@@ -19,7 +19,10 @@ class Pay_email(Base):
     email_type=Column(String)
     amount=Column(Float)
     due_date = Column(TIMESTAMP) 
-    upi_id=Column(String)
+    account_name = Column(String, nullable=True)
+    account_no = Column(String, nullable=True)
+    ifsc = Column(String, nullable=True)
+    bank_name = Column(String, nullable=True)
     is_complete=Column(Boolean)
     status = Column(Integer, default=1) 
     created_at = Column(TIMESTAMP, default=func.now())

@@ -18,13 +18,6 @@
       padding: 20px;
     }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: #333;
-    }
-
     .brand {
       font-size: 22px;
       font-weight: bold;
@@ -39,12 +32,6 @@
     .invoice-info {
       text-align: right;
       font-size: 14px;
-    }
-
-    hr {
-      border: none;
-      border-top: 1px solid #ddd;
-      margin: 20px 0;
     }
 
     .title {
@@ -83,13 +70,21 @@
     }
 
     .qr-box {
-      display: flex;
-      align-items: center;
-      gap: 20px;
+      display: block; /* simplified layout */
     }
 
     .qr-text {
       font-size: 14px;
+    }
+
+    .bank-details {
+      margin-top: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #eee;
     }
 
     .footer {
@@ -106,29 +101,28 @@
   <div class="container">
 
     <!-- Header -->
-  <table width="100%" style="border-collapse: collapse;">
-  <tr>
-    <!-- LEFT SIDE -->
-    <td align ="left" valign="top">
-      <div class="brand">◆ M-Guru</div>
-      <div class="sub">payment notification</div>
-    </td>
+    <table width="100%">
+      <tr>
+        <td align="left">
+          <div class="brand">◆ M-Guru</div>
+          <div class="sub">payment notification</div>
+        </td>
 
-    <!-- RIGHT SIDE -->
-    <td align ="right" valign="top" class="invoice-info">
-      <div><b>INVOICE</b></div>
-      <div><b>{{ invoice_id }}</b></div>
-      <div>{{ date }}</div>
-      <div style="font-size:12px;color:gray;">Issue Date</div>
-    </td>
-  </tr>
-  </table>
+        <td align="right" class="invoice-info">
+          <div><b>INVOICE</b></div>
+          <div><b>{{ invoice_id }}</b></div>
+          <div>{{ date }}</div>
+          <div style="font-size:12px;color:gray;">Issue Date</div>
+        </td>
+      </tr>
+    </table>
+
     <!-- Greeting -->
     <p class="title">Dear {{ name }},</p>
 
     <p>
       Please find your invoice for services rendered. Kindly complete the payment
-      by <b>{{ due_date or "N/A" }}</b> to avoid any service interruption.
+      by <b>{{ due_date or "N/A" }}</b>.
     </p>
 
     <!-- Invoice Details -->
@@ -139,7 +133,7 @@
       </div>
 
       <div class="row">
-        <span>Customer : </span>
+        <span>Customer :</span>
         <span>{{ name }}</span>
       </div>
 
@@ -150,12 +144,12 @@
 
       <div class="row">
         <span>Note :</span>
-        <span> {{ note }} </span>
+        <span>{{ note or "N/A" }}</span>
       </div>
 
       <div class="row">
         <span>Status :</span>
-        <span class="pending">Pending... </span>
+        <span class="pending">Pending...</span>
       </div>
 
       <div class="row">
@@ -163,17 +157,28 @@
         <span class="amount">₹{{ "{:,.2f}".format(amount) }}</span>
       </div>
     </div>
-
-    <!-- QR Section -->
+    
+    <!-- Payment Section -->
     <div class="box">
       <div class="qr-box">
-        <!-- 🔥 IMPORTANT: CID must match Python cid="<qrcode>" -->
-        <img src="cid:qrcode" width="120" alt="QR Code"/>
-
         <div class="qr-text">
-          <b>Scan to Pay</b><br>
-          UPI - Instant Payment<br>
-          <span style="color:gray;">{{ upi_id }}</span>
+          <b>Payment Options</b><br><br>
+
+          <!-- UPI (optional) -->
+          {% if upi_id %}
+            <b>UPI</b><br>
+            <span style="color:gray;">{{ upi_id }}</span><br><br>
+          {% endif %}
+
+          <!-- Bank Details (ALWAYS SHOWN) -->
+          <div class="bank-details">
+            <b>Bank Transfer</b><br>
+            Name: {{ account_name or "N/A" }}<br>
+            A/C: {{ account_no or "N/A" }}<br>
+            IFSC: {{ ifsc or "N/A" }}<br>
+            Bank: {{ bank_name or "N/A" }}
+          </div>
+
         </div>
       </div>
     </div>
