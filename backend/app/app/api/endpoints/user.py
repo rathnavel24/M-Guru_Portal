@@ -76,7 +76,7 @@ async def get_bankdetails(
     db: Session = Depends(get_db),
 ):
     try:
-        get_bankdetail(invoice_no, db)
+        return get_bankdetail(invoice_no, db)
     except:
         return " Invalid error "
 

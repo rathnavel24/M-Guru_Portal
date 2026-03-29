@@ -199,15 +199,20 @@ def payment_confirmation(invoice_no:str,db:Session):
     db.commit()
     db.refresh(user)
 
-def get_bankdetail(invoice_no:str,db:Session):
-    user = db.query(Pay_email.bank_name,
-                    Pay_email.account_name,
-                    Pay_email.account_no,
-                    Pay_email.ifsc).filter(Pay_email.invoice_no == invoice_no).first()
-    if not user:
-        return {"messag":"Enter Valid Invoice number"}
-    
-    return user
+def get_bankdetail(invoice_no: str, db: Session):
+    bank_details = db.query(
+        Pay_email.bank_name,
+        Pay_email.account_name,
+        Pay_email.account_no,
+        Pay_email.ifsc
+    ).filter(Pay_email.invoice_no == invoice_no).first()
 
+    if not bank_details:
+        return {"message": "Enter Valid Invoice number"}
 
-
+    return {
+        "bank_name": bank_details.bank_name,
+        "account_name": bank_details.account_name,
+        "account_no": bank_details.account_no,
+        "ifsc": bank_details.ifsc
+    }
