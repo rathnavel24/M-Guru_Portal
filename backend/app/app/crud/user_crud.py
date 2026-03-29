@@ -197,7 +197,7 @@ class LoginUser:
         today_token = self.db.query(Token).filter(
             Token.user_id == user.user_id,
             func.date(Token.login) == date.today(),
-            Token.logout == None   # 🔥 IMPORTANT
+            Token.logout == None   # IMPORTANT
         ).first()
 
         if today_token:
