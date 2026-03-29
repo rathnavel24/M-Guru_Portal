@@ -62,3 +62,7 @@ def get_test_status(user_id: int, db: Session = Depends(get_db)):
 @router.get("/exam-summary")
 def exam_summary(db=Depends(get_db),current_user=Depends(role_required([1]))):
     return AttemptCrud(db).get_exam_summary()
+
+@router.delete("/truncate-exam-users")
+def truncate_exam_users(db=Depends(get_db)):
+    return AttemptCrud(db).truncate_exam_users()
