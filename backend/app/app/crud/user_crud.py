@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime as dt
 from decimal import Decimal
 from operator import and_
 from unittest import result
@@ -152,7 +152,7 @@ class LoginUser:
             attempt = Attempts(
                 user_id=user.user_id,
                 assessment_id=1,  # or dynamic
-                started_at=datetime.utcnow(),
+                started_at=dt.utcnow(),
                 status="in_progress"
             )
             self.db.add(attempt)
@@ -181,23 +181,14 @@ class LoginUser:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong password"
             )
-
         token = create_access_token(data={"user_id": user.user_id, "role": user.type})
 
-        today_token = (
-            self.db.query(Token)
-            .filter(
-                Token.user_id == user.user_id, func.date(Token.login) == date.today()
-            )
-            .first()
-        )
-
-        now = datetime.utcnow()
+        now = dt.utcnow()
 
         today_token = self.db.query(Token).filter(
             Token.user_id == user.user_id,
             func.date(Token.login) == date.today(),
-            Token.logout == None   # 🔥 IMPORTANT
+            Token.logout == None   # IMPORTANT
         ).first()
 
         if today_token:
@@ -545,7 +536,7 @@ class Logout:
         )
 
         # now = self.db.query(func.now()).scalar()
-        now = datetime.datetime.utcnow()
+        now = dt.utcnow()
         tokens.logout = now
         time_diff = now - tokens.login  # timedelta
 
