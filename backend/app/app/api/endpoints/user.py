@@ -152,3 +152,7 @@ def update_user(
     current_user=Depends(role_required([1])),  # optional admin only
 ):
     return UserServices(db, None).update_user(user_id, data)
+
+@router.post("/exam/logout")
+def exam_logout(user_id: int, db: Session = Depends(get_db)):
+    return LoginUser(db,None,None).logout_exam_user(user_id)

@@ -1,4 +1,4 @@
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta
 from decimal import Decimal
 from operator import and_
 from unittest import result
@@ -126,10 +126,15 @@ class LoginUser:
         # otherwise normal user login
         return self.login_main_user(background_tasks)
 
+    
+
     def login_exam_user(self, username: str, password: str):
+        SESSION_TIMEOUT = 30  # minutes
+        user = self.db.query(ExamUsers).filter(
+            ExamUsers.username == username
+        ).first()
 
-        user = self.db.query(ExamUsers).filter(ExamUsers.username == username).first()
-
+        # Auto-create user 
         if not user:
             user = ExamUsers(
                 username=username,
@@ -138,28 +143,34 @@ class LoginUser:
             self.db.add(user)
             self.db.commit()
             self.db.refresh(user)
-            #return user
-            #raise HTTPException(404, "Exam user not found")
 
+        # Password check
         if user.password != password:
             raise HTTPException(401, "Incorrect password")
 
-        # Check if attempt already exists
+        #SINGLE SESSION CHECK
+        if user.is_logged_in:
+            if user.last_login and (dt.utcnow() - user.last_login < timedelta(minutes=SESSION_TIMEOUT)):
+                raise HTTPException(
+                    status_code=403,
+                    detail="User already logged in from another device"
+                )
+            else:
+                # session expired → reset
+                user.is_logged_in = False
+
+        # Check attempt
         attempt = self.db.query(Attempts).filter(
             Attempts.user_id == user.user_id
         ).first()
 
         if attempt:
-            # Optional: block re-login if already completed
             if attempt.status == "completed":
                 raise HTTPException(400, "Exam already completed")
-
-            # If already started → just allow resume
         else:
-            # Create new attempt
             attempt = Attempts(
                 user_id=user.user_id,
-                assessment_id=1,  # or dynamic
+                assessment_id=1,
                 started_at=dt.utcnow(),
                 status="in_progress"
             )
@@ -167,11 +178,16 @@ class LoginUser:
             self.db.commit()
             self.db.refresh(attempt)
 
+        #  Mark user as logged in
+        user.is_logged_in = True
+        user.last_login = dt.utcnow()
+        self.db.commit()
+
         return {
             "token_type": None,
             "token": None,
             "user_id": user.user_id,
-            "attempt_id": attempt.attempt_id,   # important
+            "attempt_id": attempt.attempt_id,
             "status": attempt.status,
             "user_type": 3
         }
@@ -223,6 +239,19 @@ class LoginUser:
                 "token_type": "bearer", 
                 "user_type": user.type
                 }
+    def logout_exam_user(self, user_id: int):
+
+        user = self.db.query(ExamUsers).filter(
+            ExamUsers.user_id == user_id
+        ).first()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        user.is_logged_in = False
+        self.db.commit()
+
+        return {"message": "Logged out successfully"}
 
 
 class UserServices:
