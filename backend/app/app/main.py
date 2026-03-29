@@ -36,10 +36,10 @@ app.include_router(Exam_user.router)
 
 
 # scheduler = BackgroundScheduler()
-# scheduler = BackgroundScheduler(timezone="UTC")
+#scheduler = BackgroundScheduler(timezone="UTC")
 
 
-# import logging
+import logging
 
     
 # def run_if_missed():
@@ -75,3 +75,38 @@ app.include_router(Exam_user.router)
 #     scheduler.add_job(logout_all_users, "cron", hour=13, minute=0)
 #     if not scheduler.running:
 #         scheduler.start()
+
+
+
+scheduler = BackgroundScheduler()
+
+# Optional: keep track of last run to prevent multiple executions
+last_global_logout_date = None
+
+def safe_logout_all_users():
+    global last_global_logout_date
+    now = datetime.utcnow()
+    today = now.date()
+    if last_global_logout_date == today:
+        # Already ran today, skip
+        return
+    print("lin 93 logout all usr")
+
+    logout_all_users()
+    last_global_logout_date = today
+    logging.info("logout_all_users() executed at %s", now.replace(microsecond=0))
+
+# Scheduled daily at 13:00 UTC
+scheduler.add_job(safe_logout_all_users, "cron", hour=13, minute=0)
+
+@app.on_event("startup")
+def start_scheduler():
+    print("lin 103")
+    """
+    Start the scheduler safely. 
+    Do NOT automatically log out on startup to avoid wiping all tokens.
+    """
+    if not scheduler.running:
+        print("lin 108")
+        scheduler.start()
+    logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
