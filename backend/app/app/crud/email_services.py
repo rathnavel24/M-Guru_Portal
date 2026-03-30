@@ -232,7 +232,7 @@ async def check_and_notify(db: Session):
     
     # today = 2  # For testing; use datetime.utcnow().day in production
     today = datetime.utcnow().day
-    
+
     for payment in payments:
         print(f"Checking: {payment.invoice_no}, is_complete={payment.is_complete}, stage={payment.reminder_stage}")
 
@@ -283,7 +283,7 @@ async def check_and_notify(db: Session):
             data = Paymentmail(
                 user_id=payment.to_id,
                 invoice_no=payment.invoice_no,
-                email_type="2",  # still reminder type
+                email_type="2", 
                 note=str(payment.note or ""),
                 account_name=payment.account_name,
                 account_no=payment.account_no,
