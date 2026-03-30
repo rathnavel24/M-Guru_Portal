@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from fastapi import FastAPI
 from backend.app.app.api.endpoints import user
@@ -88,17 +89,27 @@ def is_overdue(attempt):
     days = (datetime.utcnow() - attempt.started_at).days
     return attempt.status == "in_progress" and days >= 0
 
-def run_email_job():
-    print("Payment reminder job started")
+# def run_email_job():
+#     print("Payment reminder job started")
 
+#     db = sessionLocal()
+#     try:
+#         asyncio.run(check_and_notify(db))
+#     finally:
+#         db.close()
+def run_email_job():
+    print("Payment reminder job started at", datetime.utcnow())
     db = sessionLocal()
     try:
-        check_and_notify(db)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(check_and_notify(db))
+    except Exception as e:
+        print(f"Email job error: {e}")
     finally:
         db.close()
 
-
-scheduler.add_job(run_email_job, 'interval', minutes=1)
+scheduler.add_job(run_email_job, 'interval', seconds=30)
 scheduler.start()
 
 
