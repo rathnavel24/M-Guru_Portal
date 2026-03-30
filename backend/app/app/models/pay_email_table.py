@@ -29,7 +29,8 @@ class Pay_email(Base):
     created_at = Column(TIMESTAMP, default=func.now())
     updated_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100), default="ADMIN")
-
+    reminder_stage = Column(Integer, default=0)
+    last_reminder_at = Column(DateTime, nullable=True)
 
     sender = relationship("Users", foreign_keys=[from_id], back_populates="sent_emails")
     receiver = relationship("Users", foreign_keys=[to_id], back_populates="received_emails")

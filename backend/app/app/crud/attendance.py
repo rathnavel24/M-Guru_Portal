@@ -50,10 +50,10 @@ class Attendance:
                 self.db.query(
                     cast(Token.login, Date).label("date"),  # Extract day from login
                     func.min(Token.login).label(
-                        "first_login"
+                        "check_in"
                     ),  # Earliest login of the day
                     func.max(Token.logout).label(
-                        "last_logout"
+                        "check_out"
                     ),  # Latest logout of the day
                     func.sum(Token.productive_minutes).label(
                         "productive_minutes"
@@ -69,3 +69,22 @@ class Attendance:
             return [row._asdict() for row in result]
         except Exception as e:
             return e
+        
+class Check:
+    def __init__(self, db):
+        self.db = db
+    
+    def checkin(self,current_user):
+        user_id=current_user.get("user_id")
+        result=self.db.query(Token).filter(Token.user_id==user_id,Token.token!=None,).first()
+        result.login=datetime.utcnow()
+        self.db.commit()
+        return "checked in"
+    
+    def checkout(self,current_user):
+        
+        user_id=current_user.get("user_id")
+        result=self.db.query(Token).filter(Token.user_id==user_id,Token.token!=None,).first()
+        result.logout=datetime.utcnow()
+        self.db.commit()
+        return "checked out"
