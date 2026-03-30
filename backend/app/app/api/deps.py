@@ -36,6 +36,9 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
 
         db_token = (db.query(Token).filter(Token.token == token.credentials, Token.logout == None).first())
         
+        if "role" not in payload:
+            raise HTTPException(status_code=400, detail="Missing required claim: role")
+
         if not db_token:
             raise HTTPException(status_code=401, detail="session timeout or logged out")
         
@@ -63,6 +66,10 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
             #db_token.last_activity = now
             db.commit()
         return payload
+    
+    except jwt.ExpiredSignatureError:
+        # Handle expired token explicitly
+        raise HTTPException(status_code=401, detail="Token expired")
 
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
