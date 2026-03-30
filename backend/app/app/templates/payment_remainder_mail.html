@@ -160,28 +160,25 @@
     <!-- Payment Section -->
     <div class="box">
       <div class="qr-box">
-
-        <!-- Only Payment Text -->
         <div class="qr-text">
-          <b>Payment Options</b><br>
+          <b>Payment Options</b><br><br>
 
+          <!-- UPI (optional) -->
           {% if upi_id %}
-            UPI - Instant Payment<br>
-            <span style="color:gray;">{{ upi_id }}</span>
+            <b>UPI</b><br>
+            <span style="color:gray;">{{ upi_id }}</span><br><br>
           {% endif %}
 
-          {% if account_no %}
-            <div class="bank-details">
-              <b>Bank Transfer</b><br>
-              Name: {{ account_name }}<br>
-              A/C: {{ account_no }}<br>
-              IFSC: {{ ifsc }}<br>
-              Bank: {{ bank_name }}
-            </div>
-          {% endif %}
+          <!-- Bank Details (ALWAYS SHOWN) -->
+          <div class="bank-details">
+            <b>Bank Transfer</b><br>
+            Name: {{ account_name or "N/A" }}<br>
+            A/C: {{ account_no or "N/A" }}<br>
+            IFSC: {{ ifsc or "N/A" }}<br>
+            Bank: {{ bank_name or "N/A" }}
+          </div>
 
         </div>
-
       </div>
     </div>
 
