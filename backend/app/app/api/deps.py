@@ -55,12 +55,8 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
                 #db_token.productive_minutes += diff_minutes
                 db_token.productive_minutes = (db_token.productive_minutes or 0) + diff_minutes
             else:
-                current_user={}
-                current_user.update({"user_id": db_token.user_id })
-
-                Logout(db).logout(current_user)
-                
-
+                db_token.logout=now
+                db_token.token=None
                 db.commit()
                 raise HTTPException(status_code=401, detail="User Idle, logged out")
         #db_token.last_activity = now

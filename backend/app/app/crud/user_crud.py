@@ -577,16 +577,14 @@ class Logout:
             .first()
         )
 
-        # now = self.db.query(func.now()).scalar()
         now = dt.utcnow()
         tokens.logout = now
-        time_diff = now - tokens.login  # timedelta
-
-        tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(
-            Decimal("0.01")
-        )
+        #time_diff = now - tokens.login  # timedelta
+        # tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(
+        #     Decimal("0.01")
+        # )
         tokens.token = None
-        self.db.add(tokens)
+        #self.db.add(tokens)
         self.db.commit()
         return {"Logout": "Successfully"}
     def logout_exam_user(self, user_id: int):
