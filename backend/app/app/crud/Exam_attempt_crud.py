@@ -239,19 +239,10 @@ class AttemptCrud:
     
 
     def save_result_from_frontend(self, user_id: int, data: dict):
-<<<<<<< HEAD
-
-        existing_attempt = (
-            self.db.query(Attempts)
-            .filter(Attempts.user_id == user_id)
-            .first()
-        )
-=======
         
         attempt = self.db.query(Attempts).filter(
             Attempts.user_id == user_id
         ).first()
->>>>>>> 8c1b7c60ac251db274279cf1d204564a0f54ed27
 
         if not attempt:
             raise HTTPException(404, "No attempt found. Submit sections first")

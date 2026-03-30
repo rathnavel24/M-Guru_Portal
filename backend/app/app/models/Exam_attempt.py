@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, TEXT, Boolean
+from sqlalchemy import Column, DateTime, Integer, String, TIMESTAMP, ForeignKey, TEXT, Boolean
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 from sqlalchemy.orm import relationship
@@ -25,6 +25,10 @@ class Attempts(Base):
     technical_correct = Column(Integer, default=0)
     technical_wrong = Column(Integer, default=0)
     technical_skipped = Column(Integer, default=0)
+
+    ####
+    reminder_count = Column(Integer, default=0)
+    last_reminder_at = Column(DateTime, nullable=True)
 
     user = relationship("ExamUsers",back_populates="user_attempts")
     att_assessment = relationship("Assessments",back_populates="user_assessments")

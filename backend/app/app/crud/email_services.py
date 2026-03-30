@@ -1,10 +1,11 @@
 import aiosmtplib
 from email.message import EmailMessage
 from jinja2 import Environment, FileSystemLoader
-from io import BytesIO
 import qrcode
 from sqlalchemy.orm import Session
+# from backend.app.app.main import is_overdue
 from backend.app.app.models import Users, Pay_email,Fee
+from backend.app.app.models.Exam_attempt import Attempts
 from backend.app.app.schemas.user_schema import Paymentmail
 from pathlib import Path
 from email.message import EmailMessage
@@ -13,6 +14,10 @@ import random
 import string
 import os
 from dotenv import load_dotenv
+from backend.app.app.models.Exam_user import ExamUsers
+import smtplib
+from email.mime.text import MIMEText
+import os
 
 load_dotenv()
 
@@ -219,3 +224,76 @@ def get_bankdetail(invoice_no: str, db: Session):
         "account_no": bank_details.account_no,
         "ifsc": bank_details.ifsc
     }
+
+
+
+##############################
+
+
+def send_notify_email(to_email: str, username: str, stage: str):
+
+    subject = f"Assessment Update: {stage}"
+
+    body = f"""
+    Hi {username},
+
+    {stage}:
+
+    You have not completed your assessment yet.
+
+    Please complete it as soon as possible.
+
+    Regards,  
+    Team
+    """
+
+    sender_email = os.getenv("EMAIL_USER")
+    sender_password = os.getenv("EMAIL_PASS")
+
+    msg = MIMEText(body)
+    msg['Subject'] = subject
+    msg['From'] = sender_email
+    msg['To'] = to_email
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+
+
+from datetime import datetime, timedelta
+
+def check_and_notify(db):
+
+
+
+    attempts = db.query(Attempts).all()
+    print("Check attempts")
+    print(attempts)
+
+    for attempt in attempts:
+
+        if attempt.status != "in_progress":
+            continue
+
+        days_passed = (datetime.utcnow() - attempt.started_at).days
+
+        user = db.query(ExamUsers).filter(
+            ExamUsers.user_id == attempt.user_id
+        ).first()
+
+        if not user:
+            continue
+
+        # if days_passed >= 0 and (attempt.reminder_count or 0) == 0:
+        
+        if days_passed >= 5 and (attempt.reminder_count) == 0:
+            send_notify_email(user.email, user.username, "Day 5 Reminder")
+            attempt.reminder_count += 1
+            attempt.last_reminder_at = datetime.utcnow()
+
+        elif days_passed >= 10 and attempt.reminder_count == 1:
+            send_notify_email(user.email, user.username, "Final Reminder")
+            attempt.reminder_count += 1
+            attempt.last_reminder_at = datetime.utcnow()
+
+    db.commit()
