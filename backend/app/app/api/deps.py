@@ -37,7 +37,7 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
         db_token = (db.query(Token).filter(Token.token == token.credentials, Token.logout == None).first())
         
         if not db_token:
-            raise HTTPException(status_code=401, detail="Token invalid or logged out")
+            raise HTTPException(status_code=401, detail="session timeout or logged out")
         
         # Track productive time
         #user_id = payload.get("user_id")  # assuming 'sub' is user id
@@ -55,14 +55,10 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
                 #db_token.productive_minutes += diff_minutes
                 db_token.productive_minutes = (db_token.productive_minutes or 0) + diff_minutes
             else:
-                current_user={}
-                current_user.update({"user_id": db_token.user_id })
-
-                Logout(db).logout(current_user)
-                
-
+                db_token.logout=now
+                db_token.token=None
                 db.commit()
-                raise HTTPException(status_code=401, detail="User idle, token logged out")
+                raise HTTPException(status_code=401, detail="User Idle, logged out")
         #db_token.last_activity = now
         db.commit()
         return payload

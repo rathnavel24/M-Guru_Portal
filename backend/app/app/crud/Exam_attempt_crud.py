@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from sqlalchemy import and_, case, func
+from sqlalchemy import and_, case, func, text
 from sqlalchemy.orm import Session, aliased
 from datetime import datetime, timedelta
 
@@ -422,3 +422,16 @@ class AttemptCrud:
                 })
 
             return response
+    def truncate_exam_users(self):
+        try:
+            self.db.execute(text("TRUNCATE TABLE exam_attempts RESTART IDENTITY CASCADE"))
+            self.db.execute(text("TRUNCATE TABLE exam_user RESTART IDENTITY CASCADE"))
+            self.db.commit()
+
+            return {
+                "message": "All data deleted successfully"
+                    }
+
+        except Exception as e:
+            self.db.rollback()
+            raise e
