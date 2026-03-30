@@ -79,12 +79,12 @@ class Check:
         result=self.db.query(Token).filter(Token.user_id==user_id,Token.token!=None,).first()
         result.login=datetime.utcnow()
         self.db.commit()
-        return None
+        return "checked in"
     
     def checkout(self,current_user):
-        user_id=current_user.get("user_id")
+        
         user_id=current_user.get("user_id")
         result=self.db.query(Token).filter(Token.user_id==user_id,Token.token!=None,).first()
         result.logout=datetime.utcnow()
         self.db.commit()
-        return None
+        return "checked out"

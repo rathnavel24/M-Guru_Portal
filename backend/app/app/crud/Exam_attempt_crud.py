@@ -71,6 +71,8 @@ class AttemptCrud:
         self.db.refresh(attempt)
 
         return attempt
+    
+    
     def submit_test(self, user_id: int):
 
         attempt = self.db.query(Attempts).filter(
@@ -102,29 +104,21 @@ class AttemptCrud:
                 Options.question_id == ans.question_id
             ).order_by(Options.option_id.asc()).all()
 
-            # safety check
             if not options:
                 continue
 
             selected_option_id = None
 
-            # reconstruct index from stored option_id
             for idx, opt in enumerate(options):
                 if opt.option_id == ans.selected_option_id:
                     selected_option_id = opt.option_id
                     break
 
-            # -------------------------------------------------
-            # STEP 3: get correct option (BY OPTION ID)
-            # -------------------------------------------------
             correct_option = self.db.query(Options).filter(
                 Options.question_id == ans.question_id,
                 Options.is_correct == True
             ).first()
 
-            # -------------------------------------------------
-            # STEP 4: CHECK
-            # -------------------------------------------------
             if correct_option and ans.selected_option_id == correct_option.option_id:
 
                 if attempt.assessment_id == 1:
@@ -164,17 +158,13 @@ class AttemptCrud:
                 (attempt.submitted_at - attempt.started_at).total_seconds()
             )
         }
-    # ---------------------------
-    # HISTORY
-    # ---------------------------
+
     def get_attempt_history(self, user_id: int):
         return self.db.query(Attempts).filter(
             Attempts.user_id == user_id
         ).all()
 
-    # ---------------------------
-    # RESULT (LATEST COMPLETED)
-    # ---------------------------
+   
     def get_result(self, user_id: int):
 
         attempt = self.db.query(Attempts).filter(

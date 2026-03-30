@@ -13,7 +13,6 @@ from backend.app.app.api.endpoints import Exam_user
 from backend.app.app.crud.attendance import logout_all_users
 from apscheduler.schedulers.background import BackgroundScheduler
 
-
 app = FastAPI()
 
 app.add_middleware(
@@ -33,10 +32,6 @@ app.include_router(Exam_answer.router)
 app.include_router(Exam_section.router)
 app.include_router(attendance.router)
 app.include_router(Exam_user.router)
-
-
-
-
 
 # # scheduler = BackgroundScheduler()
 # #scheduler = BackgroundScheduler(timezone="UTC")
@@ -76,9 +71,6 @@ def start_scheduler():
         print("lin 108")
         scheduler.start()
     logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
-
-
-
 
 
 
