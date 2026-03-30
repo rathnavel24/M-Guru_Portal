@@ -1,43 +1,41 @@
 from decimal import Decimal
-from unittest import result
 from datetime import datetime
-from pytz import timezone
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from backend.app.app.models import Token
-from backend.app.app.api.deps import get_db, sessionLocal
-from datetime import timezone
-
+from backend.app.app.api.deps import sessionLocal
+from sqlalchemy import func, cast, Date
+from decimal import Decimal
+from datetime import datetime
+from sqlalchemy.orm import Session
 
 def logout_all_users():
     db: Session = sessionLocal()
     try:
         tokens = db.query(Token).filter(Token.logout.is_(None)).all()
-        #now = db.query(func.now()).scalar()
+        print("its from logout_all_users ")
 
         now = datetime.utcnow()
 
-        # Make now naive to match DB login
-        if now.tzinfo:
-            now_naive = now.replace(tzinfo=None)
-        else:
-            now_naive = now
-
         for token in tokens:
-            token.logout = now_naive
+            token.logout = now
 
-            if token.login:
-                diff = now_naive - token.login  # both naive â†’ works
-                token.ideal_time = Decimal(diff.total_seconds() / 3600).quantize(Decimal("0.01"))
+            # if token.login:
+            #     diff = now - token.login
+            #     token.ideal_time = Decimal(diff.total_seconds() / 3600).quantize(
+            #         Decimal("0.01")
+            #     )
 
             token.token = None
             db.add(token)
-
+            print("all user token deleted")
         db.commit()
 
     except Exception as e:
-        return e
+        db.rollback()
+        raise e
+
     finally:
         db.close()
 
@@ -49,13 +47,44 @@ class Attendance:
     def attendance(self, usr_id):
         try:
             result = (
-                self.db.query(Token.login, Token.logout, Token.ideal_time,Token.productive_minutes)
-                .filter(Token.user_id == usr_id)
-                .all()
-            )
+                self.db.query(
+                    cast(Token.login, Date).label("date"),  # Extract day from login
+                    func.min(Token.login).label(
+                        "check_in"
+                    ),  # Earliest login of the day
+                    func.max(Token.logout).label(
+                        "check_out"
+                    ),  # Latest logout of the day
+                    func.sum(Token.productive_minutes).label(
+                        "productive_minutes"
+                    ),  # Sum of productive minutes
+                )
+                .filter(Token.user_id == usr_id)  # Filter for a single user
+                .group_by(cast(Token.login, Date))  # Group by day
+                .order_by(cast(Token.login, Date))  # Optional: order by date
+                .all())
 
             if not result:
                 raise HTTPException(status_code=404, detail="User not found")
             return [row._asdict() for row in result]
         except Exception as e:
             return e
+        
+class Check:
+    def __init__(self, db):
+        self.db = db
+    
+    def checkin(self,current_user):
+        user_id=current_user.get("user_id")
+        result=self.db.query(Token).filter(Token.user_id==user_id,Token.token!=None,).first()
+        result.login=datetime.utcnow()
+        self.db.commit()
+        return None
+    
+    def checkout(self,current_user):
+        user_id=current_user.get("user_id")
+        user_id=current_user.get("user_id")
+        result=self.db.query(Token).filter(Token.user_id==user_id,Token.token!=None,).first()
+        result.logout=datetime.utcnow()
+        self.db.commit()
+        return None

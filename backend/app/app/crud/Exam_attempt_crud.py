@@ -1,8 +1,13 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, case, func, text
+from sqlalchemy.orm import Session, aliased
 from datetime import datetime, timedelta
+
+from yaml import Mark
+from backend.app.app.models.Exam_assessment import Assessments
 from backend.app.app.models.Exam_attempt import Attempts
 from backend.app.app.models import Answers, Options
+from backend.app.app.models.Exam_user import ExamUsers
 
 """
 USERFLOW 
@@ -234,43 +239,198 @@ class AttemptCrud:
     
 
     def save_result_from_frontend(self, user_id: int, data: dict):
+<<<<<<< HEAD
 
         existing_attempt = (
             self.db.query(Attempts)
             .filter(Attempts.user_id == user_id)
             .first()
         )
+=======
+        
+        attempt = self.db.query(Attempts).filter(
+            Attempts.user_id == user_id
+        ).first()
+>>>>>>> 8c1b7c60ac251db274279cf1d204564a0f54ed27
 
-        if existing_attempt:
-            raise HTTPException(
-                status_code=400,
-                detail="User has already attempted the exam"
-            )
-        attempt = Attempts(
-            user_id=user_id,
-            assessment_id=data.get("assessment_id", 1),
-            started_at=datetime.utcnow() - timedelta(seconds=data.get("time_taken", 0)),
-            submitted_at=datetime.utcnow(),
-            status="completed",
-            aptitude_score=data.get("aptitude_score", 0),
-            technical_score=data.get("technical_score", 0),
-            total_score=data.get("score", 0),
-            total_percentage=data.get("percentage", 0),
-        )
+        if not attempt:
+            raise HTTPException(404, "No attempt found. Submit sections first")
 
-        self.db.add(attempt)
+        # Update based on test_type
+        test_type = data.get("test_type")
+
+        if test_type == "aptitude":
+
+            if attempt.aptitude_score is not None:
+                raise HTTPException(400, "Aptitude already submitted")
+
+            attempt.aptitude_score = data.get("score", 0)
+            attempt.aptitude_correct = data.get("correct_answers", 0)
+            attempt.aptitude_wrong = data.get("wrong_answers", 0)
+            attempt.aptitude_skipped = data.get("skipped_answers", 0)
+
+        elif test_type == "technical":
+
+            if attempt.technical_score is not None:
+                raise HTTPException(400, "Technical already submitted")
+
+            attempt.technical_score = data.get("score", 0)
+            attempt.technical_correct = data.get("correct_answers", 0)
+            attempt.technical_wrong = data.get("wrong_answers", 0)
+            attempt.technical_skipped = data.get("skipped_answers", 0)
+
+        else:
+            raise HTTPException(400, "Invalid test_type")
+
+        # Calculate totals
+        aptitude = attempt.aptitude_score or 0
+        technical = attempt.technical_score or 0
+
+        attempt.total_score = aptitude + technical
+
+        # total questions = sum of both sections
+        total_questions = data.get("total_questions", 1)
+
+        # safer percentage calc
+        if total_questions > 0:
+            attempt.total_percentage = int((attempt.total_score / total_questions) * 100)
+
+        # Mark completed only if BOTH sections submitted
+        if attempt.aptitude_score is not None and attempt.technical_score is not None:
+            attempt.status = "completed"
+            attempt.submitted_at = datetime.utcnow()
+        else:
+            attempt.status = "in_progress"
+
         self.db.commit()
         self.db.refresh(attempt)
 
         return {
-
-            "aptitude_score": data.get("aptitude_score", 0),
-            "technical_score": data.get("technical_score", 0),
-            "correct_answers": data.get("correct_answers", 0),
-            "wrong_answers": data.get("wrong_answers", 0),
-            "skipped_answers": data.get("skipped_answers", 0),
-            "total_questions": data.get("total_questions", 0),
-            "score": data.get("score", 0),
-            "percentage": data.get("percentage", 0),
-            "time_taken": data.get("time_taken", 0)
+            "user_id": user_id,
+            "test_type": test_type,
+            "aptitude_score": attempt.aptitude_score,
+            "technical_score": attempt.technical_score,
+            "total_score": attempt.total_score,
+            "percentage": attempt.total_percentage,
+            "status": attempt.status
         }
+    def get_user_exam_status(self, user_id: int):
+
+        attempt = self.db.query(Attempts).filter(
+            Attempts.user_id == user_id
+        ).order_by(Attempts.attempt_id.desc()).first()
+
+        # No attempt
+        if not attempt:
+            return {
+                "status": "not_started",
+                "message": "User has not started any test"
+            }
+
+        #In Progress
+        if attempt.status == "in_progress":
+            return {
+                "attempt_id": attempt.attempt_id,
+                "status": "in_progress",
+                "aptitude_score": attempt.aptitude_score or 0,
+                "technical_score": attempt.technical_score or 0,
+                "message": "Test is in progress"
+            }
+
+        # Completed
+        if attempt.status == "completed":
+            return {
+                "attempt_id": attempt.attempt_id,
+                "status": "completed",
+                "aptitude_score": attempt.aptitude_score or 0,
+                "technical_score": attempt.technical_score or 0,
+                "total_score": attempt.total_score or 0,
+                "percentage": attempt.total_percentage or 0,
+                "submitted_at": attempt.submitted_at
+            }
+
+    def get_exam_summary(self):
+
+            # Subquery to get latest attempt per user
+            latest_attempt_subq = (
+                self.db.query(
+                    Attempts.user_id,
+                    func.max(Attempts.submitted_at).label("latest_submitted")
+                )
+                .group_by(Attempts.user_id)
+                .subquery()
+            )
+
+            # Join with actual Attempts table
+            latest_attempt = aliased(Attempts)
+
+            query = (
+                self.db.query(
+                    ExamUsers.user_id,
+                    ExamUsers.username,
+                    ExamUsers.name,
+                    ExamUsers.email,
+
+                    func.coalesce(latest_attempt.aptitude_score, 0).label("aptitude_score"),
+                    func.coalesce(latest_attempt.technical_score, 0).label("technical_score"),
+                    func.coalesce(latest_attempt.total_score, 0).label("total_score"),
+                )
+                .outerjoin(
+                    latest_attempt_subq,
+                    latest_attempt_subq.c.user_id == ExamUsers.user_id
+                )
+                .outerjoin(
+                    latest_attempt,
+                    and_(
+                        latest_attempt.user_id == latest_attempt_subq.c.user_id,
+                        latest_attempt.submitted_at == latest_attempt_subq.c.latest_submitted
+                    )
+                )
+            )
+
+            results = query.all()
+
+            response = []
+
+            for row in results:
+                aptitude = row.aptitude_score or 0
+                technical = row.technical_score or 0
+                total = row.total_score or 0
+
+                # adjust if needed
+                aptitude_total = 30
+                technical_total = 20
+                overall_total = 50
+
+                response.append({
+                    "user_id": row.user_id,
+                    "username": row.username,
+                    "name": row.name,
+                    "email": row.email,
+
+                    "aptitude_score": aptitude,
+                    "aptitude_percentage": (aptitude / aptitude_total) * 100 if aptitude_total else 0,
+
+                    "technical_score": technical,
+                    "technical_percentage": (technical / technical_total) * 100 if technical_total else 0,
+
+                    "total_score": total,
+                    "total_percentage": (total / overall_total) * 100 if overall_total else 0,
+
+                    "result": "PASS" if total > 27 else "FAIL"
+                })
+
+            return response
+    def truncate_exam_users(self):
+        try:
+            self.db.execute(text("TRUNCATE TABLE exam_attempts RESTART IDENTITY CASCADE"))
+            self.db.execute(text("TRUNCATE TABLE exam_user RESTART IDENTITY CASCADE"))
+            self.db.commit()
+
+            return {
+                "message": "All data deleted successfully"
+                    }
+
+        except Exception as e:
+            self.db.rollback()
+            raise e
