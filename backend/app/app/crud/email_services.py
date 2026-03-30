@@ -350,7 +350,7 @@ def check_and_notify(db):
                 user.username,
                 "First Payment Reminder (2nd of Month)"
             )
-            payment.reminder_stage = 1
+            payment.reminder_stage = 1   # STAGE 1 MEANS FIRST REMAINDER SENT
             payment.last_reminder_at = datetime.utcnow()
 
         elif today == 20 and payment.reminder_stage == 1:
@@ -359,7 +359,7 @@ def check_and_notify(db):
                 user.username,
                 "Final Payment Reminder (20th of Month)"
             )
-            payment.reminder_stage = 2
+            payment.reminder_stage = 2 # STAGE 2 MEANS SECOND REMAINDER SENT
             payment.last_reminder_at = datetime.utcnow()
 
     db.commit()
