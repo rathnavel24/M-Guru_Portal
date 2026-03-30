@@ -232,6 +232,7 @@ async def check_and_notify(db: Session):
     
     # today = 2  # For testing; use datetime.utcnow().day in production
     today = datetime.utcnow().day
+    
     for payment in payments:
         print(f"Checking: {payment.invoice_no}, is_complete={payment.is_complete}, stage={payment.reminder_stage}")
 
@@ -275,9 +276,38 @@ async def check_and_notify(db: Session):
                 db.rollback()
 
         # FINAL REMINDER
+        
         elif today == 20 and payment.reminder_stage == 1:
-            # Similar logic...
-            pass
+            print(f"Sending final reminder for {payment.invoice_no}")
+
+            data = Paymentmail(
+                user_id=payment.to_id,
+                invoice_no=payment.invoice_no,
+                email_type="2",  # still reminder type
+                note=str(payment.note or ""),
+                account_name=payment.account_name,
+                account_no=payment.account_no,
+                ifsc=payment.ifsc,
+                bank_name=payment.bank_name,
+                amount=payment.amount,
+                due_date=payment.due_date
+            )
+
+            current_user = {"user_id": payment.from_id}
+
+            try:
+                await send_invoice_email(data, current_user, db)
+
+                # move to next stage
+                payment.reminder_stage = 2
+                payment.last_reminder_at = datetime.utcnow()
+
+                db.commit()
+                print(f"Final reminder sent for {payment.invoice_no}")
+
+            except Exception as e:
+                print(f"Failed to send final reminder: {e}")
+                db.rollback()
 
     db.commit()
 
