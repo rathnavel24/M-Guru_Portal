@@ -11,7 +11,6 @@ from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
 from sqlalchemy import Null, or_
 from datetime import date
-from unittest import result
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
 from sqlalchemy import func, or_

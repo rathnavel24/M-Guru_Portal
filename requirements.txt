@@ -20,3 +20,4 @@ aiosmtplib
 apscheduler
 pytz
 gunicorn
+prometheus-client

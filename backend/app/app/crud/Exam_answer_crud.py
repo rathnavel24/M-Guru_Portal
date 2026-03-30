@@ -4,8 +4,10 @@ from backend.app.app.models.Exam_options import Options
 
 
 class AnswerCrud:
+
      def __init__(self, db: Session):
           self.db = db
+
      def save_answer(self, attempt_id: int, question_id: int, option_index: int, is_skipped: bool = False):
 
           options = self.db.query(Options).filter(
