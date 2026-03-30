@@ -50,10 +50,10 @@ class Attendance:
                 self.db.query(
                     cast(Token.login, Date).label("date"),  # Extract day from login
                     func.min(Token.login).label(
-                        "check-in"
+                        "check_in"
                     ),  # Earliest login of the day
                     func.max(Token.logout).label(
-                        "check-out"
+                        "check_out"
                     ),  # Latest logout of the day
                     func.sum(Token.productive_minutes).label(
                         "productive_minutes"
