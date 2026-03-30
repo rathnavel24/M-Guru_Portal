@@ -26,10 +26,6 @@ class Attempts(Base):
     technical_wrong = Column(Integer, default=0)
     technical_skipped = Column(Integer, default=0)
 
-    ####
-    reminder_count = Column(Integer, default=0)
-    last_reminder_at = Column(DateTime, nullable=True)
-
     user = relationship("ExamUsers",back_populates="user_attempts")
     att_assessment = relationship("Assessments",back_populates="user_assessments")
     attempt_answer = relationship("Answers",back_populates="answer")

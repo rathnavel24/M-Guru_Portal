@@ -228,24 +228,23 @@ def get_bankdetail(invoice_no: str, db: Session):
 
 
 ##############################
-
+import os
+import smtplib
+from email.mime.text import MIMEText
 
 def send_notify_email(to_email: str, username: str, stage: str):
-
-    subject = f"Assessment Update: {stage}"
+    subject = f"Payment Reminder: {stage}"
 
     body = f"""
-    Hi {username},
+Hi {username},
 
-    {stage}:
+{stage}
 
-    You have not completed your assessment yet.
+Your payment is still pending. Please complete it before the due date.
 
-    Please complete it as soon as possible.
-
-    Regards,  
-    Team
-    """
+Regards,  
+Team
+"""
 
     sender_email = os.getenv("EMAIL_USER")
     sender_password = os.getenv("EMAIL_PASS")
@@ -259,41 +258,108 @@ def send_notify_email(to_email: str, username: str, stage: str):
         server.login(sender_email, sender_password)
         server.send_message(msg)
 
+from datetime import datetime
 
-from datetime import datetime, timedelta
+# def check_and_notify(db):
+
+#     payments = db.query(Pay_email).all()
+#     print("Checking payment reminders...")
+
+#     today = datetime.utcnow().day  # current date (1–31)
+
+#     for payment in payments:
+
+#         # ❌ skip completed
+#         if payment.is_complete:
+#             continue
+
+#         if not payment.due_date:
+#             continue
+
+#         if payment.last_reminder_at and payment.last_reminder_at.date() == datetime.utcnow().date():
+#             continue
+
+#         user = db.query(ExamUsers).filter(
+#             ExamUsers.user_id == payment.created_by
+#         ).first()
+# # user = db.query(ExamUsers).filter(
+# #     ExamUsers.username == payment.created_by
+# # ).first()
+#         if not user:
+#             continue
+
+#         # -----------------------------
+#         # 📅 2nd of month → FIRST REMINDER
+#         # -----------------------------
+#         if today == 2 and payment.reminder_stage == 0:
+#             send_notify_email(
+#                 user.email,
+#                 user.username,
+#                 "First Payment Reminder (2nd of Month)"
+#             )
+
+#             payment.reminder_stage = 1
+#             payment.last_reminder_at = datetime.utcnow()
+
+#         # -----------------------------
+#         # 📅 20th of month → FINAL REMINDER
+#         # -----------------------------
+#         elif today == 20 and payment.reminder_stage == 1:
+#             send_notify_email(
+#                 user.email,
+#                 user.username,
+#                 "Final Payment Reminder (20th of Month)"
+#             )
+
+#             payment.reminder_stage = 2
+#             payment.last_reminder_at = datetime.utcnow()
+
+#     db.commit()
+
+from datetime import datetime
 
 def check_and_notify(db):
 
+    payments = db.query(Pay_email).all()
+    print("Checking payment reminders...")
 
+    today = datetime.utcnow().day
 
-    attempts = db.query(Attempts).all()
-    print("Check attempts")
-    print(attempts)
+    #to test       #PUT today =2 or 20
 
-    for attempt in attempts:
+    for payment in payments:
 
-        if attempt.status != "in_progress":
+        if payment.is_complete == True:
             continue
 
-        days_passed = (datetime.utcnow() - attempt.started_at).days
+        # ✅ USE RELATIONSHIP (NO QUERY NEEDED)
+        # SINCE
+    # sender = relationship("Users", foreign_keys=[from_id], back_populates="sent_emails")
+    # receiver = relationship("Users", foreign_keys=[to_id], back_populates="received_emails")
 
-        user = db.query(ExamUsers).filter(
-            ExamUsers.user_id == attempt.user_id
-        ).first()
+        user = payment.receiver   
+
 
         if not user:
             continue
 
-        # if days_passed >= 0 and (attempt.reminder_count or 0) == 0:
-        
-        if days_passed >= 5 and (attempt.reminder_count) == 0:
-            send_notify_email(user.email, user.username, "Day 5 Reminder")
-            attempt.reminder_count += 1
-            attempt.last_reminder_at = datetime.utcnow()
+    
+        if today == 2 and payment.reminder_stage == 0:
+            send_notify_email(
+                user.email,
+                user.username,
+                "First Payment Reminder (2nd of Month)"
+            )
+            payment.reminder_stage = 1
+            payment.last_reminder_at = datetime.utcnow()
 
-        elif days_passed >= 10 and attempt.reminder_count == 1:
-            send_notify_email(user.email, user.username, "Final Reminder")
-            attempt.reminder_count += 1
-            attempt.last_reminder_at = datetime.utcnow()
+        elif today == 20 and payment.reminder_stage == 1:
+            send_notify_email(
+                user.email,
+                user.username,
+                "Final Payment Reminder (20th of Month)"
+            )
+            payment.reminder_stage = 2
+            payment.last_reminder_at = datetime.utcnow()
 
     db.commit()

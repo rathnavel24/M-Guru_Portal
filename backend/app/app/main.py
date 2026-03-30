@@ -88,22 +88,18 @@ def is_overdue(attempt):
     days = (datetime.utcnow() - attempt.started_at).days
     return attempt.status == "in_progress" and days >= 0
 
-
-
 def run_email_job():
-    print("sstarted")
+    print("Payment reminder job started")
+
     db = sessionLocal()
     try:
         check_and_notify(db)
     finally:
         db.close()
-        
-# scheduler = BackgroundScheduler()
-scheduler.add_job(run_email_job, 'interval', minutes=1) 
+
+
+scheduler.add_job(run_email_job, 'interval', minutes=1)
 scheduler.start()
-
-
-
 
 
 
