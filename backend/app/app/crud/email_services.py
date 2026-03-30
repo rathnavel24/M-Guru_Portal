@@ -24,7 +24,7 @@ async def send_email(msg: EmailMessage):
     await aiosmtplib.send(
         msg,
         hostname="smtp.gmail.com",
-        port=465,
+        port=587,
         start_tls=True,
         username=os.getenv("user"),
         password=os.getenv("password"),
@@ -162,29 +162,29 @@ async def send_invoice_email(data: Paymentmail, current_user ,db: Session):
         msg.add_alternative(html_content, subtype="html")
 
         await send_email(msg)
-        if data.email_type == 1:
-            add_log = Pay_email(
-                invoice_no=gen_invoice_id,
-                from_id=sender_id,
-                to_id=data.user_id,
-                note=data.note,
-                email_type=data.email_type,
-                amount=amount,
-                due_date=due_date,
-                account_name=account_name,
-                account_no=account_no,
-                ifsc=ifsc,
-                bank_name=bank_name,
-                is_complete=is_complete,
-                status=status,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
-                created_by="ADMIN",
-            )
-            db.add(add_log)
-            db.commit()
+        
+        add_log = Pay_email(
+            invoice_no=gen_invoice_id,
+            from_id=sender_id,
+            to_id=data.user_id,
+            note=data.note,
+            email_type=data.email_type,
+            amount=amount,
+            due_date=due_date,
+            account_name=account_name,
+            account_no=account_no,
+            ifsc=ifsc,
+            bank_name=bank_name,
+            is_complete=is_complete,
+            status=status,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+            created_by="ADMIN",
+        )
+        db.add(add_log)
+        db.commit()
 
-            return {"message": "Email sent successfully"}
+        return {"message": "Email sent successfully"}
 
     except Exception as e:
         db.rollback()

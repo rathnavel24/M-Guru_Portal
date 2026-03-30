@@ -58,7 +58,7 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
                 db_token.logout=now
                 db_token.token=None
                 db.commit()
-                raise HTTPException(status_code=401, detail="User idle, token logged out")
+                raise HTTPException(status_code=401, detail="User Idle, logged out")
         #db_token.last_activity = now
         db.commit()
         return payload
