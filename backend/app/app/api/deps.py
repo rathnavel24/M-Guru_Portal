@@ -36,32 +36,40 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
 
         db_token = (db.query(Token).filter(Token.token == token.credentials, Token.logout == None).first())
         
+        if "role" not in payload:
+            raise HTTPException(status_code=400, detail="Missing required claim: role")
+
         if not db_token:
             raise HTTPException(status_code=401, detail="session timeout or logged out")
         
         # Track productive time
         #user_id = payload.get("user_id")  # assuming 'sub' is user id
-        #user = db.query(Users).filter(Users.user_id == user_id).first()
+        #user = db.query(Users).filter(Users.user_id ==user_id).first()
 
-        now = datetime.utcnow()
-        if db_token.last_activity:
-            diff_minutess = (now - db_token.last_activity).total_seconds() / 60
-            diff_minutes = round(diff_minutess, 2)
-            
-            
-            if diff_minutes <= IDLE_TIMEOUT_MINUTES:
-                # User is active, count time
-                db_token.last_activity=now
-                #db_token.productive_minutes += diff_minutes
-                db_token.productive_minutes = (db_token.productive_minutes or 0) + diff_minutes
-            else:
-                db_token.logout=now
-                db_token.token=None
-                db.commit()
-                raise HTTPException(status_code=401, detail="User Idle, logged out")
-        #db_token.last_activity = now
-        db.commit()
+        if payload.get("role")==2: 
+
+            now = datetime.utcnow()
+            if db_token.last_activity:
+                diff_minutess = (now - db_token.last_activity).total_seconds() / 60
+                diff_minutes = round(diff_minutess, 2)
+                
+                if diff_minutes <= IDLE_TIMEOUT_MINUTES:
+                    # User is active, count time
+                    db_token.last_activity=now
+                    #db_token.productive_minutes += diff_minutes
+                    db_token.productive_minutes = (db_token.productive_minutes or 0) + diff_minutes
+                else:
+                    db_token.logout=now
+                    db_token.token=None
+                    db.commit()
+                    raise HTTPException(status_code=401, detail="User Idle, logged out")
+            #db_token.last_activity = now
+            db.commit()
         return payload
+    
+    except jwt.ExpiredSignatureError:
+        # Handle expired token explicitly
+        raise HTTPException(status_code=401, detail="Token expired")
 
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -71,6 +79,8 @@ def role_required(allowed_roles: list):
     def checker(user=Depends(get_current_user)):
 
         role = user.get("role")
+
+
 
         if user["role"] not in allowed_roles:
             raise HTTPException(
