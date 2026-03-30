@@ -56,3 +56,12 @@ def start_scheduler():
 
     if not scheduler.running:
         scheduler.start()
+
+
+from datetime import datetime, timedelta
+
+def is_overdue():
+    return (
+        Exam_attempt.status != "completed" and
+        datetime.now() >= Exam_attempt.started_at + timedelta(days=10)
+    )
