@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f8;
+      font-family: Calibri, "Segoe UI", Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .brand {
+      font-size: 22px;
+      font-weight: bold;
+      color: #d48a00;
+    }
+
+    .sub {
+      font-size: 12px;
+      color: gray;
+    }
+
+    .right {
+      text-align: right;
+      font-size: 14px;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 20px 0;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .box {
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+
+    .row:last-child {
+      border-bottom: none;
+    }
+
+    .status {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .amount {
+      font-size: 18px;
+      font-weight: bold;
+      color: #d48a00;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: gray;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <table width="100%">
+      <tr>
+        <td align="left">
+          <div class="brand">◆ M-GURU</div>
+          <div class="sub">confirmation mail</div>
+        </td>
+
+        <td align="right" class="right">
+          <div><b>CONFIRMATION</b></div>
+          <div><b>{{ invoice_id }}</b></div>
+          <div>{{ date }}</div>
+        </td>
+      </tr>
+    </table>
+
+    <hr>
+
+    <!-- Greeting -->
+    <p class="title">Dear {{ name }},</p>
+
+    <p>
+      We have received your payment of <b>₹{{ amount }}</b>. Thank you for your prompt payment!
+    </p>
+
+    <!-- Details Box -->
+    <div class="box">
+
+      <div class="row">
+        <span>Invoice No :</span>
+        <span>{{ invoice_id }}</span>
+      </div>
+
+      <div class="row">
+        <span>Customer :</span>
+        <span>{{ name }}</span>
+      </div>
+
+      <div class="row">
+        <span>Status :</span>
+        <span class="status">PAID</span>
+      </div>
+
+      <div class="row">
+        <span class="amount">Amount Paid :</span>
+        <span class="amount">₹{{ amount }}</span>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      This is an automated email ·<br>
+      Please do not reply · Powered by PayMail
+    </div>
+
+  </div>
+</body>
+</html>

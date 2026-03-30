@@ -14,3 +14,9 @@ cloudinary
 python-multipart
 psycopg2-binary
 python-dotenv
+jinja2
+qrcode[pil]
+aiosmtplib
+apscheduler
+pytz
+gunicorn

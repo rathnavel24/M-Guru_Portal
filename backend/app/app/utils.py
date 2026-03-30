@@ -1,7 +1,16 @@
 import math
+from fastapi import BackgroundTasks
+from datetime import datetime
+import random
+import string
+import os
+from dotenv import load_dotenv
+import aiosmtplib
+
+load_dotenv()
+
 
 def get_pagination(row_count=0, current_page_no=1, default_page_size=10):
-    
 
     current_page_no = current_page_no if current_page_no >= 1 else 1
 
@@ -24,3 +33,5 @@ def get_pagination(row_count=0, current_page_no=1, default_page_size=10):
         offset = 0
 
     return [total_pages, offset, limit]
+
+
