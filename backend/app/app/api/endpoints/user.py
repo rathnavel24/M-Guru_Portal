@@ -13,7 +13,7 @@ from backend.app.app.api.deps import get_current_user, get_db, role_required
 from backend.app.app.crud.user_crud import SignUpDetails, LoginUser, UserServices
 from backend.app.app.crud.dashboard import dashboard
 from backend.app.app.api.deps import get_db, role_required
-from backend.app.app.crud.email_services import send_invoice_email, get_bankdetail
+from backend.app.app.crud.email_services import send_invoice_email, get_bankdetail,payment_confirmation_service
 from fastapi import Query
 
 router = APIRouter(tags=["login"])
@@ -58,7 +58,17 @@ async def payment_mail(
         return {"message": "email sent to the user"}
     except Exception as e:
         raise e
-
+    
+@router.post("/payment_confirmation")
+async def payment_confirmation_api(
+    invoice_no: str,
+    current_user=Depends(role_required([1])),
+    db: Session = Depends(get_db)
+):
+    try:
+        return payment_confirmation_service(invoice_no, db)
+    except Exception as e:
+        raise e
 
 @router.post("/dashboard")
 async def get_dashboard(

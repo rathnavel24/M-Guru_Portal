@@ -121,7 +121,7 @@
     <p class="title">Dear {{ name }},</p>
 
     <p>
-      Please find your invoice for services rendered. Kindly complete the payment
+      Kindly complete the payment
       by <b>{{ due_date or "N/A" }}</b>.
     </p>
 
@@ -133,7 +133,7 @@
       </div>
 
       <div class="row">
-        <span>Customer :</span>
+        <span>Intern :</span>
         <span>{{ name }}</span>
       </div>
 
@@ -162,7 +162,7 @@
     <div class="box">
       <div class="qr-box">
         <div class="qr-text">
-          <b>Payment Options</b><br><br>
+          <b>Bank Details</b><br><br>
 
           <!-- UPI (optional) -->
           {% if upi_id %}
