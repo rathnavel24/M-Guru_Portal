@@ -323,8 +323,8 @@ class AttemptCrud:
             return {
                 "attempt_id": attempt.attempt_id,
                 "status": "in_progress",
-                "aptitude_score": attempt.aptitude_score or 0,
-                "technical_score": attempt.technical_score or 0,
+                "aptitude_score": attempt.aptitude_score or None,
+                "technical_score": attempt.technical_score or None,
                 "message": "Test is in progress"
             }
 
