@@ -320,9 +320,13 @@ class AttemptCrud:
 
         #In Progress
         if attempt.status == "in_progress":
+            if attempt.aptitude_score == None and attempt.technical_score == None:
+                progress = None
+            else:
+                progress = "in_progress"
             return {
                 "attempt_id": attempt.attempt_id,
-                "status": "in_progress",
+                "status": progress,
                 "aptitude_score": attempt.aptitude_score ,
                 "technical_score": attempt.technical_score ,
                 "message": "Test is in progress"
