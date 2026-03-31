@@ -32,4 +32,4 @@ async def checkin(current_user=Depends(role_required([1,2])), db: Session = Depe
 
 @router.post("/check-out")
 async def checkout(current_user=Depends(role_required([1,2])), db: Session = Depends(get_db)):
-    return Check(db).checkout(current_user)
+    return Check.checkout(current_user)
