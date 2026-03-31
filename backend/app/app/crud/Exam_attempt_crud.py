@@ -397,6 +397,11 @@ class AttemptCrud:
                 technical_total = 20
                 overall_total = 50
 
+                if row.status == 'in_progress':
+                    rslt = "In Progress"
+                else:
+                    rslt = "PASS" if total > 27 else "FAIL"
+
                 response.append({
                     "user_id": row.user_id,
                     "username": row.username,
@@ -412,7 +417,7 @@ class AttemptCrud:
                     "total_score": total,
                     "total_percentage": (total / overall_total) * 100 if overall_total else 0,
 
-                    "result": "PASS" if total > 27 else "FAIL"
+                    "result": rslt
                 })
 
             return response
