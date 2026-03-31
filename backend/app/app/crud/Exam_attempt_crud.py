@@ -369,7 +369,7 @@ class AttemptCrud:
                     func.coalesce(latest_attempt.aptitude_score, 0).label("aptitude_score"),
                     func.coalesce(latest_attempt.technical_score, 0).label("technical_score"),
                     func.coalesce(latest_attempt.total_score, 0).label("total_score"),
-                    func.coalesce(latest_attempt.status,"not_started").label("status"),
+                    func.coalesce(latest_attempt.status,"Ongoing").label("status"),
                 )
                 .outerjoin(
                     latest_attempt_subq,
