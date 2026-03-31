@@ -369,6 +369,7 @@ class AttemptCrud:
                     func.coalesce(latest_attempt.aptitude_score, 0).label("aptitude_score"),
                     func.coalesce(latest_attempt.technical_score, 0).label("technical_score"),
                     func.coalesce(latest_attempt.total_score, 0).label("total_score"),
+                    func.coalesce(latest_attempt.status,"not_started").label("status"),
                 )
                 .outerjoin(
                     latest_attempt_subq,
@@ -397,8 +398,8 @@ class AttemptCrud:
                 technical_total = 20
                 overall_total = 50
 
-                if row.status == 'in_progress':
-                    rslt = "In Progress"
+                if row.status != 'completed':
+                    rslt = row.status
                 else:
                     rslt = "PASS" if total > 27 else "FAIL"
 
