@@ -56,7 +56,7 @@ def safe_logout_all_users():
     if last_global_logout_date == today:
         # Already ran today, skip
         return
-    print("lin 93 logout all usr")
+    
 
     logout_all_users()
     last_global_logout_date = today
@@ -67,13 +67,12 @@ scheduler.add_job(safe_logout_all_users, "cron", hour=13, minute=0)
 
 @app.on_event("startup")
 def start_scheduler():
-    print("lin 103")
+
     """
     Start the scheduler safely. 
     Do NOT automatically log out on startup to avoid wiping all tokens.
     """
     if not scheduler.running:
-        print("lin 108")
         scheduler.start()
     logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
 
