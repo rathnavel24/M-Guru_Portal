@@ -39,7 +39,7 @@ class AttemptHistoryResponse(BaseModel):
 
 
 class FinalResultSchema(BaseModel):
-    test_type: Literal["aptitude", "technical"]  # 🔥 REQUIRED
+    test_type: Literal["aptitude", "technical"]  #REQUIRED
 
     correct_answers: int
     wrong_answers: int
