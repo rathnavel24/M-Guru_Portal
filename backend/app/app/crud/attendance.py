@@ -9,7 +9,7 @@ from sqlalchemy import func, cast, Date
 from decimal import Decimal
 from datetime import datetime
 from sqlalchemy.orm import Session
-
+now = datetime.utcnow()
 def logout_all_users():
     db: Session = sessionLocal()
     try:
@@ -86,5 +86,6 @@ class Check:
         user_id=current_user.get("user_id")
         result=self.db.query(Token).filter(Token.user_id==user_id,Token.token!=None,).first()
         result.logout=datetime.utcnow()
+        result.last_activity=now
         self.db.commit()
-        return "checked out"
+        return "checked out" 

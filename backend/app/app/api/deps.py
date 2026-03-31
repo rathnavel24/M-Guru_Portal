@@ -34,7 +34,9 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
 
-        db_token = (db.query(Token).filter(Token.token == token.credentials, Token.logout == None).first())
+        db_token = (db.query(Token).filter(Token.token == token.credentials, 
+                                           #Token.logout == None
+                                           ).first())
         
         if "role" not in payload:
             raise HTTPException(status_code=400, detail="Missing required claim: role")
@@ -45,6 +47,7 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
         # Track productive time
         #user_id = payload.get("user_id")  # assuming 'sub' is user id
         #user = db.query(Users).filter(Users.user_id ==user_id).first()
+        #print(payload.get("user_id"))
 
         if payload.get("role")==2: 
 
@@ -59,7 +62,7 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
                     #db_token.productive_minutes += diff_minutes
                     db_token.productive_minutes = (db_token.productive_minutes or 0) + diff_minutes
                 else:
-                    db_token.logout=now
+                    #db_token.logout=now
                     db_token.token=None
                     db.commit()
                     raise HTTPException(status_code=401, detail="User Idle, logged out")
