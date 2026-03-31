@@ -233,7 +233,8 @@ def payment_confirmation_service(invoice_no: str,reference_no :str, db: Session)
 
     return {
         "message": "Payment confirmed",
-        "invoice_no": invoice_no 
+        "invoice_no": invoice_no ,
+        "reference_no": reference_no
     }
 
 def get_bankdetail(invoice_no: str, db: Session):

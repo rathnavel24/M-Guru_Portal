@@ -15,6 +15,7 @@ from backend.app.app.crud.attendance import logout_all_users
 from apscheduler.schedulers.background import BackgroundScheduler
 from backend.app.app.db.session import sessionLocal
 from backend.app.app.crud.email_services import check_and_notify
+from backend.app.app.crud.auto_remainder import start_scheduler
 
 app = FastAPI()
 
@@ -108,6 +109,10 @@ def run_email_job():
 
 scheduler.add_job(run_email_job, 'interval', seconds=30)
 scheduler.start()
+
+@app.on_event("startup")
+async def startup_event():
+    start_scheduler()
 
 
 
