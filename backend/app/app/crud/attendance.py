@@ -220,7 +220,6 @@ class Check:
 
     def etatusss(self, current_user):
         user_id = current_user.get("user_id")
-        # print(user_id)
 
         results = (
             self.db.query(Token)
