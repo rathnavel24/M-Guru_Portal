@@ -13,7 +13,7 @@ env/
 portalenv/
 # .gitignore
 .env
-
+Dockerfile/
 # FastAPI / Uvicorn logs
 *.log
 

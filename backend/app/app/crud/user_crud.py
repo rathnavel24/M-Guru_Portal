@@ -240,8 +240,8 @@ class LoginUser:
         new_token = Token(
             token=token,
             user_id=user.user_id,
-            login=now,
-            last_activity=now,
+            #login=now,
+            #last_activity=now,
             productive_minutes=0,
         )
 
@@ -253,7 +253,6 @@ class LoginUser:
                 "user_type": user.type
                 }
     
-
 
 class UserServices:
 
