@@ -74,39 +74,6 @@ def start_scheduler():
         scheduler.start()
     logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
 
-################################
-
-from datetime import datetime, timedelta
-
-def is_overdue(attempt):
-    if not attempt.started_at:
-        return False
-
-    days = (datetime.utcnow() - attempt.started_at).days
-    return attempt.status == "in_progress" and days >= 0
-
-# def run_email_job():
-#     print("Payment reminder job started")
-
-#     db = sessionLocal()
-#     try:
-#         asyncio.run(check_and_notify(db))
-#     finally:
-#         db.close()
-def run_email_job():
-    print("Payment reminder job started at", datetime.utcnow())
-    db = sessionLocal()
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(check_and_notify(db))
-    except Exception as e:
-        print(f"Email job error: {e}")
-    finally:
-        db.close()
-
-scheduler.add_job(run_email_job, 'interval', seconds=30)
-scheduler.start()
 
 
 
