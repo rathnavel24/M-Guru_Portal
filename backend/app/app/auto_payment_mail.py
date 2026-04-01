@@ -6,7 +6,8 @@ async def run_job():
     db = sessionLocal()
 
     try:
-        await send_auto_reminders(db)
+        await send_auto_reminders()
+        await asyncio.sleep(2)
         print("Reminder sent successfully")
     except Exception as e:
         raise e
