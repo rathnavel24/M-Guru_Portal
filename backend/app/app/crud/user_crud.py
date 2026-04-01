@@ -94,8 +94,7 @@ class SignUpDetails(SignUpAbstract):
             .filter(
                 or_(
                     # Users.username == self.new_user.username,
-                    Users.email
-                    == self.new_user.email
+                    Users.email == self.new_user.email
                 ),
                 Users.status == 1,
             )
@@ -202,7 +201,7 @@ class LoginUser:
 
     def login_main_user(self, background_tasks):
 
-        user = self.db.query(Users).filter(Users.email == self.email).first()
+        user = self.db.query(Users).filter(Users.email == self.email, Users.status == 1).first()
 
         if not user:
             raise HTTPException(
@@ -296,7 +295,14 @@ class UserServices:
         return {"msg": "User deleted successfully"}
 
     def get_all_batches(self):
-        result = self.db.query(Users.batch).filter(Users.batch != None).distinct().all()
+        # Fetch distinct batches, excluding batch 0, and sort them in ascending order
+        result = (
+            self.db.query(Users.batch)
+            .filter(Users.batch != None, Users.batch != 0)
+            .distinct()
+            .order_by(Users.batch.asc())
+            .all()
+        )
         return [r[0] for r in result]
 
     def get_all_users(self, page_no: int = 1, page_size: int = 10):
@@ -305,7 +311,7 @@ class UserServices:
         """
         # total count of active users
         total_rows = (
-            self.db.query(func.count(Users.user_id)).filter(Users.status == 1).scalar()
+            self.db.query(func.count(Users.user_id)).filter(Users.status == 1,Users.type == 2).scalar()
         )
 
         # pagination
@@ -326,7 +332,7 @@ class UserServices:
                 func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount"),
             )
             .outerjoin(Fee, Fee.user_id == Users.user_id)
-            .filter(Users.status == 1)
+            .filter(Users.status == 1,Users.type == 2)
             .group_by(
                 Users.user_id,
                 Users.username,
@@ -366,6 +372,8 @@ class UserServices:
             .filter(Users.user_id == user_id, Users.status == 1)
             .first()
         )
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
         if not user:
             return None
@@ -400,7 +408,7 @@ class UserServices:
         if data.email is not None:
             existing_user = (
                 self.db.query(Users)
-                .filter(Users.email == data.email, Users.user_id != user_id)
+                .filter(Users.email == data.email, Users.user_id != user_id, Users.status == 1)
                 .first()
             )
 
@@ -520,7 +528,7 @@ class GetEmail:
         total_rows = (
             self.db.query(func.count(Pay_email.id))
             .join(Users, Users.user_id == Pay_email.to_id)
-            .filter(Pay_email.status == 1, Users.batch == int(batch_id))
+            .filter(Pay_email.status == 1, Users.batch == int(batch_id),Users.status == 1)
             .scalar()
         )
 
@@ -543,7 +551,7 @@ class GetEmail:
                 Users.batch,
             )
             .join(Users, Users.user_id == Pay_email.to_id)
-            .filter(Pay_email.status == 1, Users.batch == batch_id)
+            .filter(Pay_email.status == 1, Users.batch == batch_id, Users.status == 1)
             .order_by(desc(Pay_email.created_at))
             .offset(offset)
             .limit(limit)
