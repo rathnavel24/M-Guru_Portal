@@ -10,6 +10,8 @@ from email.message import EmailMessage
 import os
 import asyncio
 
+from backend.app.app.models.portaluserfee import Fee
+
 #  Scheduler
 scheduler = AsyncIOScheduler(timezone="Asia/Kolkata")
 
@@ -55,24 +57,37 @@ async def send_general_reminder(user):
     await send_email(msg)
 
 # MAIN JOB (UPDATED LOGIC ONLY)
-async def send_auto_reminders(db):
+async def send_auto_reminders():
     db: Session = get_db()
 
     try:
-        #  Get ALL users
-        users = db.query(Users).filter(Users.type == 2, Users.status == 1).all()
+        users = (
+                db.query(Users)
+                .join(Fee, Fee.user_id == Users.user_id)
+                .filter(
+                    Users.type == 2,
+                    Users.status == 1,
+                    Fee.status == 1,  # active fee
+                    Fee.paid_amount < Fee.total_fee
+                )
+                .all()
+                )
+
+        print("=== JOB STARTED ===")
+
         for user in users:
             try:
                 if not user.email or "@" not in user.email:
                     continue
 
+                print(f"Sending to {user.email}")
+
                 await send_general_reminder(user)
+                await asyncio.sleep(1)  # throttle
 
             except Exception as e:
-                raise e
-
-    except Exception as e:
-        raise e
+                print(f"Failed for {user.email}: {e}")
+                continue
 
     finally:
         db.close()
