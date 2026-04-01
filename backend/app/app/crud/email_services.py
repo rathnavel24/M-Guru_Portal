@@ -52,8 +52,8 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
 
     try:
         user = (
-            db.query(Users.username, Users.email)
-            .filter(Users.user_id == data.user_id)
+            db.query(Users.username, Users.email).join(Fee, Fee.user_id == Users.user_id)
+            .filter(Users.user_id == data.user_id,Fee.paid_amount < Fee.total_fee)
             .first()
         )
 
