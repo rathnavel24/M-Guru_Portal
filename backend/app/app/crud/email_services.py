@@ -103,7 +103,6 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
             # CONFIRMATION
             elif data.email_type == 3:
                 reference_no = data.reference_no   #to store reference number in db
-
                 status = existing.status  # keep existing (no change)
                 if existing.is_complete:
                     raise ValueError("Payment already completed")
