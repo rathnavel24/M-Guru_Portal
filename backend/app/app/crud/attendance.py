@@ -11,7 +11,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 now = datetime.utcnow()
-IDLE_TIMEOUT_MINUTES = 10
+IDLE_TIMEOUT_MINUTES = 1
 
 
 def logout_all_users():
@@ -306,3 +306,10 @@ class Check:
                 results.last_activity = now
                 self.db.commit()
                 return "initialized"
+        results.last_activity = now
+        results.productive_minutes = (
+                        results.productive_minutes or 0
+                    ) + diff_minutes
+
+        self.db.commit()
+        return "time_added"
