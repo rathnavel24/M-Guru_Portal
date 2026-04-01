@@ -303,7 +303,7 @@ class UserServices:
         """
         # total count of active users
         total_rows = (
-            self.db.query(func.count(Users.user_id)).filter(Users.status == 1).scalar()
+            self.db.query(func.count(Users.user_id)).filter(Users.status == 1,Users.type == 2).scalar()
         )
 
         # pagination
@@ -324,7 +324,7 @@ class UserServices:
                 func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount"),
             )
             .outerjoin(Fee, Fee.user_id == Users.user_id)
-            .filter(Users.status == 1)
+            .filter(Users.status == 1,Users.type == 2)
             .group_by(
                 Users.user_id,
                 Users.username,
@@ -520,7 +520,7 @@ class GetEmail:
         total_rows = (
             self.db.query(func.count(Pay_email.id))
             .join(Users, Users.user_id == Pay_email.to_id)
-            .filter(Pay_email.status == 1, Users.batch == int(batch_id))
+            .filter(Pay_email.status == 1, Users.batch == int(batch_id),Users.status == 1)
             .scalar()
         )
 
@@ -543,7 +543,7 @@ class GetEmail:
                 Users.batch,
             )
             .join(Users, Users.user_id == Pay_email.to_id)
-            .filter(Pay_email.status == 1, Users.batch == batch_id)
+            .filter(Pay_email.status == 1, Users.batch == batch_id, Users.status == 1)
             .order_by(desc(Pay_email.created_at))
             .offset(offset)
             .limit(limit)
