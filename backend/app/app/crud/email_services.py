@@ -1,16 +1,12 @@
 import aiosmtplib
 from email.message import EmailMessage
 from jinja2 import Environment, FileSystemLoader
-from io import BytesIO
-import qrcode
 from sqlalchemy.orm import Session
 from backend.app.app.models import Users, Pay_email,Fee
 from backend.app.app.schemas.user_schema import Paymentmail
 from pathlib import Path
 from email.message import EmailMessage
 from datetime import datetime
-import random
-import string
 import os
 from dotenv import load_dotenv
 

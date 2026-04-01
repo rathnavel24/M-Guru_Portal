@@ -21,6 +21,7 @@ async def view(
 @router.post("/viewbyuser")
 async def view(current_user=Depends(role_required([1,2])), db: Session = Depends(get_db)):
     user_id = current_user.get("user_id")
+    #print(user_id)
     return Attendance(db).attendance(user_id)
 
 
@@ -29,7 +30,13 @@ async def checkin(current_user=Depends(role_required([1,2])), db: Session = Depe
     return Check(db).checkin(current_user)
 
 
-
 @router.post("/check-out")
 async def checkout(current_user=Depends(role_required([1,2])), db: Session = Depends(get_db)):
-    return Check(db).checkout(current_user)
+    user_id=current_user.get("user_id")
+    return Check(db).checkout(user_id)
+
+@router.post("/user_status")
+async def check(current_user=Depends(role_required([1,2])), db: Session = Depends(get_db)):
+    #print("this from api status",current_user.get("user_id"))
+    return Check(db).statuss(current_user)
+

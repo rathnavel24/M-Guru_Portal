@@ -320,11 +320,15 @@ class AttemptCrud:
 
         #In Progress
         if attempt.status == "in_progress":
+            if attempt.aptitude_score == None and attempt.technical_score == None:
+                progress = None
+            else:
+                progress = "in_progress"
             return {
                 "attempt_id": attempt.attempt_id,
-                "status": "in_progress",
-                "aptitude_score": attempt.aptitude_score or 0,
-                "technical_score": attempt.technical_score or 0,
+                "status": progress,
+                "aptitude_score": attempt.aptitude_score ,
+                "technical_score": attempt.technical_score ,
                 "message": "Test is in progress"
             }
 
@@ -365,6 +369,7 @@ class AttemptCrud:
                     func.coalesce(latest_attempt.aptitude_score, 0).label("aptitude_score"),
                     func.coalesce(latest_attempt.technical_score, 0).label("technical_score"),
                     func.coalesce(latest_attempt.total_score, 0).label("total_score"),
+                    func.coalesce(latest_attempt.status,"Ongoing").label("status"),
                 )
                 .outerjoin(
                     latest_attempt_subq,
@@ -393,6 +398,11 @@ class AttemptCrud:
                 technical_total = 20
                 overall_total = 50
 
+                if row.status != 'completed':
+                    rslt = row.status
+                else:
+                    rslt = "PASS" if total > 27 else "FAIL"
+
                 response.append({
                     "user_id": row.user_id,
                     "username": row.username,
@@ -408,7 +418,7 @@ class AttemptCrud:
                     "total_score": total,
                     "total_percentage": (total / overall_total) * 100 if overall_total else 0,
 
-                    "result": "PASS" if total > 27 else "FAIL"
+                    "result": rslt
                 })
 
             return response

@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 from fastapi import FastAPI
 from backend.app.app.api.endpoints import user
@@ -13,7 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.app.api.endpoints import Exam_user
 from backend.app.app.crud.attendance import logout_all_users
 from apscheduler.schedulers.background import BackgroundScheduler
-
 app = FastAPI()
 
 app.add_middleware(
@@ -34,6 +32,10 @@ app.include_router(Exam_section.router)
 app.include_router(attendance.router)
 app.include_router(Exam_user.router)
 
+
+
+
+
 # # scheduler = BackgroundScheduler()
 # #scheduler = BackgroundScheduler(timezone="UTC")
 
@@ -52,7 +54,7 @@ def safe_logout_all_users():
     if last_global_logout_date == today:
         # Already ran today, skip
         return
-    print("lin 93 logout all usr")
+    
 
     logout_all_users()
     last_global_logout_date = today
@@ -74,17 +76,11 @@ def start_scheduler():
     logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
 
 
-
-
-
 from backend.app.app.crud.auto_remainder import start_scheduler
 
 @app.on_event("startup")
 async def startup_event():
     start_scheduler(test_mode = False)
-
-
-
 
 #dont change its by hari
 

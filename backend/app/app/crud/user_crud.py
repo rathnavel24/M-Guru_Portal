@@ -94,8 +94,7 @@ class SignUpDetails(SignUpAbstract):
             .filter(
                 or_(
                     # Users.username == self.new_user.username,
-                    Users.email
-                    == self.new_user.email
+                    Users.email == self.new_user.email
                 ),
                 Users.status == 1,
             )
@@ -116,43 +115,37 @@ class LoginUser:
         self.password = password
         self.username_pattern = re.compile(r"^user([1-9]|[1-2][0-9]|30)$")
         self.password_pattern = re.compile(r"^User@\d{4}$")
+
     def login(self, background_tasks):
         # check if input is exam user (user1, user2...)
-        if re.match(r"^user([1-9]|[1-2][0-9]|30)$", self.email):  # using email field as username input
+        if re.match(
+            r"^user([1-9]|[1-2][0-9]|30)$", self.email
+        ):  # using email field as username input
 
             return self.login_exam_user(self.email, self.password)
 
         # otherwise normal user login
         return self.login_main_user(background_tasks)
 
-    
-
     def login_exam_user(self, username: str, password: str):
-        
-         # Validate username
+
+        # Validate username
         if not self.username_pattern.match(username):
             raise HTTPException(
-                status_code=400,
-                detail="Invalid username format (use user1 to user30)"
+                status_code=400, detail="Invalid username format (use user1 to user30)"
             )
 
         # Validate password
         if not self.password_pattern.match(password):
             raise HTTPException(
-                status_code=400,
-                detail="Invalid password format (use User@1234)"
+                status_code=400, detail="Invalid password format (use User@1234)"
             )
         SESSION_TIMEOUT = 10  # minutes
-        user = self.db.query(ExamUsers).filter(
-            ExamUsers.username == username
-        ).first()
+        user = self.db.query(ExamUsers).filter(ExamUsers.username == username).first()
 
-        # Auto-create user 
+        # Auto-create user
         if not user:
-            user = ExamUsers(
-                username=username,
-                password=password
-            )
+            user = ExamUsers(username=username, password=password)
             self.db.add(user)
             self.db.commit()
             self.db.refresh(user)
@@ -161,21 +154,22 @@ class LoginUser:
         if user.password != password:
             raise HTTPException(401, "Incorrect password")
 
-        #SINGLE SESSION CHECK
+        # SINGLE SESSION CHECK
         if user.is_logged_in:
-            if user.last_login and (dt.utcnow() - user.last_login < timedelta(minutes=SESSION_TIMEOUT)):
+            if user.last_login and (
+                dt.utcnow() - user.last_login < timedelta(minutes=SESSION_TIMEOUT)
+            ):
                 raise HTTPException(
-                    status_code=403,
-                    detail="User already logged in from another device"
+                    status_code=403, detail="User already logged in from another device"
                 )
             else:
                 # session expired → reset
                 user.is_logged_in = False
 
         # Check attempt
-        attempt = self.db.query(Attempts).filter(
-            Attempts.user_id == user.user_id
-        ).first()
+        attempt = (
+            self.db.query(Attempts).filter(Attempts.user_id == user.user_id).first()
+        )
 
         if attempt:
             if attempt.status == "completed":
@@ -185,7 +179,7 @@ class LoginUser:
                 user_id=user.user_id,
                 assessment_id=1,
                 started_at=dt.utcnow(),
-                status="in_progress"
+                status="in_progress",
             )
             self.db.add(attempt)
             self.db.commit()
@@ -202,12 +196,12 @@ class LoginUser:
             "user_id": user.user_id,
             "attempt_id": attempt.attempt_id,
             "status": attempt.status,
-            "user_type": 3
+            "user_type": 3,
         }
 
     def login_main_user(self, background_tasks):
 
-        user = self.db.query(Users).filter(Users.email == self.email).first()
+        user = self.db.query(Users).filter(Users.email == self.email, Users.status == 1).first()
 
         if not user:
             raise HTTPException(
@@ -222,37 +216,42 @@ class LoginUser:
 
         now = dt.utcnow()
 
-        today_token = self.db.query(Token).filter(
-            Token.user_id == user.user_id,
-            func.date(Token.login) == date.today(),
-            Token.logout == None   # IMPORTANT
-        ).first()
+        today_token = (
+            self.db.query(Token)
+            .filter(
+                Token.user_id == user.user_id,
+                func.date(Token.login) == date.today(),
+                Token.logout == None,  # IMPORTANT
+            )
+            .first()
+        )
 
         if today_token:
-            #properly close old session
+            # properly close old session
             today_token.token = None
             today_token.logout = today_token.last_activity
 
             # optional: flush to DB before inserting new row
             self.db.flush()
 
-        #always create new token
+        # always create new token
         new_token = Token(
             token=token,
             user_id=user.user_id,
-            login=now,
-            last_activity=now,
+            # login=now,
+            # last_activity=now,
+            status=1,
             productive_minutes=0,
         )
 
         self.db.add(new_token)
         self.db.commit()
-        return {"token": token, 
-                "user_id": None,
-                "token_type": "bearer", 
-                "user_type": user.type
-                }
-    
+        return {
+            "token": token,
+            "user_id": None,
+            "token_type": "bearer",
+            "user_type": user.type,
+        }
 
 
 class UserServices:
@@ -296,7 +295,14 @@ class UserServices:
         return {"msg": "User deleted successfully"}
 
     def get_all_batches(self):
-        result = self.db.query(Users.batch).filter(Users.batch != None).distinct().all()
+        # Fetch distinct batches, excluding batch 0, and sort them in ascending order
+        result = (
+            self.db.query(Users.batch)
+            .filter(Users.batch != None, Users.batch != 0)
+            .distinct()
+            .order_by(Users.batch.asc())
+            .all()
+        )
         return [r[0] for r in result]
 
     def get_all_users(self, page_no: int = 1, page_size: int = 10):
@@ -305,7 +311,7 @@ class UserServices:
         """
         # total count of active users
         total_rows = (
-            self.db.query(func.count(Users.user_id)).filter(Users.status == 1).scalar()
+            self.db.query(func.count(Users.user_id)).filter(Users.status == 1,Users.type == 2).scalar()
         )
 
         # pagination
@@ -326,7 +332,7 @@ class UserServices:
                 func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount"),
             )
             .outerjoin(Fee, Fee.user_id == Users.user_id)
-            .filter(Users.status == 1)
+            .filter(Users.status == 1,Users.type == 2)
             .group_by(
                 Users.user_id,
                 Users.username,
@@ -366,6 +372,8 @@ class UserServices:
             .filter(Users.user_id == user_id, Users.status == 1)
             .first()
         )
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
         if not user:
             return None
@@ -400,7 +408,7 @@ class UserServices:
         if data.email is not None:
             existing_user = (
                 self.db.query(Users)
-                .filter(Users.email == data.email, Users.user_id != user_id)
+                .filter(Users.email == data.email, Users.user_id != user_id, Users.status == 1)
                 .first()
             )
 
@@ -482,27 +490,27 @@ class GetEmail:
 
         # fetch paginated data
         data = (
-                self.db.execute(
-                    select(
-                        Pay_email.id,
-                        Pay_email.invoice_no,
-                        Pay_email.amount,
-                        Pay_email.is_complete,
-                        Pay_email.created_at,
-                        Pay_email.email_type,
-                        Users.username.label("receiver_name"),
-                        Users.email.label("receiver_email"),
-                        Users.batch,
-                    )
-                    .join(Users, Users.user_id == Pay_email.from_id)  # ✅ corrected
-                    .where(Pay_email.status == 1)
-                    .order_by(desc(Pay_email.created_at))
-                    .offset(offset)
-                    .limit(limit)
+            self.db.execute(
+                select(
+                    Pay_email.id,
+                    Pay_email.invoice_no,
+                    Pay_email.amount,
+                    Pay_email.is_complete,
+                    Pay_email.created_at,
+                    Pay_email.email_type,
+                    Users.username.label("receiver_name"),
+                    Users.email.label("receiver_email"),
+                    Users.batch,
                 )
-                .mappings()
-                .all()
+                .join(Users, Users.user_id == Pay_email.from_id)  # ✅ corrected
+                .where(Pay_email.status == 1)
+                .order_by(desc(Pay_email.created_at))
+                .offset(offset)
+                .limit(limit)
             )
+            .mappings()
+            .all()
+        )
 
         return {
             "total_pages": total_pages,
@@ -520,7 +528,7 @@ class GetEmail:
         total_rows = (
             self.db.query(func.count(Pay_email.id))
             .join(Users, Users.user_id == Pay_email.to_id)
-            .filter(Pay_email.status == 1, Users.batch == int(batch_id))
+            .filter(Pay_email.status == 1, Users.batch == int(batch_id),Users.status == 1)
             .scalar()
         )
 
@@ -543,7 +551,7 @@ class GetEmail:
                 Users.batch,
             )
             .join(Users, Users.user_id == Pay_email.to_id)
-            .filter(Pay_email.status == 1, Users.batch == batch_id)
+            .filter(Pay_email.status == 1, Users.batch == batch_id, Users.status == 1)
             .order_by(desc(Pay_email.created_at))
             .offset(offset)
             .limit(limit)
@@ -559,7 +567,8 @@ class GetEmail:
             "total_records": total_rows,
             "data": data,
         }
-    
+
+
 class Logout:
     def __init__(self, db):
         self.db = db
@@ -571,26 +580,25 @@ class Logout:
         tokens = (
             self.db.query(Token)
             .filter(Token.user_id == user)
-            .filter(Token.logout.is_(None))
+            # .filter(Token.logout.is_(None))
             .filter(Token.token.isnot(None))
             .first()
         )
 
         now = dt.utcnow()
         tokens.logout = now
-        #time_diff = now - tokens.login  # timedelta
+        # time_diff = now - tokens.login  # timedelta
         # tokens.ideal_time = Decimal(time_diff.total_seconds() / 3600).quantize(
         #     Decimal("0.01")
         # )
         tokens.token = None
-        #self.db.add(tokens)
+        # self.db.add(tokens)
         self.db.commit()
         return {"Logout": "Successfully"}
+
     def logout_exam_user(self, user_id: int):
 
-        user = self.db.query(ExamUsers).filter(
-            ExamUsers.user_id == user_id
-        ).first()
+        user = self.db.query(ExamUsers).filter(ExamUsers.user_id == user_id).first()
 
         if not user:
             raise HTTPException(404, "User not found")
