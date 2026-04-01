@@ -365,6 +365,8 @@ class UserServices:
             .filter(Users.user_id == user_id, Users.status == 1)
             .first()
         )
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
         if not user:
             return None
