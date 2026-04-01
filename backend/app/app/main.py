@@ -76,29 +76,6 @@ def start_scheduler():
         scheduler.start()
     logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
 
-################################
-
-from datetime import datetime, timedelta
-
-def is_overdue(attempt):
-    if not attempt.started_at:
-        return False
-
-    days = (datetime.utcnow() - attempt.started_at).days
-    return attempt.status == "in_progress" and days >= 0
-
-def run_email_job():
-    print("Payment reminder job started")
-
-    db = sessionLocal()
-    try:
-        check_and_notify(db)
-    finally:
-        db.close()
-
-
-scheduler.add_job(run_email_job, 'interval', minutes=1)
-scheduler.start()
 
 
 
