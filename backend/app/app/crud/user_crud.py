@@ -295,7 +295,14 @@ class UserServices:
         return {"msg": "User deleted successfully"}
 
     def get_all_batches(self):
-        result = self.db.query(Users.batch).filter(Users.batch != None).distinct().all()
+        # Fetch distinct batches, excluding batch 0, and sort them in ascending order
+        result = (
+            self.db.query(Users.batch)
+            .filter(Users.batch != None, Users.batch != 0)
+            .distinct()
+            .order_by(Users.batch.asc())
+            .all()
+        )
         return [r[0] for r in result]
 
     def get_all_users(self, page_no: int = 1, page_size: int = 10):
