@@ -94,8 +94,7 @@ class SignUpDetails(SignUpAbstract):
             .filter(
                 or_(
                     # Users.username == self.new_user.username,
-                    Users.email
-                    == self.new_user.email
+                    Users.email == self.new_user.email
                 ),
                 Users.status == 1,
             )
@@ -207,7 +206,7 @@ class LoginUser:
 
     def login_main_user(self, background_tasks):
 
-        user = self.db.query(Users).filter(Users.email == self.email).first()
+        user = self.db.query(Users).filter(Users.email == self.email, Users.status == 1).first()
 
         if not user:
             raise HTTPException(
@@ -401,7 +400,7 @@ class UserServices:
         if data.email is not None:
             existing_user = (
                 self.db.query(Users)
-                .filter(Users.email == data.email, Users.user_id != user_id)
+                .filter(Users.email == data.email, Users.user_id != user_id, Users.status == 1)
                 .first()
             )
 
