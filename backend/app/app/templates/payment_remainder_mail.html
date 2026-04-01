@@ -120,55 +120,34 @@
     <p class="title">Dear {{ name }},</p>
 
     <p>
-      Please find your invoice for services rendered. Kindly complete the payment
-      by <b>{{ due_date or "N/A" }}</b>.
+      Greetings from <b>M-Guru</b>,
     </p>
 
-    <!-- Invoice Details -->
-    <div class="box">
-      <div class="row">
-        <span>Invoice No :</span>
-        <span>{{ invoice_id }}</span>
-      </div>
+    <p>
+      This is a gentle reminder to complete the payment for the Intern process.
+    </p>
 
-      <div class="row">
-        <span>Customer :</span>
-        <span>{{ name }}</span>
-      </div>
+    <p>
+      Kindly complete the payment on or before <b>{{ due_date or "the mentioned date" }}</b> 
+      and share the payment confirmation (screenshot/reference number) once done.
+    </p>
 
-      <div class="row">
-        <span>Due Date :</span>
-        <span>{{ due_date or "N/A" }}</span>
-      </div>
+    <p>
+      Please note that only candidates who complete the payment will be eligible 
+      to proceed to the next stage of the internship process.
+    </p>
 
-      <div class="row">
-        <span> :</span>
-        <span>{{  }}</span>
-      </div>
+    <p>
+      If you have already completed the payment, please ignore this message.
+    </p>
 
-      <div class="row">
-        <span>Status :</span>
-        <span class="pending">Pending...</span>
-      </div>
-
-      <div class="row">
+    <p>
+      Thank you for your cooperation.
+    </p>
+    <div class="row">
         <span class="amount">Amount :</span>
         <span class="amount">₹{{ "{:,.2f}".format(amount) }}</span>
-      </div>
     </div>
-
-    <!-- Payment Section -->
-    <div class="box">
-      <div class="qr-box">
-        <div class="qr-text">
-          <b>Payment Options</b><br><br>
-
-          <!-- UPI (optional) -->
-          {% if upi_id %}
-            <b>UPI</b><br>
-            <span style="color:gray;">{{ upi_id }}</span><br><br>
-          {% endif %}
-
           <!-- Bank Details (ALWAYS SHOWN) -->
           <div class="bank-details">
             <b>Bank Transfer</b><br>

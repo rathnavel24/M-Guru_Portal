@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.app.app.crud.email_services import check_and_notify
+# from backend.app.app.crud.email_services import check_and_notify
 from backend.app.app.schemas.Exam_user_schemas import (
     LoginRequest,
     UserDetailsCreate,

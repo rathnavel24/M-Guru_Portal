@@ -70,11 +70,11 @@ async def payment_confirmation_api(
     except Exception as e:
         raise e
     
-@router.get("/test_reminder")
-async def test_reminder():
-    from backend.app.app.crud.auto_remainder import send_auto_reminders
-    await send_auto_reminders()
-    return {"message": "Reminder function executed"}
+# @router.get("/test_reminder")
+# async def test_reminder():
+#     from backend.app.app.crud.auto_remainder import send_auto_reminders
+#     await send_auto_reminders()   # ✅ CORRECT
+#     return {"message": "Reminder executed"}
 
 
 @router.post("/dashboard")

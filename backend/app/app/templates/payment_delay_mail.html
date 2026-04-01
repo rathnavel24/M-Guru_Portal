@@ -11,11 +11,11 @@
     }
 
     .container {
-      max-width: 650px;
+      max-width: 600px;
       margin: auto;
       background: #ffffff;
       border-radius: 12px;
-      padding: 20px;
+      padding: 25px;
     }
 
     .brand {
@@ -24,35 +24,28 @@
       color: #d48a00;
     }
 
-    .sub {
-      font-size: 12px;
-      color: gray;
-    }
-
-    .right {
-      text-align: right;
-      font-size: 14px;
-    }
-
-    hr {
-      border: none;
-      border-top: 1px solid #ddd;
-      margin: 20px 0;
-    }
-
     .title {
       font-size: 18px;
       font-weight: bold;
+      margin-top: 20px;
     }
 
-    .alert {
+    .message {
       background: #fff3cd;
       border: 1px solid #ffeeba;
       color: #856404;
-      padding: 12px;
+      padding: 15px;
       border-radius: 8px;
-      margin: 15px 0;
+      margin: 20px 0;
       font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .amount {
+      font-size: 18px;
+      font-weight: bold;
+      color: #d48a00;
+      margin-top: 10px;
     }
 
     .box {
@@ -60,7 +53,7 @@
       border: 1px solid #eee;
       border-radius: 10px;
       padding: 15px;
-      margin-top: 15px;
+      margin-top: 20px;
     }
 
     .row {
@@ -75,26 +68,11 @@
       border-bottom: none;
     }
 
-    .status {
-      color: #dc3545;
-      font-weight: bold;
-    }
-
-    .amount {
-      font-size: 18px;
-      font-weight: bold;
-      color: #d48a00;
-    }
-
     .footer {
       text-align: center;
       font-size: 12px;
       color: gray;
-      margin-top: 20px;
-    }
-
-    .highlight {
-      font-weight: bold;
+      margin-top: 25px;
     }
   </style>
 </head>
@@ -102,69 +80,56 @@
 <body>
   <div class="container">
 
-    <!-- Header -->
-    <table width="100%">
-      <tr>
-        <td align="left">
-          <div class="brand">◆ M-GURU</div>
-          <div class="sub">payment reminder mail</div>
-        </td>
+    <!-- Brand -->
+    <div class="brand">◆ M-GURU</div>
 
-        <td align="right" class="right">
-          <div><b>PAYMENT REMINDER</b></div>
-          <div><b>{{ invoice_id }}</b></div>
-          <div>{{ date }}</div>
-        </td>
-      </tr>
-    </table>
-
-    <hr>
-
-    <!-- Greeting -->
+     <!-- Greeting -->
     <p class="title">Dear {{ name }},</p>
 
-    <div class="alert">
-      ⚠️ This is a reminder that your payment is still pending. Please complete it before the due date.
+    <!-- Main Message -->
+    <div class="message">
+      I hope you're doing well. This is a kind remainder for your fee payment, 
+      please complete the payment as soon as possible.
+      <br><br>
+      Sometimes payments get overlooked, so I wanted to follow up and check if it’s in process.
+      <br><br>
+      Please let me know once your payment is completed.
+      You can make the payment using..
     </div>
 
-    <!-- Details -->
-    <p>
-      Your invoice <b>{{ invoice_id }}</b> of <b>₹{{ amount }}</b> is pending.
-    </p>
-
+    <!-- Bank Details -->
     <div class="box">
+      <div class="title">Bank Details</div>
 
       <div class="row">
-        <span>Invoice No :</span>
-        <span>{{ invoice_id }}</span>
+        <span>Account Name :</span>
+        <span>ABC Pvt Ltd</span>
       </div>
 
       <div class="row">
-        <span>Customer :</span>
-        <span>{{ name }}</span>
+        <span>Account Number :</span>
+        <span>123456789012</span>
       </div>
 
       <div class="row">
-        <span>Due Date :</span>
-        <span class="highlight">{{ due_date }}</span>
+        <span>Bank Name :</span>
+        <span>XYZ Bank</span>
       </div>
 
       <div class="row">
-        <span>Status :</span>
-        <span class="status">PENDING</span>
+        <span>IFSC Code :</span>
+        <span>XYZB0001234</span>
       </div>
 
       <div class="row">
-        <span class="amount">Amount Due :</span>
-        <span class="amount">₹{{ amount }}</span>
+        <span>Branch :</span>
+        <span>Main Branch</span>
       </div>
-
     </div>
 
     <!-- Footer -->
     <div class="footer">
-      This is an automated reminder email ·<br>
-      Please do not reply · Powered by PayMail
+      This is an automated reminder email · Please do not reply
     </div>
 
   </div>

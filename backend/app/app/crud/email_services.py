@@ -54,10 +54,6 @@ def generate_invoice_id(db: Session):
 async def send_invoice_email(data: Paymentmail, current_user, db: Session):
     sender_id = current_user["user_id"]
 
-
-async def send_invoice_email(data: Paymentmail, current_user, db: Session):
-    sender_id = current_user["user_id"]
-
     try:
         user = (
             db.query(Users.username, Users.email)
@@ -67,10 +63,7 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
 
         if not user:
             raise ValueError("User not found")
-
-        # =========================
-        # 🧾 NEW INVOICE
-        # =========================
+        #new invoice
         if data.email_type == 1:
             gen_invoice_id = generate_invoice_id(db)
 
@@ -84,9 +77,6 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
             status = 1  # Sent
             is_complete = False
 
-        # =========================
-        # 🔁 REMINDER / ✅ CONFIRMATION
-        # =========================
         else:
             if not data.invoice_no:
                 raise ValueError("Invoice number is required")
@@ -110,18 +100,15 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
             due_date = existing.due_date
             is_complete = existing.is_complete
 
-            # -------------------------
-            # 🔔 REMINDER
-            # -------------------------
+            # REMINDER
             if data.email_type == 2:
                 status = 3  # Reminder sent
 
-            # -------------------------
-            # ✅ CONFIRMATION
-            # -------------------------
+            # CONFIRMATION
             elif data.email_type == 3:
-                status = existing.status  # keep existing (no change)
+                reference_no = data.reference_no   #to store reference number in db
 
+                status = existing.status  # keep existing (no change)
                 if existing.is_complete:
                     raise ValueError("Payment already completed")
 
@@ -135,14 +122,14 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
                 # Add invoice amount
                 fee.paid_amount = (fee.paid_amount or 0) + existing.amount
 
+                payment_confirmation_service(invoice_no=data.invoice_no,reference_no=data.reference_no,db=db)
+                is_complete = True
                 db.commit()
 
             else:
                 raise ValueError("Invalid email type")
-
-        # =========================
-        # 📧 EMAIL TEMPLATE
-        # =========================
+            
+        #  EMAIL TEMPLATE
         if data.email_type == 1:
             template = env.get_template("payment_invoice_mail.html")
             subject = f"Invoice - {gen_invoice_id}"
@@ -176,15 +163,13 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
 
         if not user.email:
             raise ValueError("User email missing")
-
+        
         msg.set_content("Please view this email in HTML format.")
         msg.add_alternative(html_content, subtype="html")
 
         await send_email(msg)
 
-        # =========================
-        # 📝 LOG ENTRY
-        # =========================
+        #LOG ENTRY
         add_log = Pay_email(
             invoice_no=gen_invoice_id,
             from_id=sender_id,
@@ -199,6 +184,7 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
             bank_name=bank_name,
             is_complete=is_complete,
             status=status,
+            reference_no = reference_no,
             created_at=datetime.now(),
             updated_at=datetime.now(),
             created_by="ADMIN",
@@ -211,10 +197,9 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
 
     except Exception as e:
         db.rollback()
-        print("Email Error:", str(e))
-        raise 
+        raise e
 
-def payment_confirmation_service(invoice_no: str,reference_no :str, db: Session):
+def payment_confirmation_service(invoice_no,reference_no, db:Session):
     records = db.query(Pay_email).filter(
         Pay_email.invoice_no == invoice_no
     ).all()
@@ -222,34 +207,42 @@ def payment_confirmation_service(invoice_no: str,reference_no :str, db: Session)
     if not records:
         return {"message": "Invalid invoice no"}
 
+    updated = False
+
     for record in records:
-        if record.iscomplete:
-            return {"message": "Payment already confirmed"}
-        record.reference_no = reference_no
-        record.is_complete = True
-        record.updated_at = datetime.now()
+        if not record.is_complete:
+            record.reference_no = reference_no
+            record.is_complete = True
+            record.updated_at = datetime.now()
+            updated = True
+
+    if not updated:
+        return {"message": "Payment already confirmed"}
 
     db.commit()
 
     return {
         "message": "Payment confirmed",
-        "invoice_no": invoice_no ,
+        "invoice_no": invoice_no,
         "reference_no": reference_no
     }
 
 def get_bankdetail(invoice_no: str, db: Session):
     bank_details = db.query(
+        Pay_email.amount,
         Pay_email.bank_name,
         Pay_email.account_name,
         Pay_email.account_no,
         Pay_email.ifsc
-    ).filter(Pay_email.invoice_no == invoice_no).first()
+    ).filter(Pay_email.invoice_no == invoice_no,
+             Pay_email.is_complete == False).first()
 
     if not bank_details:
         return {"message": "Enter Valid Invoice number"}
 
     return {
         "bank_name": bank_details.bank_name,
+        "amount":bank_details.amount,
         "account_name": bank_details.account_name,
         "account_no": bank_details.account_no,
         "ifsc": bank_details.ifsc
