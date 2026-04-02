@@ -12,8 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.app.api.endpoints import Exam_user
 from backend.app.app.crud.attendance import logout_all_users
 from apscheduler.schedulers.background import BackgroundScheduler
-from backend.app.app.crud.email_services import check_and_notify
-from backend.app.app.db.session import sessionLocal
 app = FastAPI()
 
 app.add_middleware(
@@ -67,18 +65,24 @@ scheduler.add_job(safe_logout_all_users, "cron", hour=13, minute=0)
 
 @app.on_event("startup")
 def start_scheduler():
-
+    #print("lin 103")
     """
     Start the scheduler safely. 
     Do NOT automatically log out on startup to avoid wiping all tokens.
     """
     if not scheduler.running:
+        #print("lin 108")
         scheduler.start()
     logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
 
 
+from backend.app.app.crud.auto_remainder import start_scheduler
 
+@app.on_event("startup")
+async def startup_event():
+    start_scheduler(test_mode = False)
 
+#dont change its by hari
 
 
 # from datetime import datetime

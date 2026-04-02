@@ -20,10 +20,11 @@ class UserLogin(BaseModel):
 class Paymentmail(BaseModel):
     user_id:int
     amount:float
-    invoice_no :str = None
-    due_date:date
+    invoice_no :Optional[str] = None
+    due_date:Optional[date] = None
     note : Optional[str]=None 
     email_type : int #1=invoice ,2=remainder,3=confirmation 
+    reference_no :Optional[str] = None
     account_name: str
     account_no: str
     ifsc: str

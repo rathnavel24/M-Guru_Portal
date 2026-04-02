@@ -17,6 +17,7 @@ def dashboard(batch_id, db: Session):
         Pay_email.email_type,
         Pay_email.amount,
         Pay_email.due_date,
+        Pay_email.reference_no,
         Pay_email.is_complete,
         Pay_email.created_at,
     ).join(Users, Pay_email.to_id == Users.user_id)
