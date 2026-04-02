@@ -73,7 +73,7 @@ async def payment_confirmation_api(
 # @router.get("/test_reminder")
 # async def test_reminder():
 #     from backend.app.app.crud.auto_remainder import send_auto_reminders
-#     await send_auto_reminders()   # ✅ CORRECT
+#     await send_auto_reminders()   # CORRECT
 #     return {"message": "Reminder executed"}
 
 
