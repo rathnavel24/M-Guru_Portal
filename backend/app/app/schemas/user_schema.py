@@ -20,15 +20,22 @@ class UserLogin(BaseModel):
 class Paymentmail(BaseModel):
     user_id:int
     amount:float
-    due_date:date
+    invoice_no :Optional[str] = None
+    due_date:Optional[date] = None
     note : Optional[str]=None 
     email_type : int #1=invoice ,2=remainder,3=confirmation 
-    upi_id:str
+    reference_no :Optional[str] = None
+    account_name: str
+    account_no: str
+    ifsc: str
+    bank_name: str
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    password : Optional[str] = None
+    user_type : Optional[int] = 2
     batch: Optional[int] = None
     tech_stack: Optional[str] = None
     total_fee: Optional[float] = None

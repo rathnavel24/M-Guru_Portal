@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, TEXT, Boolean
+from sqlalchemy import Column, DateTime, Integer, String, TIMESTAMP, ForeignKey, TEXT, Boolean
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 from sqlalchemy.orm import relationship
@@ -18,6 +18,13 @@ class Attempts(Base):
     total_score = Column(Integer)
     total_percentage = Column(Integer)
     status = Column(String)
+    aptitude_correct = Column(Integer, default=0)
+    aptitude_wrong = Column(Integer, default=0)
+    aptitude_skipped = Column(Integer, default=0)
+
+    technical_correct = Column(Integer, default=0)
+    technical_wrong = Column(Integer, default=0)
+    technical_skipped = Column(Integer, default=0)
 
     user = relationship("ExamUsers",back_populates="user_attempts")
     att_assessment = relationship("Assessments",back_populates="user_assessments")

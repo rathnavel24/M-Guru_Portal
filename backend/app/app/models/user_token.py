@@ -12,7 +12,7 @@ class Token(Base):
     token_id = Column(Integer,primary_key=True)
     token = Column(String)
     user_id = Column(Integer,ForeignKey('users.user_id'))
-    login = Column(TIMESTAMP, default=func.now())
+    login = Column(TIMESTAMP, )#default=func.now())
     logout = Column(TIMESTAMP)
     ideal_time=Column(Numeric(10, 2))
     last_activity = Column(TIMESTAMP, nullable=True)
