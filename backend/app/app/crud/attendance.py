@@ -11,7 +11,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 now = datetime.utcnow()
-IDLE_TIMEOUT_MINUTES = 1
+IDLE_TIMEOUT_MINUTES = 10
 
 
 def logout_all_users():
