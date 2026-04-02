@@ -32,6 +32,7 @@ class AttemptCrud:
 
 
     def start_attempt(self, user_id: int, assessment_id: int):
+         
 
         existing_attempt = self.db.query(Attempts).filter(
             Attempts.user_id == user_id,
@@ -242,6 +243,7 @@ class AttemptCrud:
             )
         }
     
+
 
     def save_result_from_frontend(self, user_id: int, data: dict):
         existing_attempt = (
