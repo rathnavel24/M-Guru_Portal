@@ -32,12 +32,9 @@ class Users(Base):
     )
 
     tokens = relationship("Token", back_populates="user")
-<<<<<<< HEAD
     conversations = relationship("Conversations", back_populates="user")
     created_conversations = relationship("Conversations", foreign_keys="Conversations.created_by", back_populates="creator")
-=======
 
     userpass= relationship("PassLog", back_populates="user")
     usertask = relationship("Task", back_populates="user")
     usertime = relationship("TimeLog", back_populates="user")
->>>>>>> d6730d099adcde9215c6c20a1679f27121f7735e
