@@ -19,4 +19,5 @@ class ExamUsers(Base):
     is_logged_in = Column(Boolean, default=False)
     last_login = Column(DateTime, nullable=True)
 
-    user_attempts = relationship("Attempts",back_populates="user")
+    user_attempts = relationship("Attempts",back_populates="user") 
+    
