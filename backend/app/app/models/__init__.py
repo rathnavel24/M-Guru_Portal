@@ -9,3 +9,5 @@ from .Exam_answer import *
 from .pay_email_table import Pay_email 
 from .user_token import Token
 from .portaluserfee import *
+from .Coding_questions import *
+from .Submit_coding import Coding_Submissions

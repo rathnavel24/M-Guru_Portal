@@ -1,9 +1,17 @@
 from sqlalchemy.orm import Session
-from backend.app.app.models import Assessments,Questions, Options,Section
+from backend.app.app.api.endpoints import user
+from backend.app.app.models import Assessments, Questions, Options, Section
+from backend.app.app.models.Coding_questions import Coding_Questions
+from backend.app.app.models.Submit_coding import Coding_Submissions
+from backend.app.app.models import Coding_Submissions, Questions
+
+
 
 def create_test(db: Session, data):
 
-
+    # -------------------------
+    # GET / CREATE ASSESSMENT
+    # -------------------------
     assessment = db.query(Assessments).filter(
         Assessments.name == data.name
     ).first()
@@ -12,18 +20,23 @@ def create_test(db: Session, data):
         assessment = Assessments(
             name=data.name,
             total_questions=len(data.questions),
-            pass_mark=int(len(data.questions) * 0.6),  # dynamic
+            pass_mark=int(len(data.questions) * 0.6),
             total_mark=len(data.questions),
             duration_minutes=45,
             level="Easy"
         )
-
         db.add(assessment)
         db.commit()
         db.refresh(assessment)
 
+    # -------------------------
+    # LOOP QUESTIONS
+    # -------------------------
     for q in data.questions:
 
+        # -------------------------
+        # GET / CREATE SECTION
+        # -------------------------
         section = db.query(Section).filter_by(
             section_name=q.section
         ).first()
@@ -34,11 +47,19 @@ def create_test(db: Session, data):
             db.commit()
             db.refresh(section)
 
+        # -------------------------
+        # DETERMINE TYPE
+        # -------------------------
+        q_type = getattr(q, "type", "mcq")
+
+        # -------------------------
+        # INSERT QUESTION
+        # -------------------------
         question = Questions(
             question_text=q.q,
             question_section=q.section,
             section_id=section.section_id,
-            question_type="mcq",
+            question_type=q_type,
             assessments_id=assessment.assessment_id
         )
 
@@ -46,19 +67,43 @@ def create_test(db: Session, data):
         db.commit()
         db.refresh(question)
 
-        options = []
-        for idx, opt in enumerate(q.opts):
-            options.append(
-                Options(
-                    question_id=question.question_id,
-                    option_label=chr(65 + idx),
-                    option_text=opt,
-                    is_correct=(idx == q.ans)
-                )
-            )
+        # -------------------------
+        # MCQ LOGIC
+        # -------------------------
+        if q_type == "mcq":
+            if not q.opts or q.ans is None:
+                continue  # skip invalid MCQ safely
 
-        db.add_all(options)
-        db.commit()
+            options = []
+            for idx, opt in enumerate(q.opts):
+                options.append(
+                    Options(
+                        question_id=question.question_id,
+                        option_label=chr(65 + idx),
+                        option_text=opt,
+                        is_correct=(idx == q.ans)
+                    )
+                )
+
+            db.add_all(options)
+            db.commit()
+
+        # -------------------------
+        # CODING LOGIC
+        # -------------------------
+        elif q_type == "coding":
+            if not q.test_cases:
+                continue  # skip invalid coding question
+
+            for test in q.test_cases:
+                tc = Coding_Questions(
+                    question_id=question.question_id,
+                    input_data=test.input,
+                    expected_output=test.output
+                )
+                db.add(tc)
+
+            db.commit()
 
     return {"message": "Inserted successfully"}
 
@@ -86,6 +131,36 @@ def get_all_questions(db: Session):
     return result
 
 
+def get_tech_questions_service(db):
+
+    questions = db.query(Questions).filter(
+        Questions.question_type == "coding"
+    ).all()
+
+    result = []
+
+    for q in questions:
+
+        test_cases = db.query(Coding_Questions).filter(
+            Coding_Questions.question_id == q.question_id
+        ).all()
+
+        result.append({
+            "question_id": q.question_id,
+            "question_text": q.question_text,
+            "question_section": q.question_section,
+            "test_cases": [
+                {
+                    "input": tc.input_data,
+                    "output": tc.expected_output,
+                    "hidden": tc.is_hidden
+                }
+                for tc in test_cases
+            ]
+        })
+
+    return result
+
 def evaluate_test(db: Session, answers):
 
     score = 0
@@ -101,6 +176,196 @@ def evaluate_test(db: Session, answers):
             score += 1
 
     return score
+
+import subprocess
+import tempfile
+
+
+def run_code(code, input_data=""):
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".py") as f:
+            f.write(code.encode())
+            file_name = f.name
+
+        result = subprocess.run(
+            ["python", file_name],
+            input=input_data,
+            text=True,
+            capture_output=True,
+            timeout=3
+        )
+
+        if result.stderr:
+            return {"error": result.stderr}
+
+        return {"output": result.stdout.strip()}
+
+    except subprocess.TimeoutExpired:
+        return {"error": "Time limit exceeded"}
+
+
+def run_code_service(payload):
+
+    code = payload.code
+    input_data = payload.input
+
+    result = run_code(code, input_data)
+
+    if "error" in result:
+        return {
+            "status": "ERROR",
+            "message": result["error"]
+        }
+
+    return {
+        "status": "SUCCESS",
+        "output": result["output"]
+    }
+    
+def evaluate_code(code, test_cases):
+    passed = 0
+    total = len(test_cases)
+
+    visible_results = []
+    hidden_failed = 0
+
+    for test in test_cases:
+
+        res = run_code(code, test.input_data)
+
+        is_hidden = bool(test.is_hidden)
+
+        # error case
+        if "error" in res:
+            if is_hidden:
+                hidden_failed += 1
+            else:
+                visible_results.append({
+                    "status": "error",
+                    "message": res["error"]
+                })
+            continue
+
+        # check output
+        if res["output"].strip() == test.expected_output.strip():
+            passed += 1
+            status = "pass"
+        else:
+            status = "fail"
+            if is_hidden:
+                hidden_failed += 1
+
+        # ONLY VISIBLE
+        if is_hidden is False:
+            visible_results.append({
+                "status": status,
+                "expected": test.expected_output,
+                "got": res["output"]
+            })
+
+    return {
+        "passed": passed,
+        "total": total,
+        "visible_results": visible_results,
+        "hidden_failed": hidden_failed,
+        "status": "PASS" if passed == total else "FAIL"
+    }
+
+def submit_code_service(db, payload):
+
+    # -------------------------
+    # 1. GET QUESTION
+    # -------------------------
+    question = db.query(Questions).filter(
+        Questions.question_id == payload.question_id
+    ).first()
+
+    if not question:
+        return {"status": "ERROR", "message": "Question not found"}
+
+    # -------------------------
+    # 2. GET TEST CASES
+    # -------------------------
+    test_cases = db.query(Coding_Questions).filter(
+        Coding_Questions.question_id == payload.question_id
+    ).all()
+
+    passed = 0
+    total = len(test_cases)
+
+    # -------------------------
+    # 3. RUN CODE
+    # -------------------------
+    for tc in test_cases:
+        result = run_code(payload.code, tc.input_data)
+
+        if "output" in result and result["output"] == tc.expected_output:
+            passed += 1
+
+    status = "PASS" if passed == total else "FAIL"
+
+    # -------------------------
+    # 4. SAVE SUBMISSION
+    # -------------------------
+    submission = Coding_Submissions(
+        user_id=payload.user_id,   # static user
+        question_id=payload.question_id,
+        code=payload.code,
+        passed=passed,
+        total=total,
+        status=status
+    )
+
+    db.add(submission)
+    db.commit()
+
+    return {
+        "status": status,
+        "passed": passed,
+        "total": total
+    }
+
+
+def get_user_submissions(db, user_id: int):
+
+    submissions = (
+        db.query(Coding_Submissions)
+        .filter(Coding_Submissions.user_id == user_id)
+        .all()
+    )
+
+    if not submissions:
+        return {
+            "status": "EMPTY",
+            "message": "No submissions found",
+            "data": []
+        }
+
+    result = []
+
+    for sub in submissions:
+
+        question = db.query(Questions).filter(
+            Questions.question_id == sub.question_id
+        ).first()
+
+        result.append({
+            "submission_id": sub.id,
+            "question_id": sub.question_id,
+            "question": question.question_text if question else None,
+            "code": sub.code,
+            "passed": sub.passed,
+            "total": sub.total,
+            "status": sub.status,
+            "submitted_at": sub.created_at
+        })
+
+    return {
+        "status": "SUCCESS",
+        "total_submissions": len(result),
+        "data": result
+    }
+
 
 
 """
