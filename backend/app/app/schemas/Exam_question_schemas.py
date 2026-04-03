@@ -69,11 +69,82 @@ class TestCreate(BaseModel):
             "example": {
                 "questions": [
                     {
-                        "section": "QUANT/REACT/PYTHON",
-                        "q": "QUESTION",
-                        "opts": ["A","B","C","D"],
-                        "ans": 1
+                    "type": "mcq",
+                    "section": "Quantitative",
+                    "q": "2+2?",
+                    "opts": ["3","4","5","6"],
+                    "ans": 1
+                    },
+                    {
+                    "type": "coding",
+                    "section": "PYTHON",
+                    "q": "Add two numbers",
+                    "test_cases": [
+                        {"input": "2 3", "output": "5"},
+                        {"input": "10 20", "output": "30"}
+                    ]
                     }
                 ]
             }
         }
+# {
+
+from pydantic import BaseModel
+from typing import List, Optional
+
+# -------------------------
+# Test Case Model (for coding)
+# -------------------------
+class TestCase(BaseModel):
+    input: str
+    output: str
+
+# -------------------------
+# Question Model (common)
+# -------------------------
+class Question(BaseModel):
+    type: str
+    q: str
+    section: str
+
+    # MCQ fields (optional)
+    opts: Optional[List[str]] = None
+    ans: Optional[int] = None
+
+    # Coding fields (optional)
+    test_cases: Optional[List[TestCase]] = None
+
+# -------------------------
+# Main Request Model
+# -------------------------
+class TestCreate(BaseModel):
+    name: str   # REQUIRED
+    questions: List[Question]
+
+class RunCodeRequest(BaseModel):
+    code: str
+    input: str = ""
+
+class SubmitCodeSchema(BaseModel):
+    user_id: int
+    question_id: int
+    code: str
+    #    "questions": [
+#     {
+#       "type": "mcq",
+#       "section": "Quantitative",
+#       "q": "2+2?",
+#       "opts": ["3","4","5","6"],
+#       "ans": 1
+#     },
+#     {
+#       "type": "coding",
+#       "section": "PYTHON",
+#       "q": "Add two numbers",
+#       "test_cases": [
+#         {"input": "2 3", "output": "5"},
+#         {"input": "10 20", "output": "30"}
+#       ]
+#     }
+# #   ]
+# }

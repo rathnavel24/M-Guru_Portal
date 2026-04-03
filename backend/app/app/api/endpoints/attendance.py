@@ -38,5 +38,5 @@ async def checkout(current_user=Depends(role_required([1,2])), db: Session = Dep
 @router.post("/user_status")
 async def check(current_user=Depends(role_required([1,2])), db: Session = Depends(get_db)):
     #print("this from api status",current_user.get("user_id"))
-    return Check(db).statuss(current_user)
+    return Check(db).status(current_user)
 

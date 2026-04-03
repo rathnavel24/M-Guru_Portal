@@ -19,3 +19,5 @@ class Questions(Base):
     user_questions = relationship("Options", back_populates="questions")
     section = relationship("Section",back_populates="question_section")
     attempt_question = relationship("Answers",back_populates="question")
+
+    coding_question = relationship("Coding_Questions", back_populates="question")
