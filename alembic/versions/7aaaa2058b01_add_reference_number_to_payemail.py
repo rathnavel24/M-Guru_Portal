@@ -16,12 +16,17 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:
-    # ✅ ONLY what you need
-    op.add_column(
-        'pay_email',
-        sa.Column('reference_no', sa.String(length=255))
-    )
+def upgrade():
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    columns = [col["name"] for col in inspector.get_columns("pay_email")]
+
+    if "reference_no" not in columns:
+        op.add_column(
+            "pay_email",
+            sa.Column("reference_no", sa.String(length=255))
+        )
 
 
 def downgrade() -> None:

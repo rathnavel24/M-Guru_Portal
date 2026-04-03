@@ -12,3 +12,6 @@ from .portaluserfee import *
 from .Coding_questions import *
 from .Submit_coding import Coding_Submissions
 from .conversation import *
+from .tasks import Task
+from .pass_log import PassLog
+from .time_log import TimeLog

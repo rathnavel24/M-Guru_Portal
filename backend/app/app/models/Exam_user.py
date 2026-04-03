@@ -11,9 +11,9 @@ class ExamUsers(Base):
 
     user_id = Column(Integer, primary_key=True , index=True)
     username = Column(String(100), unique=True)
-    password = Column(String(255), unique=True)
+    password = Column(String(255),)
     name = Column(String(255), nullable=True)
-    email = Column(String(255), unique=True)
+    email = Column(String(255))
     Created_At = Column(DateTime, server_default=func.now())
     Updated_At = Column(DateTime, server_default=func.now(), onupdate=func.now())
     is_logged_in = Column(Boolean, default=False)
