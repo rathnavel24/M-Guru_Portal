@@ -13,7 +13,7 @@ class TimeLog(Base):
     end_time = Column(TIMESTAMP, default=func.now())
     total_time = Column(Integer)
     productive = Column(Boolean)
-    status = Column(Enum)
+    status = Column(Integer)
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String)
     updated_at = Column(TIMESTAMP, default=func.now())

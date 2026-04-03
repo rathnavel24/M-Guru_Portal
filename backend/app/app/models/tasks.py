@@ -8,7 +8,7 @@ class Task(Base):
     task_id = Column(Integer,primary_key=True)
     user_id = Column(Integer, ForeignKey("users.user_id"))
     title = Column(String(255))
-    status = Column(Enum)
+    status = Column(Integer)
     start_time = Column(TIMESTAMP, default=func.now())
     completion_time = Column(TIMESTAMP, default=func.now())
     created_at = Column(TIMESTAMP, default=func.now())
