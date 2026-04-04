@@ -1,10 +1,15 @@
+from http.client import HTTPException
+from unittest import result
+
 from sqlalchemy.orm import Session
-from backend.app.app.api.endpoints import user
+from backend.app.app.crud.Code_Languages import run_c, run_c, run_cpp, run_java, run_javascript, run_python
 from backend.app.app.models import Assessments, Questions, Options, Section
 from backend.app.app.models.Coding_questions import Coding_Questions
 from backend.app.app.models.Submit_coding import Coding_Submissions
 from backend.app.app.models import Coding_Submissions, Questions
-
+from backend.app.app.models import Questions, Assessments, Options, Section
+from backend.app.app.models.Coding_questions import Coding_Questions
+from backend.app.app.models.Submit_coding import Coding_Submissions
 
 
 def create_test(db: Session, data):
@@ -99,7 +104,8 @@ def create_test(db: Session, data):
                 tc = Coding_Questions(
                     question_id=question.question_id,
                     input_data=test.input,
-                    expected_output=test.output
+                    expected_output=test.output,
+                    is_hidden=getattr(test, "hidden", False)  
                 )
                 db.add(tc)
 
@@ -179,50 +185,56 @@ def evaluate_test(db: Session, answers):
 
 import subprocess
 import tempfile
+import os
+def run_code(code, input_data="", language="python"):
 
+    if isinstance(input_data, str):
+        input_data = input_data.strip()
 
-def run_code(code, input_data=""):
+        # if "\n" not in input_data and " " in input_data:
+        #     input_data = input_data.replace(" ", "\n")
+
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".py") as f:
-            f.write(code.encode())
-            file_name = f.name
+        language = language.lower().strip()
 
-        result = subprocess.run(
-            ["python", file_name],
-            input=input_data,
-            text=True,
-            capture_output=True,
-            timeout=3
-        )
+        if language == "python":
+            result = run_python(code, input_data)
 
-        if result.stderr:
-            return {"error": result.stderr}
+        elif language == "javascript":
+            result = run_javascript(code, input_data)
 
-        return {"output": result.stdout.strip()}
+        elif language == "c":
+            result = run_c(code, input_data)
+
+        elif language == "cpp":
+            result = run_cpp(code, input_data)
+
+        elif language == "java":
+            result = run_java(code, input_data)
+
+        else:
+            return {"error": "Unsupported language"}
+
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+
+        if result.returncode != 0:
+            return {"error": stderr or "Execution Error"}
+
+        return {"output": stdout}
 
     except subprocess.TimeoutExpired:
         return {"error": "Time limit exceeded"}
 
-
-def run_code_service(payload):
-
-    code = payload.code
-    input_data = payload.input
-
-    result = run_code(code, input_data)
-
-    if "error" in result:
-        return {
-            "status": "ERROR",
-            "message": result["error"]
-        }
-
-    return {
-        "status": "SUCCESS",
-        "output": result["output"]
-    }
+    except Exception as e:
+        return {"error": str(e)}
     
-def evaluate_code(code, test_cases):
+    
+def evaluate_code(code, test_cases, language="python"):
+
+    def normalize(x: str):
+        return " ".join(str(x).strip().lower().split())
+
     passed = 0
     total = len(test_cases)
 
@@ -231,12 +243,11 @@ def evaluate_code(code, test_cases):
 
     for test in test_cases:
 
-        res = run_code(code, test.input_data)
+        res = run_code(code, test.input_data, language)
 
         is_hidden = bool(test.is_hidden)
 
-        # error case
-        if "error" in res:
+        if res.get("error"):
             if is_hidden:
                 hidden_failed += 1
             else:
@@ -246,8 +257,11 @@ def evaluate_code(code, test_cases):
                 })
             continue
 
-        # check output
-        if res["output"].strip() == test.expected_output.strip():
+        raw_output = res.get("output", "")
+        output = normalize(raw_output)
+        expected = normalize(test.expected_output)
+
+        if output == expected:
             passed += 1
             status = "pass"
         else:
@@ -255,27 +269,30 @@ def evaluate_code(code, test_cases):
             if is_hidden:
                 hidden_failed += 1
 
-        # ONLY VISIBLE
-        if is_hidden is False:
+        if not is_hidden:
             visible_results.append({
                 "status": status,
                 "expected": test.expected_output,
-                "got": res["output"]
+                "got": raw_output
             })
+
+    if passed == total:
+        final_status = "PASS"
+    elif passed >= 3:
+        final_status = "PARTIAL_PASS"
+    else:
+        final_status = "FAIL"
 
     return {
         "passed": passed,
         "total": total,
         "visible_results": visible_results,
         "hidden_failed": hidden_failed,
-        "status": "PASS" if passed == total else "FAIL"
+        "status": final_status
     }
 
-def submit_code_service(db, payload):
+def submit_code_service(db: Session, user_id: int, payload):
 
-    # -------------------------
-    # 1. GET QUESTION
-    # -------------------------
     question = db.query(Questions).filter(
         Questions.question_id == payload.question_id
     ).first()
@@ -283,48 +300,38 @@ def submit_code_service(db, payload):
     if not question:
         return {"status": "ERROR", "message": "Question not found"}
 
-    # -------------------------
-    # 2. GET TEST CASES
-    # -------------------------
+    existing = db.query(Coding_Submissions).filter(
+        Coding_Submissions.user_id == user_id,
+        Coding_Submissions.question_id == payload.question_id
+    ).first()
+
+    if existing:
+        raise HTTPException(400, "Question already submitted")
+
     test_cases = db.query(Coding_Questions).filter(
         Coding_Questions.question_id == payload.question_id
     ).all()
 
-    passed = 0
-    total = len(test_cases)
+    result = evaluate_code(payload.code, test_cases)
 
-    # -------------------------
-    # 3. RUN CODE
-    # -------------------------
-    for tc in test_cases:
-        result = run_code(payload.code, tc.input_data)
-
-        if "output" in result and result["output"] == tc.expected_output:
-            passed += 1
-
-    status = "PASS" if passed == total else "FAIL"
-
-    # -------------------------
-    # 4. SAVE SUBMISSION
-    # -------------------------
     submission = Coding_Submissions(
-        user_id=payload.user_id,   # static user
+        user_id=user_id,
         question_id=payload.question_id,
         code=payload.code,
-        passed=passed,
-        total=total,
-        status=status
+        passed=result["passed"],
+        total=result["total"],
+        status=result["status"]
     )
 
     db.add(submission)
     db.commit()
 
     return {
-        "status": status,
-        "passed": passed,
-        "total": total
+        "question_id": payload.question_id,
+        "status": result["status"],
+        "passed": result["passed"],
+        "total": result["total"]
     }
-
 
 def get_user_submissions(db, user_id: int):
 
@@ -366,7 +373,10 @@ def get_user_submissions(db, user_id: int):
         "data": result
     }
 
-
+#   Instructions:
+# - Do NOT use input prompts like "Enter number"
+# - Print ONLY the final answer
+# - Output must EXACTLY match expected output
 
 """
 {

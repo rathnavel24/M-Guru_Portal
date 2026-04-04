@@ -5,10 +5,11 @@ from datetime import datetime
 
 class StartAttempt(BaseModel):
     user_id : int 
-    assessment_id : int
+    # assessment_id : int
 
 class AttemptResponse(BaseModel):
     attempt_id : int
+    status:str
     started_at : datetime 
 
     class Config:
@@ -48,3 +49,17 @@ class FinalResultSchema(BaseModel):
 
     score: int
     time_taken: int
+
+
+class SaveScoreRequest(BaseModel):
+    test_type: Literal["aptitude", "technical"]
+
+    score: int
+    correct_answers: int
+    wrong_answers: int
+    skipped_answers: int
+
+    
+# class FrontendScoreRequest(BaseModel):
+#     aptitude_score: int = 0
+#     technical_score: int = 0

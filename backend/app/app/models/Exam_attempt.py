@@ -26,6 +26,12 @@ class Attempts(Base):
     technical_wrong = Column(Integer, default=0)
     technical_skipped = Column(Integer, default=0)
 
+    programming_score = Column(Integer, default=0)
+
+    coding_correct = Column(Integer, default=0)
+    coding_wrong = Column(Integer, default=0)
+    coding_skipped = Column(Integer, default=0)
+    
     user = relationship("ExamUsers",back_populates="user_attempts")
     att_assessment = relationship("Assessments",back_populates="user_assessments")
     attempt_answer = relationship("Answers",back_populates="answer")
