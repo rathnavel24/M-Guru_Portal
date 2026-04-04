@@ -383,8 +383,6 @@ def get_user_submissions(db, user_id: int):
     }
 
 
-
-
 def get_coding_result(db, user_id: int, question_id: int):
 
     submission = db.query(Coding_Submissions).filter(
@@ -399,15 +397,26 @@ def get_coding_result(db, user_id: int, question_id: int):
         Coding_Questions.question_id == question_id
     ).order_by(Coding_Questions.id).all()
 
+    # SUPPORT ONLY NEW FORMAT (dict)
+    output_map = {}
+    if submission.outputs:
+        if isinstance(submission.outputs[0], dict):
+            output_map = {
+                o["testcase_id"]: o["output"]
+                for o in submission.outputs
+            }
+        else:
+            # fallback for old data
+            for i, tc in enumerate(testcases):
+                if i < len(submission.outputs):
+                    output_map[tc.id] = submission.outputs[i]
+
     results = []
     passed_count = 0
 
-    for i, tc in enumerate(testcases):
+    for tc in testcases:
 
-        user_output = ""
-        if submission.outputs and i < len(submission.outputs):
-            user_output = str(submission.outputs[i]).strip()
-
+        user_output = str(output_map.get(tc.id, "")).strip()
         expected_output = (tc.expected_output or "").strip()
 
         result = "PASS" if user_output == expected_output else "FAIL"
@@ -425,14 +434,23 @@ def get_coding_result(db, user_id: int, question_id: int):
 
     total = len(testcases)
 
+    # 🔥 NEW STATUS LOGIC
+    if passed_count == total and total > 0:
+        final_status = "PASS"
+    elif passed_count >= (total // 2):
+        final_status = "PARTIAL_PASS"
+    else:
+        final_status = "FAIL"
+
     return {
         "user_id": user_id,
         "question_id": question_id,
-        "status": "PASS" if passed_count == total and total > 0 else "FAIL",
+        "status": final_status,
         "passed": passed_count,
         "total": total,
         "test_cases": results
     }
+
 def get_all_coding_results(db, user_id: int):
 
     submissions = db.query(Coding_Submissions).filter(
@@ -491,7 +509,7 @@ LANGUAGE_MAP = {
     "c": 50,
     "java": 62
 }
-
+evaluate_code
 
 # -------------------------
 # 🔥 RUN CODE (JUDGE0)
