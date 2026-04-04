@@ -24,36 +24,28 @@ def run_python(code, input_data):
     )
 
     return result
-import subprocess
-import tempfile
-import os
+    
+def run_javascript(code, input_data):
+    wrapped_code = f"""
+const fs = require('fs');
+const input = fs.readFileSync(0, 'utf8').toString().trim();
 
-def run_javascript(code, input_data=""):
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".js", mode="w") as f:
-            f.write(code)
-            file_path = f.name
+{code}
+"""
 
-        result = subprocess.run(
-            ["node", file_path],
-            input=input_data,
-            text=True,
-            capture_output=True,
-            timeout=5
-        )
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".js") as f:
+        f.write(wrapped_code.encode())
+        file_name = f.name
 
-        os.remove(file_path)
+    result = subprocess.run(
+        ["node", file_name],
+        input=input_data,
+        text=True,
+        capture_output=True,
+        timeout=3
+    )
 
-        return result
-
-    except subprocess.TimeoutExpired:
-        return subprocess.CompletedProcess(
-            args=[],
-            returncode=1,
-            stdout="",
-            stderr="Time limit exceeded"
-        )
-
+    return result
 
 def run_c(code, input_data):
     unique = uuid.uuid4().hex

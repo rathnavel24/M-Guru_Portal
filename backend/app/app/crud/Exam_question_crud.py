@@ -239,7 +239,7 @@ def evaluate_code(code, test_cases, language="python"):
 
     visible_results = []
     hidden_failed = 0
-    outputs = []   #  ADD THIS
+    outputs = []   # ✅ ADD THIS
 
     for test in test_cases:
 
@@ -248,7 +248,7 @@ def evaluate_code(code, test_cases, language="python"):
         is_hidden = bool(test.is_hidden)
 
         if res.get("error"):
-            outputs.append("")   #  store empty output
+            outputs.append("")   # ✅ store empty output
             if is_hidden:
                 hidden_failed += 1
             else:
@@ -259,7 +259,7 @@ def evaluate_code(code, test_cases, language="python"):
             continue
 
         raw_output = res.get("output", "")
-        outputs.append(raw_output.strip())   #  STORE OUTPUT
+        outputs.append(raw_output.strip())   # ✅ STORE OUTPUT
 
         output = normalize(raw_output)
         expected = normalize(test.expected_output)
@@ -292,7 +292,7 @@ def evaluate_code(code, test_cases, language="python"):
         "visible_results": visible_results,
         "hidden_failed": hidden_failed,
         "status": final_status,
-        "outputs": outputs   #  RETURN OUTPUTS
+        "outputs": outputs   # ✅ RETURN OUTPUTS
     }
 
 def submit_code_service(db: Session, user_id: int, payload):
@@ -475,3 +475,187 @@ def get_all_coding_results(db, user_id: int):
         "questions": final_result
     }
 
+
+####################
+
+import requests
+import base64
+
+JUDGE0_URL = "https://ce.judge0.com/submissions?wait=true&base64_encoded=true"
+
+
+LANGUAGE_MAP = {
+    "python": 71,
+    "javascript": 63,
+    "cpp": 54,
+    "c": 50,
+    "java": 62
+}
+
+
+# -------------------------
+# 🔥 RUN CODE (JUDGE0)
+# -------------------------
+def run_code_judge0(code, language, input_data=""):
+
+    language = language.lower().strip()
+    language_id = LANGUAGE_MAP.get(language)
+
+    print("LANG RECEIVED:", repr(language))
+
+    if not language_id:
+        return {"error": "Unsupported language"}
+
+    payload = {
+        "language_id": language_id,
+        "source_code": base64.b64encode(code.encode()).decode(),
+        "stdin": base64.b64encode(input_data.encode()).decode()
+    }
+
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        res = requests.post(JUDGE0_URL, json=payload, headers=headers)
+        result = res.json()
+
+        def decode(x):
+            if not x:
+                return ""
+            try:
+                return base64.b64decode(x).decode("utf-8", errors="ignore")
+            except Exception:
+                return ""
+
+        stdout = decode(result.get("stdout"))
+        stderr = decode(result.get("stderr"))
+        compile_output = decode(result.get("compile_output"))
+
+        if stderr:
+            return {"error": stderr}
+        if compile_output:
+            return {"error": compile_output}
+
+        return {"output": stdout.strip()}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# -------------------------
+# 🔥 EVALUATE CODE
+# -------------------------
+def evaluate_code_judge0(code, test_cases, language):
+
+    def normalize(x):
+        return " ".join(str(x).strip().lower().split())
+
+    passed = 0
+    total = len(test_cases)
+
+    outputs = []
+    visible_results = []
+    hidden_failed = 0
+
+    for test in test_cases:
+
+        res = run_code_judge0(code, language, test.input_data)
+
+        is_hidden = bool(test.is_hidden)
+
+        if res.get("error"):
+            outputs.append("")
+
+            if not is_hidden:
+                visible_results.append({
+                    "status": "error",
+                    "message": res["error"]
+                })
+            else:
+                hidden_failed += 1
+
+            continue
+
+        raw_output = res.get("output", "")
+        outputs.append(raw_output)
+
+        output = normalize(raw_output)
+        expected = normalize(test.expected_output)
+
+        if output == expected:
+            passed += 1
+            status = "pass"
+        else:
+            status = "fail"
+            if is_hidden:
+                hidden_failed += 1
+
+        if not is_hidden:
+            visible_results.append({
+                "status": status,
+                "expected": test.expected_output,
+                "got": raw_output
+            })
+
+    final_status = (
+        "PASS" if passed == total
+        else "PARTIAL_PASS" if passed >= 3
+        else "FAIL"
+    )
+
+    return {
+        "passed": passed,
+        "total": total,
+        "status": final_status,
+        "outputs": outputs,
+        "visible_results": visible_results,
+        "hidden_failed": hidden_failed
+    }
+def submit_code_service_judge0(db,user_id, payload, Coding_Questions, Coding_Submissions):
+
+    question = db.query(Questions).filter(
+        Questions.question_id == payload.get("question_id")
+    ).first()
+
+    if not question:
+        return {"status": "ERROR", "message": "Question not found"}
+
+    existing = db.query(Coding_Submissions).filter(
+        Coding_Submissions.user_id == user_id,
+        Coding_Submissions.question_id == payload.get("question_id")
+    ).first()
+
+    if existing:
+        raise HTTPException(400, "Question already submitted")
+    
+    question_id = payload.get("question_id")
+    code = payload.get("code")
+    language = payload.get("language")
+
+    # get test cases
+    test_cases = db.query(Coding_Questions).filter(
+        Coding_Questions.question_id == question_id
+    ).all()
+
+    # evaluate
+    result = evaluate_code_judge0(code, test_cases, language)
+
+    # save
+    submission = Coding_Submissions(
+        user_id=user_id,
+        question_id=question_id,
+        code=code,
+        passed=result["passed"],
+        total=result["total"],
+        status=result["status"],
+        outputs=result["outputs"]
+    )
+
+    db.add(submission)
+    db.commit()
+
+    return {
+        "question_id": question_id,
+        "status": result["status"],
+        "passed": result["passed"],
+        "total": result["total"]
+    }
