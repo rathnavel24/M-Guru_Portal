@@ -1,18 +1,24 @@
-# from sqlalchemy.ext.declarative import declarative_base
-# from sqlalchemy import Boolean, Column, Integer, TEXT, ForeignKey, TIMESTAMP
-# from sqlalchemy.orm import relationship
-# # from backend.app.app.models.Exam_questions import Questions
-# from backend.app.app.db.base import Base
+from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from backend.app.app.db.base import Base
 
-# class Conversations(Base):
+class Conversation(Base):
+    __tablename__ = "conversation"
 
-#     __tablename__ = "conversations"
-#     conversation_id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("portal_users.id"))
-#     isGroup = Column(Boolean, default=False)
-#     created_at = Column(TIMESTAMP)
-#     updated_at = Column(TIMESTAMP)
-#     created_by = Column(Integer, ForeignKey("portal_users.id"))
+    ConversationID = Column(Integer, primary_key=True)
+    Name = Column(String(100))
+    IsGroup = Column(Boolean, default=False)
+    status = Column(Integer, default=1)
 
-#     user = relationship("Users", foreign_keys=[user_id], back_populates="conversations")
-#     creator = relationship("Users", foreign_keys=[created_by])
+    # Link batch to Users.batch
+    batch = Column(Integer, ForeignKey("users.batch"))
+    
+    CreatedOn = Column(DateTime, default=func.now())
+    CreatedBy = Column(String(100))
+    updatedOn = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    # Relationships
+    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
+    members = relationship("ConversationMember", back_populates="conversation", cascade="all, delete-orphan")
+    user_batch = relationship("Users", back_populates="conversations", foreign_keys=[batch])
