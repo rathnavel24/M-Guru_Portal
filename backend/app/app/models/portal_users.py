@@ -15,7 +15,7 @@ class Users(Base):
     type = Column(Integer, default=2)
     status = Column(Integer, default=1)
     is2FA = Column(Boolean, default=False)
-    batch = Column(Integer)
+    batch = Column(Integer,nullable=False)
     phone = Column(String)
     tech_stack = Column(String)
     created_at = Column(TIMESTAMP, default=func.now())
@@ -41,18 +41,7 @@ class Users(Base):
         foreign_keys="Message.SenderID",
         back_populates="sender"
     )
-    messages_received = relationship(
-        "Message",
-        foreign_keys="Message.ReceiverID",
-        back_populates="receiver"
-    )
     conversation_memberships = relationship(
         "ConversationMember",
         back_populates="user"
     )
-    conversations = relationship(
-        "Conversation",
-        back_populates="user_batch",
-        foreign_keys="Conversation.batch"
-    )
-

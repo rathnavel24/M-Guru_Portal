@@ -8,7 +8,7 @@ class Conversation(Base):
 
     ConversationID = Column(Integer, primary_key=True)
     Name = Column(String(100))
-    IsGroup = Column(Boolean, default=False)
+    IsGroup = Column(Boolean, default=True)
     status = Column(Integer, default=1)
 
     # Link batch to Users.batch
@@ -21,4 +21,3 @@ class Conversation(Base):
     # Relationships
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
     members = relationship("ConversationMember", back_populates="conversation", cascade="all, delete-orphan")
-    user_batch = relationship("Users", back_populates="conversations", foreign_keys=[batch])
