@@ -11,6 +11,7 @@ class Users(Base):
     username = Column(String(100))
     email = Column(String(255))
     password = Column(String(255))
+    current_task_id = Column(Integer)    #new add
     type = Column(Integer, default=2)
     status = Column(Integer, default=1)
     is2FA = Column(Boolean, default=False)
@@ -31,3 +32,9 @@ class Users(Base):
     )
 
     tokens = relationship("Token", back_populates="user")
+    conversations = relationship("Conversations", back_populates="user")
+    created_conversations = relationship("Conversations", foreign_keys="Conversations.created_by", back_populates="creator")
+
+    userpass= relationship("PassLog", back_populates="user")
+    usertask = relationship("Task", back_populates="user")
+    usertime = relationship("TimeLog", back_populates="user")

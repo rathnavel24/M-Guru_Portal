@@ -80,65 +80,14 @@ class Check:
     def __init__(self, db):
         self.db = db
 
-    def checkinnn(self, current_user):
-        user_id = current_user.get("user_id")
-        result = (
-            self.db.query(Token)
-            .filter(
-                Token.user_id == user_id,
-                Token.token != None,
-                func.date(Token.login) == date.today(),
-            )
-            .first()
-        )
 
-        if result:
-            if not result.logout:
-                result.logout = now
-                tok = Token(
-                    Token.token == result.token,
-                    Token.last_activity == result.last_activity,
-                    Token.productive_minutes == result.productive_minutes,
-                )
-                self.db.add(tok)
-                self.db.commit()
-                result.token = None
-
-            tok = Token(
-                Token.token == result.token,
-                Token.last_activity == result.last_activity,
-                Token.productive_minutes == result.productive_minutes,
-            )
-            self.db.add(tok)
-            self.db.commit()
-
-        # tok = Token(
-        #     Token.token == result.token,
-        #     Token.last_activity == result.last_activity,
-        #     Token.productive_minutes == result.productive_minutes,)
-        # self.db.add(tok)
-        # self.db.commit()
-
-        # result.login = now
-        # result.last_activity = now
-        # self.db.commit()
-
-        return "checked in"
 
     def checkin(self, current_user):
         user_id = current_user.get("user_id")
         now = datetime.utcnow()  # Define current time
 
         # First query: check for an active session with token not None, and today's login date
-        resultt = (
-            self.db.query(Token)
-            .filter(
-                Token.user_id == user_id,
-                Token.token.isnot(None),
-                func.date(Token.login) == date.today(),
-            )  # .order_by(desc(Token.logout))
-            .first()
-        )
+
         result = (
             self.db.query(Token)
             .filter(
@@ -218,49 +167,9 @@ class Check:
         self.db.commit()
         return "checked out"
 
-    def etatusss(self, current_user):
-        user_id = current_user.get("user_id")
 
-        results = (
-            self.db.query(Token)
-            .filter(
-                Token.user_id == user_id,
-                Token.token != None,
-            )
-            .first()
-        )
 
-        # print(results.last_activity)
-
-        if current_user.get("role") == 2:
-            if results.last_activity:
-                diff_minutes = (now - results.last_activity).total_seconds() / 60
-                # diff_minutes = round(diff_minutess, 2)
-
-                if diff_minutes <= IDLE_TIMEOUT_MINUTES:
-
-                    results.last_activity = now
-                    # db_token.productive_minutes += diff_minutes
-
-                    results.productive_minutes = (
-                        results.productive_minutes or 0
-                    ) + diff_minutes
-
-                    self.db.commit()
-                    return "time_added"
-
-                results.logout = now
-
-                # db_token.token=None
-                self.db.commit()
-                # user_id=result.user_id
-                # Check(db).checkout(user_id)
-                # print("User Idle, logged out")
-                # raise HTTPException(status_code=401, detail="User Idle, logged out")
-                self.checkout()
-                return "time_out"
-
-    def statuss(self, current_user):
+    def status(self, current_user):
         user_id = current_user.get("user_id")
 
         now = datetime.utcnow()  # ✅ define current time
