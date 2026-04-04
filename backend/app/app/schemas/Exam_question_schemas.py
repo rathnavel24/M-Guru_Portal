@@ -98,6 +98,7 @@ from typing import List, Optional
 class TestCase(BaseModel):
     input: str
     output: str
+    hidden:Optional[bool] = False
 
 # -------------------------
 # Question Model (common)
@@ -123,12 +124,20 @@ class TestCreate(BaseModel):
 
 class RunCodeRequest(BaseModel):
     code: str
-    input: str = ""
+    input_data: str = ""
+    language: str = "python"
 
 class SubmitCodeSchema(BaseModel):
-    user_id: int
+    # user_id: int
     question_id: int
     code: str
+    language: str   # python / javascript
+
+
+
+
+
+
     #    "questions": [
 #     {
 #       "type": "mcq",
