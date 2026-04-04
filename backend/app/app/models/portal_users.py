@@ -32,8 +32,8 @@ class Users(Base):
     )
 
     tokens = relationship("Token", back_populates="user")
-    conversations = relationship("Conversations", back_populates="user")
-    created_conversations = relationship("Conversations", foreign_keys="Conversations.created_by", back_populates="creator")
+    #conversations = relationship("Conversations", back_populates="user")
+    #created_conversations = relationship("Conversations", foreign_keys="Conversations.created_by", back_populates="creator")
 
     userpass= relationship("PassLog", back_populates="user")
     usertask = relationship("Task", back_populates="user")

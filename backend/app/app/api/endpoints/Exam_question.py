@@ -76,12 +76,12 @@ def fetch_submissions(user_id: int, db: Session = Depends(get_db)):
 #     result = evaluate_code(code, test_cases)
 
 #     # -------------------------
-#     # SAVE SUBMISSION 🔥
+#     # SAVE SUBMISSION 
 #     # -------------------------
 #     submission = Coding_Submissions(
 #         question_id=payload.question_id,
 #         code=payload.code,
-#         passed=result.get("passed", 0),   # ✅ FIX HERE
+#         passed=result.get("passed", 0),   # FIX HERE
 #         total=result.get("total", 0),
 #         status="PASS" if result.get("passed", 0) == result.get("total", 0) else "FAIL"
 #     )

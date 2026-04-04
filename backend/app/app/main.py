@@ -8,6 +8,7 @@ from backend.app.app.api.endpoints import Exam_attempt
 from backend.app.app.api.endpoints import Exam_answer
 from backend.app.app.api.endpoints import Exam_section
 from backend.app.app.api.endpoints import user, attendance
+from backend.app.app.api.endpoints import task
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.app.api.endpoints import Exam_user
 from backend.app.app.crud.attendance import logout_all_users
@@ -27,6 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(user.router)
+app.include_router(task.router)
 app.include_router(Exam_assessment.router)
 app.include_router(Exam_question.router)
 app.include_router(Exam_option.router)
