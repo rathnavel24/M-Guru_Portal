@@ -10,6 +10,7 @@ from backend.app.app.models import Coding_Submissions, Questions
 from backend.app.app.models import Questions, Assessments, Options, Section
 from backend.app.app.models.Coding_questions import Coding_Questions
 from backend.app.app.models.Submit_coding import Coding_Submissions
+from backend.app.app.models.Test_cases import TestCases
 
 
 def create_test(db: Session, data):
@@ -229,7 +230,6 @@ def run_code(code, input_data="", language="python"):
     except Exception as e:
         return {"error": str(e)}
     
-    
 def evaluate_code(code, test_cases, language="python"):
 
     def normalize(x: str):
@@ -240,6 +240,7 @@ def evaluate_code(code, test_cases, language="python"):
 
     visible_results = []
     hidden_failed = 0
+    outputs = []   # ✅ ADD THIS
 
     for test in test_cases:
 
@@ -248,6 +249,7 @@ def evaluate_code(code, test_cases, language="python"):
         is_hidden = bool(test.is_hidden)
 
         if res.get("error"):
+            outputs.append("")   # ✅ store empty output
             if is_hidden:
                 hidden_failed += 1
             else:
@@ -258,6 +260,8 @@ def evaluate_code(code, test_cases, language="python"):
             continue
 
         raw_output = res.get("output", "")
+        outputs.append(raw_output.strip())   # ✅ STORE OUTPUT
+
         output = normalize(raw_output)
         expected = normalize(test.expected_output)
 
@@ -288,7 +292,8 @@ def evaluate_code(code, test_cases, language="python"):
         "total": total,
         "visible_results": visible_results,
         "hidden_failed": hidden_failed,
-        "status": final_status
+        "status": final_status,
+        "outputs": outputs   # ✅ RETURN OUTPUTS
     }
 
 def submit_code_service(db: Session, user_id: int, payload):
@@ -312,19 +317,24 @@ def submit_code_service(db: Session, user_id: int, payload):
         Coding_Questions.question_id == payload.question_id
     ).all()
 
-    result = evaluate_code(payload.code, test_cases)
-
+    result = evaluate_code(
+        payload.code,
+        test_cases,
+        payload.language   # <-- THIS LINE FIXES EVERYTHING
+    )
     submission = Coding_Submissions(
         user_id=user_id,
         question_id=payload.question_id,
         code=payload.code,
         passed=result["passed"],
         total=result["total"],
-        status=result["status"]
+        status=result["status"],
+        outputs=result["outputs"]   #  THIS IS REQUIRED
     )
 
     db.add(submission)
     db.commit()
+    
 
     return {
         "question_id": payload.question_id,
@@ -371,6 +381,99 @@ def get_user_submissions(db, user_id: int):
         "status": "SUCCESS",
         "total_submissions": len(result),
         "data": result
+    }
+
+
+
+
+def get_coding_result(db, user_id: int, question_id: int):
+
+    submission = db.query(Coding_Submissions).filter(
+        Coding_Submissions.user_id == user_id,
+        Coding_Submissions.question_id == question_id
+    ).first()
+
+    if not submission:
+        return {"error": "No submission found"}
+
+    testcases = db.query(Coding_Questions).filter(
+        Coding_Questions.question_id == question_id
+    ).order_by(Coding_Questions.id).all()
+
+    results = []
+    passed_count = 0
+
+    for i, tc in enumerate(testcases):
+
+        user_output = ""
+        if submission.outputs and i < len(submission.outputs):
+            user_output = str(submission.outputs[i]).strip()
+
+        expected_output = (tc.expected_output or "").strip()
+
+        result = "PASS" if user_output == expected_output else "FAIL"
+
+        if result == "PASS":
+            passed_count += 1
+
+        if not tc.is_hidden:
+            results.append({
+                "input": tc.input_data,
+                "expected_output": expected_output,
+                "user_output": user_output,
+                "result": result
+            })
+
+    total = len(testcases)
+
+    return {
+        "user_id": user_id,
+        "question_id": question_id,
+        "status": "PASS" if passed_count == total and total > 0 else "FAIL",
+        "passed": passed_count,
+        "total": total,
+        "test_cases": results
+    }
+def get_all_coding_results(db, user_id: int):
+
+    submissions = db.query(Coding_Submissions).filter(
+        Coding_Submissions.user_id == user_id
+    ).all()
+
+    final_result = []
+
+    for sub in submissions:
+
+        # ✅ FIX: USE Coding_Questions
+        testcases = db.query(Coding_Questions).filter(
+            Coding_Questions.question_id == sub.question_id
+        ).order_by(Coding_Questions.id).all()
+
+        passed_count = 0
+
+        for i, tc in enumerate(testcases):
+
+            user_output = ""
+            if sub.outputs and i < len(sub.outputs):
+                user_output = str(sub.outputs[i]).strip()
+
+            expected_output = (tc.expected_output or "").strip()
+
+            if user_output == expected_output:
+                passed_count += 1
+
+        total = len(testcases)
+
+        final_result.append({
+            "question_id": sub.question_id,
+            "status": "PASS" if passed_count == total and total > 0 else "FAIL",
+            "passed": passed_count,
+            "total": total
+        })
+
+    return {
+        "user_id": user_id,
+        "questions": final_result
     }
 
 #   Instructions:

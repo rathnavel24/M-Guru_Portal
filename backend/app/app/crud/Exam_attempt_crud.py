@@ -592,18 +592,17 @@ class AttemptCrud:
             "technical_score": attempt.technical_score
         }
 
-    # ---------------- FINAL SUBMIT (CODING + TOTAL CALC) ----------------
-
+        # ---------------- FINAL SUBMIT (CODING + TOTAL CALC) ----------------
     def submit_test(self, user_id: int):
 
-        # Get all coding questions
+        # ---------------- GET ALL CODING QUESTIONS ----------------
         all_questions = self.db.query(Questions).filter(
             Questions.question_type == "coding"
         ).all()
 
         total_questions = len(all_questions)
 
-        # Get ALL submissions (single source of truth)
+        # ---------------- GET USER SUBMISSIONS ----------------
         coding_data = self.db.query(Coding_Submissions).filter(
             Coding_Submissions.user_id == user_id
         ).all()
@@ -615,7 +614,7 @@ class AttemptCrud:
 
         submitted_count = len(submitted_q_ids)
 
-        # MARK SKIPPED QUESTIONS (safe check)
+        # ---------------- MARK SKIPPED ----------------
         for q in all_questions:
             if q.question_id not in submitted_q_ids:
 
@@ -637,52 +636,87 @@ class AttemptCrud:
 
         self.db.commit()
 
-        # REFRESH after insert
+        # ---------------- REFRESH ----------------
         coding_data = self.db.query(Coding_Submissions).filter(
             Coding_Submissions.user_id == user_id
         ).all()
 
         attempt = self.db.query(Attempts).filter(
             Attempts.user_id == user_id
-        ).first()
+        ).order_by(Attempts.attempt_id.desc()).first()
 
-        if attempt:
+        if not attempt:
+            return {"error": "Attempt not found"}
 
-            attempt.coding_correct = sum(
-                1 for c in coding_data if c.status == "PASS"
-            )
+        # ---------------- CODING STATS ----------------
+        attempt.coding_correct = sum(1 for c in coding_data if c.status == "PASS")
+        attempt.coding_wrong = sum(1 for c in coding_data if c.status == "FAIL")
+        attempt.coding_skipped = sum(1 for c in coding_data if c.status == "SKIPPED")
 
-            attempt.coding_wrong = sum(
-                1 for c in coding_data if c.status == "FAIL"
-            )
+        # Programming score (each question = 5 marks)
+        attempt.programming_score = sum(
+            (5 if c.status == "PASS"
+            else int((c.passed / c.total) * 5) if c.total > 0
+            else 0)
+            for c in coding_data
+            if c.status != "SKIPPED"
+        )
 
-            attempt.coding_skipped = sum(
-                1 for c in coding_data if c.status == "SKIPPED"
-            )
+        # ---------------- DEFAULTS ----------------
+        aptitude_score = attempt.aptitude_score or 0
+        technical_score = attempt.technical_score or 0
+        programming_score = attempt.programming_score or 0
 
-            attempt.programming_score = sum(
-                (5 if c.status == "PASS"
-                else int((c.passed / c.total) * 5) if c.total > 0
-                else 0)
-                for c in coding_data
-                if c.status != "SKIPPED"
-            )
+        # ---------------- TOTAL SCORE ----------------
+        attempt.total_score = aptitude_score + technical_score + programming_score
 
-            attempt.total_score = (
-                (attempt.aptitude_score or 0) +
-                (attempt.technical_score or 0) +
-                (attempt.programming_score or 0)
-            )
+        # ---------------- TOTAL MAX MARKS ----------------
+        # Adjust based on your system
+        APTITUDE_TOTAL = 30
+        TECHNICAL_TOTAL = 20
+        CODING_TOTAL = total_questions * 5
 
-            attempt.status = "COMPLETED"
+        MAX_TOTAL = APTITUDE_TOTAL + TECHNICAL_TOTAL + CODING_TOTAL
 
-            self.db.add(attempt)
-            self.db.commit()
-            self.db.refresh(attempt)
+        # ---------------- PERCENTAGE ----------------
+        attempt.total_percentage = int(
+            (attempt.total_score / MAX_TOTAL) * 100
+        ) if MAX_TOTAL > 0 else 0
 
+        # ---------------- FINAL STATUS ----------------
+        attempt.status = "COMPLETED"
+
+        self.db.add(attempt)
+        self.db.commit()
+        self.db.refresh(attempt)
+
+        # ---------------- RESPONSE ----------------
         return {
-            "message": "Final submission completed",
-            "submitted": submitted_count,
-            "total_questions": total_questions,
-            "skipped_added": total_questions - submitted_count
+            "user_id": user_id,
+            "attempt_id": attempt.attempt_id,
+
+            # Scores
+            "aptitude_score": aptitude_score,
+            "technical_score": technical_score,
+            "programming_score": programming_score,
+
+            # Totals
+            "total_score": attempt.total_score,
+            "percentage": attempt.total_percentage,
+
+            # Aptitude breakdown
+            "aptitude_correct": attempt.aptitude_correct or 0,
+            "aptitude_wrong": attempt.aptitude_wrong or 0,
+            "aptitude_skipped": attempt.aptitude_skipped or 0,
+
+            # Technical breakdown
+            "technical_correct": attempt.technical_correct or 0,
+            "technical_wrong": attempt.technical_wrong or 0,
+            "technical_skipped": attempt.technical_skipped or 0,
+
+            # Coding breakdown
+            "coding_correct": attempt.coding_correct,
+            "coding_wrong": attempt.coding_wrong,
+            "coding_skipped": attempt.coding_skipped,
         }
+    
