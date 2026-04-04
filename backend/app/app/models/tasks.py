@@ -14,7 +14,7 @@ class Task(Base):
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100))
     updated_at = Column(TIMESTAMP, default=func.now())
-    due_time = Column(TIMESTAMP, default=func.now())
+    due_time = Column(TIMESTAMP, default = None)
 
 
     taskpass = relationship("PassLog", back_populates="task")
