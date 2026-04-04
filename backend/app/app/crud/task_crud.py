@@ -48,7 +48,8 @@ class Tasks(AbstractTask):
             user_id = data.user_id,
             title = data.title,
             status = data.status,
-            created_by = data.created_by
+            created_by = data.created_by,
+            due_time = data.due_time
         )
         self.db.add(new_task)
         self.db.commit()
@@ -57,3 +58,10 @@ class Tasks(AbstractTask):
     def get_user_task(self,user_id:int):
         tasks = self.db.query(Task).filter(Task.user_id == user_id).all()
         return tasks
+    def change_task_status(self,task_id:int,status:int):
+        task = self.db.query(Task).filter(Task.task_id == task_id).first()
+        if not task:
+            raise HTTPException(status_code = 404 , detail= "task not found" )
+        task.status = status
+        self.db.commit()
+        return {"message" : "task status updated successfully"}

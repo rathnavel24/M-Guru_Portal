@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,FutureDatetime
 from typing import Optional
 
 class createTask(BaseModel):
@@ -6,3 +6,4 @@ class createTask(BaseModel):
     title : str
     status : Optional[int] = 1
     created_by : Optional[int] = None
+    due_time : Optional[FutureDatetime] = None
