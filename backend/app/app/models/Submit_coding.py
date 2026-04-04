@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, TEXT, String, ForeignKey, TIMESTAMP
+from sqlalchemy import JSON, Column, Integer, TEXT, String, ForeignKey, TIMESTAMP
 from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 
@@ -11,7 +11,7 @@ class Coding_Submissions(Base):
     user_id = Column(Integer, nullable=True)   # optional for now
 
     code = Column(TEXT)
-
+    outputs = Column(JSON)
     passed = Column(Integer)
     total = Column(Integer)
 

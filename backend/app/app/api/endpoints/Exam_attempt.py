@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from backend.app.app import db
 from backend.app.app.api.deps import get_db, role_required
+from backend.app.app.crud.Exam_question_crud import get_all_coding_results, get_coding_result
 from backend.app.app.schemas.Exam_attempt_schemas import FinalResultSchema, SaveScoreRequest, StartAttempt, SubmitTest
 from backend.app.app.crud.Exam_attempt_crud import AttemptCrud
 
@@ -27,6 +28,17 @@ def save_scores(
 @router.post("/submit/{user_id}")
 def finalll_submit(user_id: int, db: Session = Depends(get_db)):
     return AttemptCrud(db).submit_test(user_id)
+
+
+
+@router.get("/coding/result/{user_id}/{question_id}")
+def coding_result(user_id: int, question_id: int, db: Session = Depends(get_db)):
+    return get_coding_result(db, user_id, question_id)
+
+@router.get("/coding/results/{user_id}")
+def all_coding_results(user_id: int, db: Session = Depends(get_db)):
+    return get_all_coding_results(db, user_id)
+
 # @router.post("/api/start-attempt")
 # def start_attempt(data: StartAttempt, db:Session = Depends(get_db)):
 
