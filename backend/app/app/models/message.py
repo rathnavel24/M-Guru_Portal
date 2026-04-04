@@ -9,7 +9,6 @@ class Message(Base):
     MessageID = Column(Integer, primary_key=True)
     ConversationID = Column(Integer, ForeignKey("conversation.ConversationID"), nullable=False)
     SenderID = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    ReceiverID = Column(Integer, ForeignKey("users.user_id"))
     Content = Column(String(255))
     status = Column(Integer, default=1)
     CreatedOn = Column(DateTime, default=func.now())
@@ -19,4 +18,3 @@ class Message(Base):
     # Relationships
     conversation = relationship("Conversation", back_populates="messages")
     sender = relationship("Users", foreign_keys=[SenderID], back_populates="messages_sent")
-    receiver = relationship("Users", foreign_keys=[ReceiverID], back_populates="messages_received")
