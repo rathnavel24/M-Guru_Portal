@@ -38,7 +38,7 @@ def get_tech_questions(db: Session = Depends(get_db)):
 def fetch_submissions(user_id: int, db: Session = Depends(get_db)):
     return get_user_submissions(db, user_id)
 
-
+#this is a test
 # -------------------------
 # RUN CODE
 # -------------------------
