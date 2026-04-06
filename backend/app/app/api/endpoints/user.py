@@ -156,7 +156,7 @@ async def get_all_users(
 
 @router.get("/me")
 def get_user(
-    db: Session = Depends(get_db), current_user=Depends(role_required([1, 2]))
+    db: Session = Depends(get_db), current_user=Depends(role_required([1, 2, 4]))
 ):
     return UserServices(db, None).get_user(current_user.get("user_id"))
 
