@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.task_crud import Tasks
 from backend.app.app.schemas.pause_request import PauseRequest
-from backend.app.app.schemas.task_schema import createTask, updateTask
+from backend.app.app.schemas.task_schema import createTask, editTaskDetails, updateTask
 
 router = APIRouter(prefix="/task", tags=["Task"])
 
@@ -37,12 +37,20 @@ def update_task(task_id: int, data: updateTask,
     return service.update_task(task_id, data, current_user)
 
 
+@router.patch("/{task_id}/details")
+def edit_task_details(task_id: int, data: editTaskDetails,
+                      db: Session = Depends(get_db),
+                      current_user=Depends(role_required([1,2,3,4]))):
+    service = Tasks(db)
+    return service.edit_task_details(task_id, data, current_user)
+
+
 @router.put("/{task_id}/status/{status}")
 def change_task_status(task_id: int, status: int, 
                        db: Session = Depends(get_db),
                         current_user=Depends(role_required([1,2,3,4]))):
     service = Tasks(db)
-    return service.change_task_status(task_id, status)
+    return service.change_task_status(task_id, status, current_user)
 @router.post("/{task_id}/start")
 def start_task(
     task_id: int,
@@ -79,3 +87,11 @@ def stop_task(
 ):
     service = Tasks(db)
     return service.stop_task(task_id, current_user)
+@router.delete("/{task_id}")
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1,2,3,4]))
+):
+    service = Tasks(db)
+    return service.delete_task(task_id, current_user)

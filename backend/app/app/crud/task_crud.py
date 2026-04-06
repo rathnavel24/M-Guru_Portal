@@ -6,7 +6,7 @@ from backend.app.app.models.pass_log import PassLog
 from sqlalchemy.orm import Session
 from datetime import datetime
 from abc import ABC, abstractmethod
-from backend.app.app.schemas.task_schema import createTask, updateTask
+from backend.app.app.schemas.task_schema import createTask, editTaskDetails, updateTask
 from fastapi import status
 
 class AbstractTask(ABC):
@@ -61,6 +61,43 @@ class Tasks(AbstractTask):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not allowed to access this task",
         )
+
+    def _is_admin_or_mentor(self, current_user: dict):
+        return current_user.get("role") in [1, 2]
+
+    def _is_self_created_task(self, task: Task, current_user: dict):
+        current_user_id = current_user.get("user_id")
+        return (
+            str(task.user_id) == str(current_user_id)
+            and str(task.created_by) == str(current_user_id)
+        )
+
+    def _ensure_self_created_task_owner(self, task: Task, current_user: dict, action: str):
+        if self._is_self_created_task(task, current_user):
+            return
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"You are not allowed to {action} this task",
+        )
+
+    def _ensure_admin_task_edit_allowed(self, task: Task, current_user: dict):
+        if not self._is_admin_or_mentor(current_user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not allowed to edit this task",
+            )
+        return
+
+    def _apply_task_updates(self, task: Task, update_data: dict):
+        for field, value in update_data.items():
+            setattr(task, field, value)
+
+        task.updated_at = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(task)
+
+        return {"message": "task updated successfully", "task": self._serialize_task(task)}
 
     def _get_active_time_log(self, task_id: int, user_id: int):
         return (
@@ -151,7 +188,18 @@ class Tasks(AbstractTask):
         if not user:
             raise HTTPException(status_code=404, detail="user not found")
 
+        if (
+            not self._is_admin_or_mentor(current_user)
+            and str(data.user_id) != str(current_user.get("user_id"))
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only create tasks for yourself",
+            )
+
         creator = data.created_by or str(current_user.get("user_id"))
+        if not self._is_admin_or_mentor(current_user):
+            creator = str(current_user.get("user_id"))
 
         new_task = Task(
             user_id=data.user_id,
@@ -194,22 +242,8 @@ class Tasks(AbstractTask):
         return [self._serialize_task(task) for task in tasks]
 
     def update_task(self, task_id: int, data: updateTask, current_user: dict):
-        task = self.db.query(Task).filter(Task.task_id == task_id).first()
-        if not task:
-            raise HTTPException(status_code=404, detail="task not found")
-
-        current_user_id = current_user.get("user_id")
-        current_user_role = current_user.get("role")
-        is_admin_or_mentor = current_user_role in [1, 2]
-        is_self_created_task = (
-            task.user_id == current_user_id and str(task.created_by) == str(current_user_id)
-        )
-
-        if not (is_admin_or_mentor or is_self_created_task):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not allowed to edit this task",
-            )
+        task = self._get_task_or_404(task_id)
+        is_admin_or_mentor = self._is_admin_or_mentor(current_user)
 
         update_data = data.model_dump(exclude_unset=True)
         if not update_data:
@@ -218,16 +252,39 @@ class Tasks(AbstractTask):
                 detail="No fields provided for update",
             )
 
-        for field, value in update_data.items():
-            setattr(task, field, value)
+        if is_admin_or_mentor:
+            disallowed_fields = set(update_data) - {"title", "due_time"}
+            if disallowed_fields:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Admin can only edit task title and due date",
+                )
+            self._ensure_admin_task_edit_allowed(task, current_user)
+        else:
+            self._ensure_self_created_task_owner(task, current_user, "edit")
 
-        task.updated_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(task)
-        return {"message": "task updated successfully", "task": self._serialize_task(task)}
+        return self._apply_task_updates(task, update_data)
 
-    def change_task_status(self, task_id: int, status: int):
+    def edit_task_details(self, task_id: int, data: editTaskDetails, current_user: dict):
         task = self._get_task_or_404(task_id)
+        update_data = data.model_dump(exclude_unset=True)
+
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No fields provided for update",
+            )
+
+        if self._is_admin_or_mentor(current_user):
+            self._ensure_admin_task_edit_allowed(task, current_user)
+        else:
+            self._ensure_self_created_task_owner(task, current_user, "edit")
+
+        return self._apply_task_updates(task, update_data)
+
+    def change_task_status(self, task_id: int, status: int, current_user: dict):
+        task = self._get_task_or_404(task_id)
+        self._ensure_self_created_task_owner(task, current_user, "change the status of")
         task.status = status
         task.updated_at = datetime.utcnow()
         self.db.commit()
@@ -236,7 +293,7 @@ class Tasks(AbstractTask):
 
     def start_task(self, task_id: int, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_task_actor_allowed(task, current_user)
+        self._ensure_self_created_task_owner(task, current_user, "start")
 
         # Prevent restarting completed task
         if task.status == 3:
@@ -282,7 +339,7 @@ class Tasks(AbstractTask):
 
     def pause_task(self, task_id: int, reason: str, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_task_actor_allowed(task, current_user)
+        self._ensure_self_created_task_owner(task, current_user, "pause")
         user_id = task.user_id
         log = self._get_active_time_log(task_id, user_id)
 
@@ -321,7 +378,7 @@ class Tasks(AbstractTask):
     
     def resume_task(self, task_id: int, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_task_actor_allowed(task, current_user)
+        self._ensure_self_created_task_owner(task, current_user, "resume")
         user_id = task.user_id
         pass_log = self._get_active_pass_log(task_id, user_id)
 
@@ -356,7 +413,7 @@ class Tasks(AbstractTask):
 
     def stop_task(self, task_id: int, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_task_actor_allowed(task, current_user)
+        self._ensure_self_created_task_owner(task, current_user, "stop")
         user_id = task.user_id
         current_time = datetime.utcnow()
 
@@ -388,4 +445,21 @@ class Tasks(AbstractTask):
             "message": "Task stopped successfully",
             "task": self._serialize_task(task),
         }
-    
+
+    def delete_task(self, task_id: int, current_user: dict):
+        task = self._get_task_or_404(task_id)
+
+        if self._is_admin_or_mentor(current_user):
+            self.db.query(PassLog).filter(PassLog.task_id == task_id).delete()
+            self.db.query(TimeLog).filter(TimeLog.task_id == task_id).delete()
+            self.db.delete(task)
+            self.db.commit()
+            return {"message": "task deleted successfully"}
+
+        self._ensure_self_created_task_owner(task, current_user, "delete")
+
+        self.db.query(PassLog).filter(PassLog.task_id == task_id).delete()
+        self.db.query(TimeLog).filter(TimeLog.task_id == task_id).delete()
+        self.db.delete(task)
+        self.db.commit()
+        return {"message": "task deleted successfully"}
