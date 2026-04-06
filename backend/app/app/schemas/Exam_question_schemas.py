@@ -131,12 +131,13 @@ class SubmitCodeSchema(BaseModel):
     code: str
     language: str
 
-
-class SubmitCodeRequest(BaseModel):
-    # question_id: int
+class CodeItem(BaseModel):
+    question_id: int
     code: str
     language: str
 
+class SubmitCodeRequest(BaseModel):
+    solutions: list[CodeItem]
 
 
     #    "questions": [

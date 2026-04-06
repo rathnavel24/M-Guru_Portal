@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from backend.app.app.crud.Code_Languages import  run_c, run_cpp, run_java, run_javascript, run_python
 from backend.app.app.models import Assessments, Questions, Options, Section,Coding_Submissions,Coding_Questions
+from backend.app.app.models.Exam_attempt import Attempts
 
 
 def create_test(db: Session, data):
@@ -620,39 +621,37 @@ def evaluate_code_judge0(code, test_cases, language):
         "visible_results": visible_results,
         "hidden_failed": hidden_failed
     }
-
-def submit_code_service_judge0(db,user_id, payload, Coding_Questions, Coding_Submissions):
-
+def submit_code_service_judge0(db, user_id, payload):
+  
     solutions = payload.get("solutions", [])
-
     if not solutions:
         return {"status": "ERROR", "message": "No solutions provided"}
 
     results = []
-    total_passed = 0
-    total_testcases = 0
 
+    # ---------------- SAVE ALL SUBMISSIONS ----------------
+    submitted_ids = set()
     for item in solutions:
         question_id = item.get("question_id")
         code = item.get("code")
         language = item.get("language")
+        submitted_ids.add(question_id)
 
-        question = db.query(Questions).filter(
-            Questions.question_id == question_id
-        ).first()
-
-        if not question:
-            continue
-
-        # get test cases
+        # Fetch test cases
         test_cases = db.query(Coding_Questions).filter(
             Coding_Questions.question_id == question_id
         ).all()
 
-        # evaluate
+        # Evaluate code via Judge0
         result = evaluate_code_judge0(code, test_cases, language)
 
-        # save (no duplicate check needed now OR you can keep overwrite logic)
+        # Delete old submission (resubmit)
+        db.query(Coding_Submissions).filter(
+            Coding_Submissions.user_id == user_id,
+            Coding_Submissions.question_id == question_id
+        ).delete()
+
+        # Save new submission
         submission = Coding_Submissions(
             user_id=user_id,
             question_id=question_id,
@@ -662,11 +661,7 @@ def submit_code_service_judge0(db,user_id, payload, Coding_Questions, Coding_Sub
             status=result["status"],
             outputs=result["outputs"]
         )
-
         db.add(submission)
-
-        total_passed += result["passed"]
-        total_testcases += result["total"]
 
         results.append({
             "question_id": question_id,
@@ -677,9 +672,88 @@ def submit_code_service_judge0(db,user_id, payload, Coding_Questions, Coding_Sub
 
     db.commit()
 
+    # ---------------- HANDLE SKIPPED QUESTIONS ----------------
+    all_coding_questions = db.query(Questions).filter(
+        Questions.question_type == "coding"
+    ).all()
+
+    for q in all_coding_questions:
+        if q.question_id not in submitted_ids:
+            existing = db.query(Coding_Submissions).filter(
+                Coding_Submissions.user_id == user_id,
+                Coding_Submissions.question_id == q.question_id
+            ).first()
+            if not existing:
+                db.add(Coding_Submissions(
+                    user_id=user_id,
+                    question_id=q.question_id,
+                    code=None,
+                    passed=0,
+                    total=0,
+                    status="SKIPPED"
+                ))
+
+    db.commit()
+
+    # ---------------- CALCULATE CODING SCORE ----------------
+    coding_correct = sum(1 for r in results if r["status"] == "PASS")
+    coding_wrong = sum(1 for r in results if r["status"] == "FAIL")
+    coding_skipped = sum(1 for r in results if r["status"] == "SKIPPED")
+
+    programming_score = sum(
+        (5 if r["status"] == "PASS"
+         else int((r["passed"] / r["total"]) * 5) if r["total"] > 0
+         else 0)
+        for r in results
+    )
+
+    # ---------------- TOTAL SCORE ----------------
+    # Fetch user's attempt if exists
+    attempt = db.query(Attempts).filter(
+        Attempts.user_id == user_id,
+        Attempts.status.in_(["STARTED", "in_progress"])
+    ).order_by(Attempts.attempt_id.desc()).first()
+
+    if attempt:
+        aptitude_score = attempt.aptitude_score or 0
+        technical_score = attempt.technical_score or 0
+    else:
+        aptitude_score = 0
+        technical_score = 0
+
+    total_score = aptitude_score + technical_score + programming_score
+
+    # Dynamic MAX_TOTAL
+    num_coding_questions = db.query(Questions).filter(
+        Questions.question_type == "coding"
+    ).count()
+    MAX_PROGRAMMING = num_coding_questions * 5
+    MAX_TOTAL = 15 + 15 + MAX_PROGRAMMING  # 15 aptitude + 15 technical + coding
+
+    percentage = int((total_score / MAX_TOTAL) * 100) if MAX_TOTAL > 0 else 0
+
+    # ---------------- UPDATE ATTEMPT ----------------
+    if attempt:
+        attempt.programming_score = programming_score
+        attempt.coding_correct = coding_correct
+        attempt.coding_wrong = coding_wrong
+        attempt.coding_skipped = coding_skipped
+        attempt.total_score = total_score
+        attempt.total_percentage = percentage
+        attempt.status = "completed"
+        db.commit()
+        db.refresh(attempt)
+
+    # ---------------- RESPONSE ----------------
     return {
-        "message": "All submissions evaluated",
-        "results": results,
-        "total_passed": total_passed,
-        "total_testcases": total_testcases
+        "status": "completed",
+        "aptitude_score": aptitude_score,
+        "technical_score": technical_score,
+        "programming_score": programming_score,
+        "coding_correct": coding_correct,
+        "coding_wrong": coding_wrong,
+        "coding_skipped": coding_skipped,
+        "total_score": total_score,
+        "percentage": percentage,
+        "results": results
     }
