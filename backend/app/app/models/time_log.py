@@ -10,7 +10,7 @@ class TimeLog(Base):
     task_id = Column(Integer, ForeignKey("task.task_id"))
     user_id = Column(Integer, ForeignKey("users.user_id"))
     start_time = Column(TIMESTAMP, default=func.now())
-    end_time = Column(TIMESTAMP, default=func.now())
+    end_time = Column(TIMESTAMP, nullable=True)
     total_time = Column(Integer)
     productive = Column(Boolean)
     status = Column(Integer)

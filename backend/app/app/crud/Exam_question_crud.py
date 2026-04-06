@@ -622,7 +622,7 @@ def evaluate_code_judge0(code, test_cases, language):
     }
 
 def submit_code_service_judge0(db,user_id, payload, Coding_Questions, Coding_Submissions):
-    
+
     solutions = payload.get("solutions", [])
 
     if not solutions:
