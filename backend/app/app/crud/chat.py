@@ -361,8 +361,8 @@ class Chat:
                 Users.status == self.ACTIVE_STATUS,
             )
             .order_by(Message.CreatedOn.asc(), Message.MessageID.asc())
-            .all()
-        )
+            .all())
+        
         return [self._message_data(message, sender) for message, sender in messages]
 
     def delete_conversation(
