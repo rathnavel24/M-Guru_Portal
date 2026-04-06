@@ -10,7 +10,7 @@ class Task(Base):
     title = Column(String(255))
     status = Column(Integer) # new -1 in_progress - 2 completed - 3
     start_time = Column(TIMESTAMP, default = None)
-    completion_time = Column(TIMESTAMP, default=func.now())
+    completion_time = Column(TIMESTAMP, default= None )
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100))
     updated_at = Column(TIMESTAMP, default=func.now())

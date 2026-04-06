@@ -122,19 +122,20 @@ class TestCreate(BaseModel):
     name: str   # REQUIRED
     questions: List[Question]
 
-class RunCodeRequest(BaseModel):
-    code: str
-    input_data: str = ""
-    language: str = "python"
-
+# class RunCodeRequest(BaseModel):
+#     code: str
+#     input_data: str = ""
+#     language: str = "python"
 class SubmitCodeSchema(BaseModel):
-    # user_id: int
     question_id: int
     code: str
-    language: str   # python / javascript
+    language: str
 
 
-
+class SubmitCodeRequest(BaseModel):
+    question_id: int
+    code: str
+    language: str
 
 
 
@@ -157,3 +158,30 @@ class SubmitCodeSchema(BaseModel):
 #     }
 # #   ]
 # }
+
+
+###################################
+
+
+class CodeSubmitRequest(BaseModel):
+    question_id: int
+    language: str
+    code: str
+
+
+class CodeSubmitResponse(BaseModel):
+    question_id: int
+    status: str
+    passed: int
+    total: int
+
+
+class RunCodeRequest(BaseModel):
+    code: str
+    language: str
+    input_data: Optional[str] = ""
+
+
+class RunCodeResponse(BaseModel):
+    output: Optional[str] = ""
+    error: Optional[str] = None
