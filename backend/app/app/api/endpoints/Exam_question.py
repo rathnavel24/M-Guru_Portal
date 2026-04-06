@@ -26,13 +26,13 @@ def upload_questions(payload: TestCreate, db: Session = Depends(get_db)):
 def get_tech_questions(db: Session = Depends(get_db)):
     return get_tech_questions_service(db)
 
-@router.post("/test/run-code")
-def run_code_service(payload: RunCodeRequest, db: Session = Depends(get_db)):
-    return run_code(payload.code, payload.input_data, payload.language)
+# @router.post("/test/run-code")
+# def run_code_service(payload: RunCodeRequest, db: Session = Depends(get_db)):
+#     return run_code(payload.code, payload.input_data, payload.language)
 
-@router.post("/test/submit-code/{user_id}")
-def submit_code(user_id:int,payload: SubmitCodeSchema, db: Session = Depends(get_db)):
-    return submit_code_service(db,user_id,payload)
+# @router.post("/test/submit-code/{user_id}")
+# def submit_code(user_id:int,payload: SubmitCodeSchema, db: Session = Depends(get_db)):
+#     return submit_code_service(db,user_id,payload)
 
 @router.get("/test/submissions/{user_id}")
 def fetch_submissions(user_id: int, db: Session = Depends(get_db)):
