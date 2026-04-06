@@ -159,181 +159,181 @@ def get_tech_questions_service(db):
 
     return result
 
-def evaluate_test(db: Session, answers):
+# def evaluate_test(db: Session, answers):
 
-    score = 0
+#     score = 0
 
-    for ans in answers:
+#     for ans in answers:
 
-        correct = db.query(Options).filter_by(
-            question_id=ans.question_id,
-            is_correct=True
-        ).first()
+#         correct = db.query(Options).filter_by(
+#             question_id=ans.question_id,
+#             is_correct=True
+#         ).first()
 
-        if correct and correct.option_id == ans.option_id:
-            score += 1
+#         if correct and correct.option_id == ans.option_id:
+#             score += 1
 
-    return score
+#     return score
 
-import subprocess
-import tempfile
-import os
+# import subprocess
+# import tempfile
+# import os
 
-def run_code(code, input_data="", language="python"):
+# def run_code(code, input_data="", language="python"):
 
-    if isinstance(input_data, str):
-        input_data = input_data.strip()
+#     if isinstance(input_data, str):
+#         input_data = input_data.strip()
 
-        # if "\n" not in input_data and " " in input_data:
-        #     input_data = input_data.replace(" ", "\n")
+#         # if "\n" not in input_data and " " in input_data:
+#         #     input_data = input_data.replace(" ", "\n")
 
-    try:
-        language = language.lower().strip()
+#     try:
+#         language = language.lower().strip()
 
-        if language == "python":
-            result = run_python(code, input_data)
+#         if language == "python":
+#             result = run_python(code, input_data)
 
-        elif language == "javascript":
-            result = run_javascript(code, input_data)
+#         elif language == "javascript":
+#             result = run_javascript(code, input_data)
 
-        elif language == "c":
-            result = run_c(code, input_data)
+#         elif language == "c":
+#             result = run_c(code, input_data)
 
-        elif language == "cpp":
-            result = run_cpp(code, input_data)
+#         elif language == "cpp":
+#             result = run_cpp(code, input_data)
 
-        elif language == "java":
-            result = run_java(code, input_data)
+#         elif language == "java":
+#             result = run_java(code, input_data)
 
-        else:
-            return {"error": "Unsupported language"}
+#         else:
+#             return {"error": "Unsupported language"}
 
-        stdout = result.stdout.strip()
-        stderr = result.stderr.strip()
+#         stdout = result.stdout.strip()
+#         stderr = result.stderr.strip()
 
-        if result.returncode != 0:
-            return {"error": stderr or "Execution Error"}
+#         if result.returncode != 0:
+#             return {"error": stderr or "Execution Error"}
 
-        return {"output": stdout}
+#         return {"output": stdout}
 
-    except subprocess.TimeoutExpired:
-        return {"error": "Time limit exceeded"}
+#     except subprocess.TimeoutExpired:
+#         return {"error": "Time limit exceeded"}
 
-    except Exception as e:
-        return {"error": str(e)}
+#     except Exception as e:
+#         return {"error": str(e)}
     
-def evaluate_code(code, test_cases, language="python"):
+# def evaluate_code(code, test_cases, language="python"):
 
-    def normalize(x: str):
-        return " ".join(str(x).strip().lower().split())
+#     def normalize(x: str):
+#         return " ".join(str(x).strip().lower().split())
 
-    passed = 0
-    total = len(test_cases)
+#     passed = 0
+#     total = len(test_cases)
 
-    visible_results = []
-    hidden_failed = 0
-    outputs = []   #  ADD THIS
+#     visible_results = []
+#     hidden_failed = 0
+#     outputs = []   #  ADD THIS
 
-    for test in test_cases:
+#     for test in test_cases:
 
-        res = run_code(code, test.input_data, language)
+#         res = run_code(code, test.input_data, language)
 
-        is_hidden = bool(test.is_hidden)
+#         is_hidden = bool(test.is_hidden)
 
-        if res.get("error"):
-            outputs.append("")   #  store empty output
-            if is_hidden:
-                hidden_failed += 1
-            else:
-                visible_results.append({
-                    "status": "error",
-                    "message": res["error"]
-                })
-            continue
+#         if res.get("error"):
+#             outputs.append("")   #  store empty output
+#             if is_hidden:
+#                 hidden_failed += 1
+#             else:
+#                 visible_results.append({
+#                     "status": "error",
+#                     "message": res["error"]
+#                 })
+#             continue
 
-        raw_output = res.get("output", "")
-        outputs.append(raw_output.strip())   #  STORE OUTPUT
+#         raw_output = res.get("output", "")
+#         outputs.append(raw_output.strip())   #  STORE OUTPUT
 
-        output = normalize(raw_output)
-        expected = normalize(test.expected_output)
+#         output = normalize(raw_output)
+#         expected = normalize(test.expected_output)
 
-        if output == expected:
-            passed += 1
-            status = "pass"
-        else:
-            status = "fail"
-            if is_hidden:
-                hidden_failed += 1
+#         if output == expected:
+#             passed += 1
+#             status = "pass"
+#         else:
+#             status = "fail"
+#             if is_hidden:
+#                 hidden_failed += 1
 
-        if not is_hidden:
-            visible_results.append({
-                "status": status,
-                "expected": test.expected_output,
-                "got": raw_output
-            })
+#         if not is_hidden:
+#             visible_results.append({
+#                 "status": status,
+#                 "expected": test.expected_output,
+#                 "got": raw_output
+#             })
 
-    if passed == total:
-        final_status = "PASS"
-    elif passed >= 3:
-        final_status = "PARTIAL_PASS"
-    else:
-        final_status = "FAIL"
+#     if passed == total:
+#         final_status = "PASS"
+#     elif passed >= 3:
+#         final_status = "PARTIAL_PASS"
+#     else:
+#         final_status = "FAIL"
 
-    return {
-        "passed": passed,
-        "total": total,
-        "visible_results": visible_results,
-        "hidden_failed": hidden_failed,
-        "status": final_status,
-        "outputs": outputs   #  RETURN OUTPUTS
-    }
+#     return {
+#         "passed": passed,
+#         "total": total,
+#         "visible_results": visible_results,
+#         "hidden_failed": hidden_failed,
+#         "status": final_status,
+#         "outputs": outputs   #  RETURN OUTPUTS
+#     }
 
-def submit_code_service(db: Session, user_id: int, payload):
+# def submit_code_service(db: Session, user_id: int, payload):
 
-    question = db.query(Questions).filter(
-        Questions.question_id == payload.question_id
-    ).first()
+#     question = db.query(Questions).filter(
+#         Questions.question_id == payload.question_id
+#     ).first()
 
-    if not question:
-        return {"status": "ERROR", "message": "Question not found"}
+#     if not question:
+#         return {"status": "ERROR", "message": "Question not found"}
 
-    existing = db.query(Coding_Submissions).filter(
-        Coding_Submissions.user_id == user_id,
-        Coding_Submissions.question_id == payload.question_id
-    ).first()
+#     existing = db.query(Coding_Submissions).filter(
+#         Coding_Submissions.user_id == user_id,
+#         Coding_Submissions.question_id == payload.question_id
+#     ).first()
 
-    if existing:
-        return {"status": "ERROR", "message": "Question already submitted"}
+#     if existing:
+#         return {"status": "ERROR", "message": "Question already submitted"}
 
-    test_cases = db.query(Coding_Questions).filter(
-        Coding_Questions.question_id == payload.question_id
-    ).all()
+#     test_cases = db.query(Coding_Questions).filter(
+#         Coding_Questions.question_id == payload.question_id
+#     ).all()
 
-    result = evaluate_code(
-        payload.code,
-        test_cases,
-        payload.language   # <-- THIS LINE FIXES EVERYTHING
-    )
-    submission = Coding_Submissions(
-        user_id=user_id,
-        question_id=payload.question_id,
-        code=payload.code,
-        passed=result["passed"],
-        total=result["total"],
-        status=result["status"],
-        outputs=result["outputs"]   #  THIS IS REQUIRED
-    )
+#     result = evaluate_code(
+#         payload.code,
+#         test_cases,
+#         payload.language   # <-- THIS LINE FIXES EVERYTHING
+#     )
+#     submission = Coding_Submissions(
+#         user_id=user_id,
+#         question_id=payload.question_id,
+#         code=payload.code,
+#         passed=result["passed"],
+#         total=result["total"],
+#         status=result["status"],
+#         outputs=result["outputs"]   #  THIS IS REQUIRED
+#     )
 
-    db.add(submission)
-    db.commit()
+#     db.add(submission)
+#     db.commit()
     
 
-    return {
-        "question_id": payload.question_id,
-        "status": result["status"],
-        "passed": result["passed"],
-        "total": result["total"]
-    }
+#     return {
+#         "question_id": payload.question_id,
+#         "status": result["status"],
+#         "passed": result["passed"],
+#         "total": result["total"]
+#     }
 
 def get_user_submissions(db, user_id: int):
 
@@ -502,33 +502,94 @@ LANGUAGE_MAP = {
     "c": 50,
     "java": 62
 }
-evaluate_code
+# evaluate_code
 
-# -------------------------
-#  RUN CODE (JUDGE0)
-# -------------------------
-def run_code_judge0(code, language, input_data=""):
+# # -------------------------
+# #  RUN CODE (JUDGE0)
+# # -------------------------
+# def run_code_judge0(code, language, input_data=""):
 
+#     language = language.lower().strip()
+#     language_id = LANGUAGE_MAP.get(language)
+
+#     print("LANG RECEIVED:", repr(language))
+
+#     if not language_id:
+#         return {"error": "Unsupported language"}
+
+#     payload = {
+#         "language_id": language_id,
+#         "source_code": base64.b64encode(code.encode()).decode(),
+#         "stdin": base64.b64encode(input_data.encode()).decode()
+#     }
+
+#     headers = {"Content-Type": "application/json"}
+
+#     try:
+#         res = requests.post(JUDGE0_URL, json=payload, headers=headers)
+#         result = res.json()
+
+#         def decode(x):
+#             if not x:
+#                 return ""
+#             try:
+#                 return base64.b64decode(x).decode("utf-8", errors="ignore")
+#             except Exception:
+#                 return ""
+
+#         stdout = decode(result.get("stdout"))
+#         stderr = decode(result.get("stderr"))
+#         compile_output = decode(result.get("compile_output"))
+
+#         if stderr:
+#             return {"error": stderr}
+#         if compile_output:
+#             return {"error": compile_output}
+
+#         return {"output": stdout.strip()}
+
+#     except Exception as e:
+#         return {"error": str(e)}
+
+
+
+
+# ─────────────────────────────────────────────
+#  UNIFIED NORMALIZER  (all 5 languages)
+# ─────────────────────────────────────────────
+def normalize_output(raw: str) -> str:
+    if not raw:
+        return ""
+    # Strip each line, remove blanks, lowercase — but DON'T join with \n
+    lines = [line.strip().lower() for line in raw.strip().splitlines()]
+    lines = [l for l in lines if l]
+    return " ".join(lines) 
+ 
+ 
+# ─────────────────────────────────────────────
+#  RUN CODE  (Judge0)
+# ─────────────────────────────────────────────
+def run_code_judge0(code: str, language: str, input_data: str = "") -> dict:
     language = language.lower().strip()
     language_id = LANGUAGE_MAP.get(language)
-
+ 
     print("LANG RECEIVED:", repr(language))
-
+ 
     if not language_id:
-        return {"error": "Unsupported language"}
-
+        return {"error": f"Unsupported language: {language}"}
+ 
     payload = {
         "language_id": language_id,
         "source_code": base64.b64encode(code.encode()).decode(),
-        "stdin": base64.b64encode(input_data.encode()).decode()
+        "stdin":       base64.b64encode((input_data or "").encode()).decode(),
     }
-
-    headers = {"Content-Type": "application/json"}
-
+ 
     try:
-        res = requests.post(JUDGE0_URL, json=payload, headers=headers)
+        res    = requests.post(JUDGE0_URL, json=payload,
+                               headers={"Content-Type": "application/json"},
+                               timeout=15)
         result = res.json()
-
+ 
         def decode(x):
             if not x:
                 return ""
@@ -536,224 +597,232 @@ def run_code_judge0(code, language, input_data=""):
                 return base64.b64decode(x).decode("utf-8", errors="ignore")
             except Exception:
                 return ""
-
-        stdout = decode(result.get("stdout"))
-        stderr = decode(result.get("stderr"))
+ 
+        stdout         = decode(result.get("stdout"))
+        stderr         = decode(result.get("stderr"))
         compile_output = decode(result.get("compile_output"))
-
-        if stderr:
-            return {"error": stderr}
-        if compile_output:
-            return {"error": compile_output}
-
-        return {"output": stdout.strip()}
-
+ 
+        if compile_output and compile_output.strip():
+            return {"error": compile_output.strip()}
+        if stderr and stderr.strip():
+            return {"error": stderr.strip()}
+ 
+        # Normalize right here so every caller gets clean output
+        return {"output": normalize_output(stdout)}
+ 
+    except requests.Timeout:
+        return {"error": "Time limit exceeded"}
     except Exception as e:
         return {"error": str(e)}
-
-
-# -------------------------
-#  EVALUATE CODE
-# -------------------------
-def evaluate_code_judge0(code, test_cases, language):
-
-    def normalize(x):
-        return " ".join(str(x).strip().lower().split())
-
-    passed = 0
-    total = len(test_cases)
-
-    outputs = []
+ 
+# ─────────────────────────────────────────────
+#  EVALUATE CODE  (Judge0)
+# ─────────────────────────────────────────────
+def evaluate_code_judge0(code: str, test_cases, language: str) -> dict:
+ 
+    passed          = 0
+    total           = len(test_cases)
+    outputs         = []        # flat string per test case
     visible_results = []
-    hidden_failed = 0
-
+    hidden_failed   = 0
+ 
     for test in test_cases:
-
-        res = run_code_judge0(code, language, test.input_data)
-
+        res       = run_code_judge0(code, language, test.input_data)
         is_hidden = bool(test.is_hidden)
-
+ 
         if res.get("error"):
-            outputs.append("")
-
-            if not is_hidden:
-                visible_results.append({
-                    "status": "error",
-                    "message": res["error"]
-                })
-            else:
+            outputs.append("")          # empty slot keeps index alignment
+            if is_hidden:
                 hidden_failed += 1
-
+            else:
+                visible_results.append({
+                    "status":  "error",
+                    "message": res["error"],
+                })
             continue
+ 
+        # output already normalized by run_code_judge0
+        # got_output      = res.get("output", "")
+        # expected_output = normalize_output(test.expected_output)
+ 
+        # outputs.append(got_output)      # flat string
 
         raw_output = res.get("output", "")
-        outputs.append(raw_output)
 
-        output = normalize(raw_output)
-        expected = normalize(test.expected_output)
+        outputs.append(raw_output)   # store raw (no \n artifacts)
 
-        if output == expected:
+    # Compare using normalize
+        if normalize_output(raw_output) == normalize_output(test.expected_output):
+#     passed += 1
+        # if got_output == expected_output:
             passed += 1
             status = "pass"
         else:
             status = "fail"
             if is_hidden:
                 hidden_failed += 1
-
+ 
         if not is_hidden:
             visible_results.append({
-                "status": status,
+                "status":   status,
                 "expected": test.expected_output,
-                "got": raw_output
+                "got":      raw_output,
             })
-
-    final_status = (
-        "PASS" if passed == total
-        else "PARTIAL_PASS" if passed >= 3
-        else "FAIL"
-    )
-
+ 
+    # Status thresholds
+    half = total // 2 if total > 0 else 0
+    if passed == total and total > 0:
+        final_status = "PASS"
+    elif passed > half:
+        final_status = "PARTIAL_PASS"
+    else:
+        final_status = "FAIL"
+ 
     return {
-        "passed": passed,
-        "total": total,
-        "status": final_status,
-        "outputs": outputs,
+        "passed":          passed,
+        "total":           total,
+        "status":          final_status,
+        "outputs":         outputs,         # list of flat strings
         "visible_results": visible_results,
-        "hidden_failed": hidden_failed
+        "hidden_failed":   hidden_failed,
     }
-def submit_code_service_judge0(db, user_id, payload):
-  
+ 
+
+def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict:
+
     solutions = payload.get("solutions", [])
     if not solutions:
         return {"status": "ERROR", "message": "No solutions provided"}
-
-    results = []
-
-    # ---------------- SAVE ALL SUBMISSIONS ----------------
+ 
+    results       = []
     submitted_ids = set()
+ 
+    # ── evaluate & save each submitted question ──
     for item in solutions:
         question_id = item.get("question_id")
-        code = item.get("code")
-        language = item.get("language")
+        code        = item.get("code", "")
+        language    = item.get("language", "python")
         submitted_ids.add(question_id)
-
-        # Fetch test cases
+ 
         test_cases = db.query(Coding_Questions).filter(
             Coding_Questions.question_id == question_id
         ).all()
-
-        # Evaluate code via Judge0
+ 
         result = evaluate_code_judge0(code, test_cases, language)
-
-        # Delete old submission (resubmit)
+ 
+        # Delete any previous submission for this question
         db.query(Coding_Submissions).filter(
-            Coding_Submissions.user_id == user_id,
-            Coding_Submissions.question_id == question_id
+            Coding_Submissions.user_id  == user_id,
+            Coding_Submissions.question_id == question_id,
         ).delete()
-
-        # Save new submission
-        submission = Coding_Submissions(
-            user_id=user_id,
-            question_id=question_id,
-            code=code,
-            passed=result["passed"],
-            total=result["total"],
-            status=result["status"],
-            outputs=result["outputs"]
-        )
-        db.add(submission)
-
+ 
+        db.add(Coding_Submissions(
+            user_id     = user_id,
+            question_id = question_id,
+            code        = code,
+            passed      = result["passed"],
+            total       = result["total"],
+            status      = result["status"],
+            outputs     = result["outputs"],   # list of flat strings
+        ))
+ 
         results.append({
             "question_id": question_id,
-            "status": result["status"],
-            "passed": result["passed"],
-            "total": result["total"]
+            "status":      result["status"],
+            "passed":      result["passed"],
+            "total":       result["total"],
         })
-
+ 
     db.commit()
-
-    # ---------------- HANDLE SKIPPED QUESTIONS ----------------
-    all_coding_questions = db.query(Questions).filter(
+ 
+    # ── mark skipped questions ──
+    all_coding_qs = db.query(Questions).filter(
         Questions.question_type == "coding"
     ).all()
-
-    for q in all_coding_questions:
+ 
+    for q in all_coding_qs:
         if q.question_id not in submitted_ids:
             existing = db.query(Coding_Submissions).filter(
-                Coding_Submissions.user_id == user_id,
-                Coding_Submissions.question_id == q.question_id
+                Coding_Submissions.user_id     == user_id,
+                Coding_Submissions.question_id == q.question_id,
             ).first()
             if not existing:
                 db.add(Coding_Submissions(
-                    user_id=user_id,
-                    question_id=q.question_id,
-                    code=None,
-                    passed=0,
-                    total=0,
-                    status="SKIPPED"
+                    user_id     = user_id,
+                    question_id = q.question_id,
+                    code        = None,
+                    passed      = 0,
+                    total       = 0,
+                    status      = "SKIPPED",
+                    outputs     = [],
                 ))
-
+ 
     db.commit()
-
-    # ---------------- CALCULATE CODING SCORE ----------------
-    coding_correct = sum(1 for r in results if r["status"] == "PASS")
-    coding_wrong = sum(1 for r in results if r["status"] == "FAIL")
-    coding_skipped = sum(1 for r in results if r["status"] == "SKIPPED")
-
+ 
+    # ── calculate coding score ──
+    all_subs = db.query(Coding_Submissions).filter(
+        Coding_Submissions.user_id == user_id
+    ).all()
+ 
+    coding_correct  = sum(1 for c in all_subs if c.status == "PASS")
+    coding_wrong    = sum(1 for c in all_subs if c.status in ("FAIL", "PARTIAL_PASS"))
+    coding_skipped  = sum(1 for c in all_subs if c.status == "SKIPPED")
+ 
     programming_score = sum(
-        (5 if r["status"] == "PASS"
-         else int((r["passed"] / r["total"]) * 5) if r["total"] > 0
+        (5 if c.status == "PASS"
+         else int((c.passed / c.total) * 5) if c.total > 0
          else 0)
-        for r in results
+        for c in all_subs
+        if c.status != "SKIPPED"
     )
-
-    # ---------------- TOTAL SCORE ----------------
-    # Fetch user's attempt if exists
+ 
+    # ── update attempt ──
+    # ── update attempt ──
     attempt = db.query(Attempts).filter(
         Attempts.user_id == user_id,
-        Attempts.status.in_(["STARTED", "in_progress"])
+        Attempts.status.in_(["STARTED", "in_progress"]),
     ).order_by(Attempts.attempt_id.desc()).first()
 
-    if attempt:
-        aptitude_score = attempt.aptitude_score or 0
-        technical_score = attempt.technical_score or 0
-    else:
-        aptitude_score = 0
-        technical_score = 0
+    aptitude_score  = (attempt.aptitude_score  or 0) if attempt else 0
+    technical_score = (attempt.technical_score or 0) if attempt else 0
+    total_score     = aptitude_score + technical_score + programming_score
 
-    total_score = aptitude_score + technical_score + programming_score
+    num_coding_qs  = db.query(Questions).filter(Questions.question_type == "coding").count()
+    MAX_PROGRAMMING = num_coding_qs * 5
+    MAX_TOTAL       = 15 + 15 + MAX_PROGRAMMING
+    percentage      = int((total_score / MAX_TOTAL) * 100) if MAX_TOTAL > 0 else 0
 
-    # Dynamic MAX_TOTAL
-    num_coding_questions = db.query(Questions).filter(
-        Questions.question_type == "coding"
-    ).count()
-    MAX_PROGRAMMING = num_coding_questions * 5
-    MAX_TOTAL = 15 + 15 + MAX_PROGRAMMING  # 15 aptitude + 15 technical + coding
-
-    percentage = int((total_score / MAX_TOTAL) * 100) if MAX_TOTAL > 0 else 0
-
-    # ---------------- UPDATE ATTEMPT ----------------
     if attempt:
         attempt.programming_score = programming_score
-        attempt.coding_correct = coding_correct
-        attempt.coding_wrong = coding_wrong
-        attempt.coding_skipped = coding_skipped
-        attempt.total_score = total_score
-        attempt.total_percentage = percentage
-        attempt.status = "completed"
+        attempt.coding_correct    = coding_correct
+        attempt.coding_wrong      = coding_wrong
+        attempt.coding_skipped    = coding_skipped
+        attempt.total_score       = total_score
+        attempt.total_percentage  = percentage
+
+        #   Only mark completed if ALL 3 sections are submitted
+        aptitude_done  = attempt.aptitude_score  is not None
+        technical_done = attempt.technical_score is not None
+        coding_done    = True  # we just submitted coding right now
+
+        if aptitude_done and technical_done and coding_done:
+            attempt.status = "completed"
+        else:
+            attempt.status = "in_progress"  # coding done but others pending
+
         db.commit()
         db.refresh(attempt)
-
-    # ---------------- RESPONSE ----------------
+    
     return {
-        "status": "completed",
-        "aptitude_score": aptitude_score,
-        "technical_score": technical_score,
+        "status":            "completed",
+        "aptitude_score":    aptitude_score,
+        "technical_score":   technical_score,
         "programming_score": programming_score,
-        "coding_correct": coding_correct,
-        "coding_wrong": coding_wrong,
-        "coding_skipped": coding_skipped,
-        "total_score": total_score,
-        "percentage": percentage,
-        "results": results
+        "coding_correct":    coding_correct,
+        "coding_wrong":      coding_wrong,
+        "coding_skipped":    coding_skipped,
+        "total_score":       total_score,
+        "percentage":        percentage,
+        "results":           results,
     }
+ 
