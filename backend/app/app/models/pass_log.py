@@ -10,7 +10,7 @@ class PassLog(Base):
     task_id = Column(Integer, ForeignKey("task.task_id"))
     user_id = Column(Integer, ForeignKey("users.user_id"))
     pass_time = Column(TIMESTAMP, default=func.now())
-    resume_time = Column(TIMESTAMP, default=func.now())
+    resume_time = Column(TIMESTAMP, nullable=True)
     reason = Column(String)
     status = Column(String)
     created_at = Column(TIMESTAMP, default=func.now())

@@ -4,7 +4,7 @@ from backend.app.app.models.feedback import Feedback
 from backend.app.app.models.portal_users import Users
 
 
-# ✅ Create (Intern only)
+# Create (Intern only)
 def create_feedback(db: Session, data, current_user):
 
     if current_user["role"] != 2:

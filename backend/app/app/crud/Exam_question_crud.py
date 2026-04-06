@@ -1,15 +1,7 @@
-from http.client import HTTPException
-from unittest import result
-
 from sqlalchemy.orm import Session
-from backend.app.app.crud.Code_Languages import run_c, run_c, run_cpp, run_java, run_javascript, run_python
-from backend.app.app.models import Assessments, Questions, Options, Section
-from backend.app.app.models.Coding_questions import Coding_Questions
-from backend.app.app.models.Submit_coding import Coding_Submissions
-from backend.app.app.models import Coding_Submissions, Questions
-from backend.app.app.models import Questions, Assessments, Options, Section
-from backend.app.app.models.Coding_questions import Coding_Questions
-from backend.app.app.models.Submit_coding import Coding_Submissions
+from backend.app.app.crud.Code_Languages import  run_c, run_cpp, run_java, run_javascript, run_python
+from backend.app.app.models import Assessments, Questions, Options, Section,Coding_Submissions,Coding_Questions
+from backend.app.app.models.Exam_attempt import Attempts
 
 
 def create_test(db: Session, data):
@@ -186,6 +178,7 @@ def evaluate_test(db: Session, answers):
 import subprocess
 import tempfile
 import os
+
 def run_code(code, input_data="", language="python"):
 
     if isinstance(input_data, str):
@@ -239,7 +232,7 @@ def evaluate_code(code, test_cases, language="python"):
 
     visible_results = []
     hidden_failed = 0
-    outputs = []   # ✅ ADD THIS
+    outputs = []   #  ADD THIS
 
     for test in test_cases:
 
@@ -248,7 +241,7 @@ def evaluate_code(code, test_cases, language="python"):
         is_hidden = bool(test.is_hidden)
 
         if res.get("error"):
-            outputs.append("")   # ✅ store empty output
+            outputs.append("")   #  store empty output
             if is_hidden:
                 hidden_failed += 1
             else:
@@ -259,7 +252,7 @@ def evaluate_code(code, test_cases, language="python"):
             continue
 
         raw_output = res.get("output", "")
-        outputs.append(raw_output.strip())   # ✅ STORE OUTPUT
+        outputs.append(raw_output.strip())   #  STORE OUTPUT
 
         output = normalize(raw_output)
         expected = normalize(test.expected_output)
@@ -292,7 +285,7 @@ def evaluate_code(code, test_cases, language="python"):
         "visible_results": visible_results,
         "hidden_failed": hidden_failed,
         "status": final_status,
-        "outputs": outputs   # ✅ RETURN OUTPUTS
+        "outputs": outputs   #  RETURN OUTPUTS
     }
 
 def submit_code_service(db: Session, user_id: int, payload):
@@ -310,7 +303,7 @@ def submit_code_service(db: Session, user_id: int, payload):
     ).first()
 
     if existing:
-        raise HTTPException(400, "Question already submitted")
+        return {"status": "ERROR", "message": "Question already submitted"}
 
     test_cases = db.query(Coding_Questions).filter(
         Coding_Questions.question_id == payload.question_id
@@ -434,7 +427,7 @@ def get_coding_result(db, user_id: int, question_id: int):
 
     total = len(testcases)
 
-    # 🔥 NEW STATUS LOGIC
+    #  NEW STATUS LOGIC
     if passed_count == total and total > 0:
         final_status = "PASS"
     elif passed_count >= (total // 2):
@@ -512,7 +505,7 @@ LANGUAGE_MAP = {
 evaluate_code
 
 # -------------------------
-# 🔥 RUN CODE (JUDGE0)
+#  RUN CODE (JUDGE0)
 # -------------------------
 def run_code_judge0(code, language, input_data=""):
 
@@ -560,7 +553,7 @@ def run_code_judge0(code, language, input_data=""):
 
 
 # -------------------------
-# 🔥 EVALUATE CODE
+#  EVALUATE CODE
 # -------------------------
 def evaluate_code_judge0(code, test_cases, language):
 
@@ -628,52 +621,139 @@ def evaluate_code_judge0(code, test_cases, language):
         "visible_results": visible_results,
         "hidden_failed": hidden_failed
     }
-def submit_code_service_judge0(db,user_id, payload, Coding_Questions, Coding_Submissions):
+def submit_code_service_judge0(db, user_id, payload):
+  
+    solutions = payload.get("solutions", [])
+    if not solutions:
+        return {"status": "ERROR", "message": "No solutions provided"}
 
-    question = db.query(Questions).filter(
-        Questions.question_id == payload.get("question_id")
-    ).first()
+    results = []
 
-    if not question:
-        return {"status": "ERROR", "message": "Question not found"}
+    # ---------------- SAVE ALL SUBMISSIONS ----------------
+    submitted_ids = set()
+    for item in solutions:
+        question_id = item.get("question_id")
+        code = item.get("code")
+        language = item.get("language")
+        submitted_ids.add(question_id)
 
-    existing = db.query(Coding_Submissions).filter(
-        Coding_Submissions.user_id == user_id,
-        Coding_Submissions.question_id == payload.get("question_id")
-    ).first()
+        # Fetch test cases
+        test_cases = db.query(Coding_Questions).filter(
+            Coding_Questions.question_id == question_id
+        ).all()
 
-    if existing:
-        raise HTTPException(400, "Question already submitted")
-    
-    question_id = payload.get("question_id")
-    code = payload.get("code")
-    language = payload.get("language")
+        # Evaluate code via Judge0
+        result = evaluate_code_judge0(code, test_cases, language)
 
-    # get test cases
-    test_cases = db.query(Coding_Questions).filter(
-        Coding_Questions.question_id == question_id
-    ).all()
+        # Delete old submission (resubmit)
+        db.query(Coding_Submissions).filter(
+            Coding_Submissions.user_id == user_id,
+            Coding_Submissions.question_id == question_id
+        ).delete()
 
-    # evaluate
-    result = evaluate_code_judge0(code, test_cases, language)
+        # Save new submission
+        submission = Coding_Submissions(
+            user_id=user_id,
+            question_id=question_id,
+            code=code,
+            passed=result["passed"],
+            total=result["total"],
+            status=result["status"],
+            outputs=result["outputs"]
+        )
+        db.add(submission)
 
-    # save
-    submission = Coding_Submissions(
-        user_id=user_id,
-        question_id=question_id,
-        code=code,
-        passed=result["passed"],
-        total=result["total"],
-        status=result["status"],
-        outputs=result["outputs"]
-    )
+        results.append({
+            "question_id": question_id,
+            "status": result["status"],
+            "passed": result["passed"],
+            "total": result["total"]
+        })
 
-    db.add(submission)
     db.commit()
 
+    # ---------------- HANDLE SKIPPED QUESTIONS ----------------
+    all_coding_questions = db.query(Questions).filter(
+        Questions.question_type == "coding"
+    ).all()
+
+    for q in all_coding_questions:
+        if q.question_id not in submitted_ids:
+            existing = db.query(Coding_Submissions).filter(
+                Coding_Submissions.user_id == user_id,
+                Coding_Submissions.question_id == q.question_id
+            ).first()
+            if not existing:
+                db.add(Coding_Submissions(
+                    user_id=user_id,
+                    question_id=q.question_id,
+                    code=None,
+                    passed=0,
+                    total=0,
+                    status="SKIPPED"
+                ))
+
+    db.commit()
+
+    # ---------------- CALCULATE CODING SCORE ----------------
+    coding_correct = sum(1 for r in results if r["status"] == "PASS")
+    coding_wrong = sum(1 for r in results if r["status"] == "FAIL")
+    coding_skipped = sum(1 for r in results if r["status"] == "SKIPPED")
+
+    programming_score = sum(
+        (5 if r["status"] == "PASS"
+         else int((r["passed"] / r["total"]) * 5) if r["total"] > 0
+         else 0)
+        for r in results
+    )
+
+    # ---------------- TOTAL SCORE ----------------
+    # Fetch user's attempt if exists
+    attempt = db.query(Attempts).filter(
+        Attempts.user_id == user_id,
+        Attempts.status.in_(["STARTED", "in_progress"])
+    ).order_by(Attempts.attempt_id.desc()).first()
+
+    if attempt:
+        aptitude_score = attempt.aptitude_score or 0
+        technical_score = attempt.technical_score or 0
+    else:
+        aptitude_score = 0
+        technical_score = 0
+
+    total_score = aptitude_score + technical_score + programming_score
+
+    # Dynamic MAX_TOTAL
+    num_coding_questions = db.query(Questions).filter(
+        Questions.question_type == "coding"
+    ).count()
+    MAX_PROGRAMMING = num_coding_questions * 5
+    MAX_TOTAL = 15 + 15 + MAX_PROGRAMMING  # 15 aptitude + 15 technical + coding
+
+    percentage = int((total_score / MAX_TOTAL) * 100) if MAX_TOTAL > 0 else 0
+
+    # ---------------- UPDATE ATTEMPT ----------------
+    if attempt:
+        attempt.programming_score = programming_score
+        attempt.coding_correct = coding_correct
+        attempt.coding_wrong = coding_wrong
+        attempt.coding_skipped = coding_skipped
+        attempt.total_score = total_score
+        attempt.total_percentage = percentage
+        attempt.status = "completed"
+        db.commit()
+        db.refresh(attempt)
+
+    # ---------------- RESPONSE ----------------
     return {
-        "question_id": question_id,
-        "status": result["status"],
-        "passed": result["passed"],
-        "total": result["total"]
+        "status": "completed",
+        "aptitude_score": aptitude_score,
+        "technical_score": technical_score,
+        "programming_score": programming_score,
+        "coding_correct": coding_correct,
+        "coding_wrong": coding_wrong,
+        "coding_skipped": coding_skipped,
+        "total_score": total_score,
+        "percentage": percentage,
+        "results": results
     }

@@ -23,8 +23,7 @@ router = APIRouter(tags=["login"])
 async def signup(
     user_data: UserSignUp,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1])),
-):
+    current_user=Depends(role_required([1])),):
     try:
         return SignUpDetails(db, user_data).user_signup()
     except Exception as e:
@@ -156,7 +155,7 @@ async def get_all_users(
 
 @router.get("/me")
 def get_user(
-    db: Session = Depends(get_db), current_user=Depends(role_required([1, 2]))
+    db: Session = Depends(get_db), current_user=Depends(role_required([1, 2, 4]))
 ):
     return UserServices(db, None).get_user(current_user.get("user_id"))
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from backend.app.app.api.deps import get_db, get_current_user
+from backend.app.app.crud.Exam_attempt_crud import AttemptCrud
 from backend.app.app.crud.Exam_question_crud import evaluate_code, get_all_questions,evaluate_test,create_test, get_tech_questions_service, get_user_submissions, run_code, run_code_judge0, submit_code_service, submit_code_service_judge0
 from backend.app.app.models.Coding_questions import Coding_Questions
 from backend.app.app.models.Exam_questions import Questions
@@ -55,14 +56,15 @@ def run_code_api(payload: RunCodeRequest):
 # SUBMIT CODE
 # -------------------------
 @router.post("/test/submit/{user_id}")
-def submit_code_api(user_id:int,
+def submit_code_api(
+    user_id: int,
     payload: SubmitCodeRequest,
     db: Session = Depends(get_db)
 ):
+    
 
     return submit_code_service_judge0(
-        db,user_id,
-        payload.dict(),
-        Coding_Questions,
-        Coding_Submissions
+        db,
+        user_id,
+        payload.dict()
     )
