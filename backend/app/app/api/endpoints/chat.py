@@ -42,6 +42,20 @@ def list_user_chat_groups(db: Session = Depends(get_db),current_user=Depends(rol
     return service.get_user_conversations(current_user.get("user_id"))
 
 
+@router.get("/my-chat-context", include_in_schema=False)
+@router.get(
+    "/groups/context",
+    name="Get User Chat Context",
+    summary="Get the current user's batch and conversation id for chat APIs",
+)
+def get_user_chat_context(
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required(CHAT_MEMBER_ROLES)),
+):
+    service = Chat(db)
+    return service.get_user_chat_context(current_user.get("user_id"))
+
+
 @router.get("/groups-list", include_in_schema=False)
 @router.get("/groups/catalog",name="List Chat Groups",summary="List all active chat groups with id and name",)
 def list_chat_group_catalog(db: Session = Depends(get_db),

@@ -251,6 +251,48 @@ class Chat:
         )
         return [self._group_data(conversation) for conversation in conversations]
 
+    def get_user_chat_context(self, requester_id: int):
+        user = self._get_user(requester_id)
+
+        conversations = (
+            self.db.query(Conversation)
+            .join(
+                ConversationMember,
+                ConversationMember.ConversationID == Conversation.ConversationID,
+            )
+            .filter(
+                Conversation.status == self.ACTIVE_STATUS,
+                ConversationMember.UserID == requester_id,
+                ConversationMember.status == self.ACTIVE_STATUS,
+            )
+            .order_by(Conversation.batch.asc(), Conversation.ConversationID.asc())
+            .all()
+        )
+
+        selected_conversation = next(
+            (
+                conversation
+                for conversation in conversations
+                if conversation.batch == user.batch
+            ),
+            conversations[0] if conversations else None,
+        )
+
+        return {
+            "user_id": user.user_id,
+            "batch": user.batch,
+            "conversation_id": (
+                selected_conversation.ConversationID
+                if selected_conversation is not None
+                else None
+            ),
+            "conversation_name": (
+                selected_conversation.Name
+                if selected_conversation is not None
+                else None
+            ),
+        }
+
     def get_active_users_by_batch(
         self, batch_id: int, requester_id: Optional[int] = None
     ):
