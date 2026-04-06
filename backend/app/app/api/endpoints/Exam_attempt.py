@@ -12,19 +12,9 @@ router = APIRouter(tags=["Attempts"])
 def start_attempt(user_id: int, db: Session = Depends(get_db)):
     return AttemptCrud(db).start_attempt(user_id)
 
-@router.post("/save-scores/{user_id}")
-def save_scores(
-    user_id: int,
-    data:  SaveScoreRequest
-,
-    db: Session = Depends(get_db)
-):
-    return AttemptCrud(db).save_result_from_frontend(user_id, data.dict())
-
 @router.post("/submit/{user_id}")
 def finalll_submit(user_id: int, db: Session = Depends(get_db)):
     return AttemptCrud(db).submit_test(user_id)
-
 
 
 @router.get("/coding/result/{user_id}/{question_id}")
@@ -61,7 +51,6 @@ def save_scores(
 
 @router.get("/users/{user_id}/test-status")
 def get_test_status(user_id: int, db: Session = Depends(get_db)):
-    
     return AttemptCrud(db).get_user_exam_status(user_id)
 
 @router.get("/exam-summary")

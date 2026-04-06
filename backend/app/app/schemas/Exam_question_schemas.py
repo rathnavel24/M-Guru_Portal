@@ -133,7 +133,7 @@ class SubmitCodeSchema(BaseModel):
 
 
 class SubmitCodeRequest(BaseModel):
-    question_id: int
+    # question_id: int
     code: str
     language: str
 

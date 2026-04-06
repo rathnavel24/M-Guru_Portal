@@ -1,15 +1,6 @@
-from http.client import HTTPException
-from unittest import result
-
 from sqlalchemy.orm import Session
-from backend.app.app.crud.Code_Languages import run_c, run_c, run_cpp, run_java, run_javascript, run_python
-from backend.app.app.models import Assessments, Questions, Options, Section
-from backend.app.app.models.Coding_questions import Coding_Questions
-from backend.app.app.models.Submit_coding import Coding_Submissions
-from backend.app.app.models import Coding_Submissions, Questions
-from backend.app.app.models import Questions, Assessments, Options, Section
-from backend.app.app.models.Coding_questions import Coding_Questions
-from backend.app.app.models.Submit_coding import Coding_Submissions
+from backend.app.app.crud.Code_Languages import  run_c, run_cpp, run_java, run_javascript, run_python
+from backend.app.app.models import Assessments, Questions, Options, Section,Coding_Submissions,Coding_Questions
 
 
 def create_test(db: Session, data):
@@ -186,6 +177,7 @@ def evaluate_test(db: Session, answers):
 import subprocess
 import tempfile
 import os
+
 def run_code(code, input_data="", language="python"):
 
     if isinstance(input_data, str):
@@ -239,7 +231,7 @@ def evaluate_code(code, test_cases, language="python"):
 
     visible_results = []
     hidden_failed = 0
-    outputs = []   # ✅ ADD THIS
+    outputs = []   #  ADD THIS
 
     for test in test_cases:
 
@@ -248,7 +240,7 @@ def evaluate_code(code, test_cases, language="python"):
         is_hidden = bool(test.is_hidden)
 
         if res.get("error"):
-            outputs.append("")   # ✅ store empty output
+            outputs.append("")   #  store empty output
             if is_hidden:
                 hidden_failed += 1
             else:
@@ -259,7 +251,7 @@ def evaluate_code(code, test_cases, language="python"):
             continue
 
         raw_output = res.get("output", "")
-        outputs.append(raw_output.strip())   # ✅ STORE OUTPUT
+        outputs.append(raw_output.strip())   #  STORE OUTPUT
 
         output = normalize(raw_output)
         expected = normalize(test.expected_output)
@@ -292,7 +284,7 @@ def evaluate_code(code, test_cases, language="python"):
         "visible_results": visible_results,
         "hidden_failed": hidden_failed,
         "status": final_status,
-        "outputs": outputs   # ✅ RETURN OUTPUTS
+        "outputs": outputs   #  RETURN OUTPUTS
     }
 
 def submit_code_service(db: Session, user_id: int, payload):
@@ -310,7 +302,7 @@ def submit_code_service(db: Session, user_id: int, payload):
     ).first()
 
     if existing:
-        raise HTTPException(400, "Question already submitted")
+        return {"status": "ERROR", "message": "Question already submitted"}
 
     test_cases = db.query(Coding_Questions).filter(
         Coding_Questions.question_id == payload.question_id
@@ -434,7 +426,7 @@ def get_coding_result(db, user_id: int, question_id: int):
 
     total = len(testcases)
 
-    # 🔥 NEW STATUS LOGIC
+    #  NEW STATUS LOGIC
     if passed_count == total and total > 0:
         final_status = "PASS"
     elif passed_count >= (total // 2):
@@ -512,7 +504,7 @@ LANGUAGE_MAP = {
 evaluate_code
 
 # -------------------------
-# 🔥 RUN CODE (JUDGE0)
+#  RUN CODE (JUDGE0)
 # -------------------------
 def run_code_judge0(code, language, input_data=""):
 
@@ -560,7 +552,7 @@ def run_code_judge0(code, language, input_data=""):
 
 
 # -------------------------
-# 🔥 EVALUATE CODE
+#  EVALUATE CODE
 # -------------------------
 def evaluate_code_judge0(code, test_cases, language):
 
@@ -628,52 +620,66 @@ def evaluate_code_judge0(code, test_cases, language):
         "visible_results": visible_results,
         "hidden_failed": hidden_failed
     }
+
 def submit_code_service_judge0(db,user_id, payload, Coding_Questions, Coding_Submissions):
-
-    question = db.query(Questions).filter(
-        Questions.question_id == payload.get("question_id")
-    ).first()
-
-    if not question:
-        return {"status": "ERROR", "message": "Question not found"}
-
-    existing = db.query(Coding_Submissions).filter(
-        Coding_Submissions.user_id == user_id,
-        Coding_Submissions.question_id == payload.get("question_id")
-    ).first()
-
-    if existing:
-        raise HTTPException(400, "Question already submitted")
     
-    question_id = payload.get("question_id")
-    code = payload.get("code")
-    language = payload.get("language")
+    solutions = payload.get("solutions", [])
 
-    # get test cases
-    test_cases = db.query(Coding_Questions).filter(
-        Coding_Questions.question_id == question_id
-    ).all()
+    if not solutions:
+        return {"status": "ERROR", "message": "No solutions provided"}
 
-    # evaluate
-    result = evaluate_code_judge0(code, test_cases, language)
+    results = []
+    total_passed = 0
+    total_testcases = 0
 
-    # save
-    submission = Coding_Submissions(
-        user_id=user_id,
-        question_id=question_id,
-        code=code,
-        passed=result["passed"],
-        total=result["total"],
-        status=result["status"],
-        outputs=result["outputs"]
-    )
+    for item in solutions:
+        question_id = item.get("question_id")
+        code = item.get("code")
+        language = item.get("language")
 
-    db.add(submission)
+        question = db.query(Questions).filter(
+            Questions.question_id == question_id
+        ).first()
+
+        if not question:
+            continue
+
+        # get test cases
+        test_cases = db.query(Coding_Questions).filter(
+            Coding_Questions.question_id == question_id
+        ).all()
+
+        # evaluate
+        result = evaluate_code_judge0(code, test_cases, language)
+
+        # save (no duplicate check needed now OR you can keep overwrite logic)
+        submission = Coding_Submissions(
+            user_id=user_id,
+            question_id=question_id,
+            code=code,
+            passed=result["passed"],
+            total=result["total"],
+            status=result["status"],
+            outputs=result["outputs"]
+        )
+
+        db.add(submission)
+
+        total_passed += result["passed"]
+        total_testcases += result["total"]
+
+        results.append({
+            "question_id": question_id,
+            "status": result["status"],
+            "passed": result["passed"],
+            "total": result["total"]
+        })
+
     db.commit()
 
     return {
-        "question_id": question_id,
-        "status": result["status"],
-        "passed": result["passed"],
-        "total": result["total"]
+        "message": "All submissions evaluated",
+        "results": results,
+        "total_passed": total_passed,
+        "total_testcases": total_testcases
     }
