@@ -310,7 +310,7 @@ def submit_code_service(db: Session, user_id: int, payload):
     ).first()
 
     if existing:
-        raise HTTPException(400, "Question already submitted")
+        raise HTTPException(status_code = 400, detail="Question already submitted")
 
     test_cases = db.query(Coding_Questions).filter(
         Coding_Questions.question_id == payload.question_id
