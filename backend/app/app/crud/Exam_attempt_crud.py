@@ -330,9 +330,9 @@ class AttemptCrud:
 
         # ---------------- TOTAL MAX MARKS ----------------
         # Adjust based on your system
-        APTITUDE_TOTAL = 30
-        TECHNICAL_TOTAL = 20
-        CODING_TOTAL = total_questions * 5
+        APTITUDE_TOTAL = 15
+        TECHNICAL_TOTAL = 15
+        CODING_TOTAL = 4 * 5
 
         MAX_TOTAL = APTITUDE_TOTAL + TECHNICAL_TOTAL + CODING_TOTAL
 
@@ -340,6 +340,23 @@ class AttemptCrud:
         attempt.total_percentage = int(
             (attempt.total_score / MAX_TOTAL) * 100
         ) if MAX_TOTAL > 0 else 0
+# ---------------- SECTION PASS/FAIL (DYNAMIC) ----------------
+
+        aptitude_status = "PASS" if aptitude_score >= 6 else "FAIL"
+        technical_status = "PASS" if technical_score >= 7 else "FAIL"
+        programming_status = "PASS" if programming_score >= 10 else "FAIL"
+        
+        scholarship_eligible = attempt.total_score >= 23 
+
+        # ---------------- FINAL RESULT ----------------
+
+        final_result = (
+            "PASS"
+            if aptitude_status == "PASS"
+            and technical_status == "PASS"
+            and programming_status == "PASS"
+            else "FAIL"
+        )
 
         # ---------------- FINAL STATUS ----------------
         attempt.status = "COMPLETED"
@@ -355,12 +372,17 @@ class AttemptCrud:
 
             # Scores
             "aptitude_score": aptitude_score,
+            "aptitude_status": aptitude_status,
             "technical_score": technical_score,
+            "technical_status": technical_status,
             "programming_score": programming_score,
+            "programming_status": programming_status,
 
             # Totals
             "total_score": attempt.total_score,
             "percentage": attempt.total_percentage,
+            "final_result": final_result,
+            "scholarship_eligible": scholarship_eligible,
 
             # Aptitude breakdown
             "aptitude_correct": attempt.aptitude_correct or 0,

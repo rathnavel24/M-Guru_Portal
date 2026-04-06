@@ -12,7 +12,7 @@ class Conversation(Base):
     status = Column(Integer, default=1)
 
     # Link batch to Users.batch
-    batch = Column(Integer, ForeignKey("users.batch"))
+    batch = Column(Integer)
     
     CreatedOn = Column(DateTime, default=func.now())
     CreatedBy = Column(String(100))

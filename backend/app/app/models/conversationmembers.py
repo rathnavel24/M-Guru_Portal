@@ -4,18 +4,6 @@ from sqlalchemy.sql import func
 from backend.app.app.db.base import Base
 
 
-# -------------------------
-# Users Table
-# -------------------------
-
-# -------------------------
-# Conversation Table
-# -------------------------
-
-
-# -------------------------
-# ConversationMember Table
-# -------------------------
 class ConversationMember(Base):
     __tablename__ = "conversationmember"
 
@@ -32,7 +20,3 @@ class ConversationMember(Base):
     conversation = relationship("Conversation", back_populates="members")
     user = relationship("Users", back_populates="conversation_memberships")
 
-
-# -------------------------
-# Message Table
-# -------------------------
