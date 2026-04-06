@@ -12,14 +12,14 @@ router = APIRouter(tags=["Attempts"])
 def start_attempt(user_id: int, db: Session = Depends(get_db)):
     return AttemptCrud(db).start_attempt(user_id)
 
-@router.post("/save-scores/{user_id}")
-def save_scores(
-    user_id: int,
-    data:  SaveScoreRequest
-,
-    db: Session = Depends(get_db)
-):
-    return AttemptCrud(db).save_result_from_frontend(user_id, data.dict())
+# @router.post("/save-scores/{user_id}")
+# def save_scores(
+#     user_id: int,
+#     data:  SaveScoreRequest
+# ,
+#     db: Session = Depends(get_db)
+# ):
+#     return AttemptCrud(db).save_result_from_frontend(user_id, data.dict())
 
 @router.post("/submit/{user_id}")
 def finalll_submit(user_id: int, db: Session = Depends(get_db)):

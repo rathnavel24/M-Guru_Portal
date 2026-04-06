@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.app.api.endpoints import Exam_user
 from backend.app.app.crud.attendance import logout_all_users
 from apscheduler.schedulers.background import BackgroundScheduler
+from backend.app.app.api.endpoints import feedback
+
 
 
 app = FastAPI()
@@ -37,6 +39,8 @@ app.include_router(Exam_answer.router)
 app.include_router(Exam_section.router)
 app.include_router(attendance.router)
 app.include_router(Exam_user.router)
+app.include_router(feedback.router)
+
 
 
 
