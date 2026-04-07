@@ -11,7 +11,7 @@ class Fee(Base):
     user_id = Column(Integer, ForeignKey("users.user_id"))
     total_fee = Column(Float)
     monthly_installment = Column(Boolean)
-    Emi_amount = Column(Float)
+    emi_amount = Column(Float)
     paid_amount = Column(Float, default=0)
     status = Column(Integer, default = 1)
     created_at = Column(TIMESTAMP, default=func.now())
