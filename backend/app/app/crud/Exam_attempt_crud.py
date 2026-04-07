@@ -401,7 +401,7 @@ class AttemptCrud:
                 if row.status != 'completed':
                     rslt = row.status
                 else:
-                    rslt = "PASS" if total >= 25 else "FAIL"
+                    rslt = "PASS" if total >= 23 else "FAIL"
 
                 response.append({
                     "user_id": row.user_id,
