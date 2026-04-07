@@ -689,6 +689,7 @@ def evaluate_code_judge0(code: str, test_cases, language: str) -> dict:
 def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict:
 
     solutions = payload.get("solutions", [])
+    #print(solutions)
     if not solutions:
         return {"status": "ERROR", "message": "No solutions provided"}
 
@@ -707,6 +708,7 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
         ).all()
 
         result = evaluate_code_judge0(code, test_cases, language)
+        print(result)
 
         # Delete any previous submission for this question
         db.query(Coding_Submissions).filter(
@@ -825,7 +827,7 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
         "programming_score": programming_score,
         "coding_correct":    coding_correct,
         "coding_wrong":      coding_wrong,
-        "coding_skipped":    coding_skipped,
+        # "coding_skipped":    coding_skipped,
         "total_score":       total_score,
         "percentage":        percentage,
         "results":           results,

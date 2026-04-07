@@ -259,7 +259,7 @@ class AttemptCrud:
                 if row.status != 'completed':
                     rslt = row.status
                 else:
-                    rslt = "PASS" if total >= 25 else "FAIL"
+                    rslt = "PASS" if total >= 23 else "FAIL"
 
                 response.append({
                     "user_id": row.user_id,
@@ -377,7 +377,22 @@ class AttemptCrud:
 
         else:
             raise HTTPException(400, "Invalid test_type")
+        
+        aptitude_score    = attempt.aptitude_score    or 0
+        technical_score   = attempt.technical_score   or 0
+        programming_score = attempt.programming_score or 0
 
+        attempt.total_score = aptitude_score + technical_score + programming_score
+
+        # Recalculate percentage
+        num_coding_qs = self.db.query(Questions).filter(
+            Questions.question_type == "coding"
+        ).count()
+        MAX_TOTAL = 15 + 15 + (num_coding_qs * 5)
+        attempt.total_percentage = int(
+            (attempt.total_score / MAX_TOTAL) * 100
+        ) if MAX_TOTAL > 0 else 0
+        
         # ---------------- STATUS ----------------
         # if attempt.aptitude_score is not None or attempt.technical_score is not None:
         #     attempt.status = "in_progress"
@@ -399,9 +414,12 @@ class AttemptCrud:
             "attempt_id": attempt.attempt_id,
             "status": attempt.status,
             "aptitude_score": attempt.aptitude_score,
-            "technical_score": attempt.technical_score
+            "technical_score": attempt.technical_score,
+            "total_score": attempt.total_score,
+            "percentage": attempt.total_percentage
         }
         # ---------------- FINAL SUBMIT (CODING + TOTAL CALC) ----------------
+
     def submit_test(self, user_id: int):
 
         # ---------------- GET ALL CODING QUESTIONS ----------------
@@ -493,8 +511,8 @@ class AttemptCrud:
         ) if MAX_TOTAL > 0 else 0
 # ---------------- SECTION PASS/FAIL (DYNAMIC) ----------------
 
-        aptitude_status = "PASS" if aptitude_score >= 6 else "FAIL"
-        technical_status = "PASS" if technical_score >= 7 else "FAIL"
+        aptitude_status = "PASS" if aptitude_score >= 5 else "FAIL"
+        technical_status = "PASS" if technical_score >= 5 else "FAIL"
         programming_status = "PASS" if programming_score >= 10 else "FAIL"
         
         scholarship_eligible = attempt.total_score >= 23 
