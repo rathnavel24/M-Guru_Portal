@@ -17,3 +17,4 @@ from .pass_log import PassLog
 from .time_log import TimeLog
 from .conversationmembers import *
 from .message import *
+from .feedback import Feedback
