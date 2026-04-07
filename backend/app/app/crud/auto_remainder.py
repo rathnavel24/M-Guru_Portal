@@ -29,21 +29,21 @@ def run_auto_reminder_job():
     asyncio.run(send_auto_reminders())
 
 #  EMAIL FUNCTION (UNCHANGED)
-async def send_general_reminder(user):
+async def send_general_reminder(user,fee,x):
     template = env.get_template("payment_delay_mail.html")
     
     html_content = template.render(
         name=user.username,
         email=user.email,
-        amount=user.emi_amount,
+        amount=fee.emi_amount,
         invoice_id="N/A",
         note="Monthly Fee Reminder",
         date=datetime.now().strftime("%d %b %Y"),
         due_date="--",
-        account_name="Your Account Name",
-        account_no="XXXXXX",
-        ifsc="XXXX",
-        bank_name="Your Bank",
+        account_name=x.account_name,
+        account_no=x.account_no,
+        ifsc=x.ifsc,
+        bank_name=x.bank_name,
     )
 
     msg = EmailMessage()
@@ -62,33 +62,38 @@ async def send_auto_reminders():
 
     try:
         results = (
-            db.query(Users)
-            .join(Fee, Fee.user_id == Users.user_id)
-            .filter(
-                Users.type == 2,
-                Users.status == 1,
-                Fee.monthly_installment.is_(True),
-                Fee.status == 1,
-                Fee.paid_amount < Fee.total_fee
-            )
-            .all()
+        db.query(Users, Fee)
+        .join(Fee, Fee.user_id == Users.user_id)
+        .filter(
+            Users.type == 2,
+            Users.status == 1,
+            Fee.monthly_installment.is_(True),
+            Fee.status == 1,
+            Fee.paid_amount < Fee.total_fee
         )
+        .all()
+    )
 
         print("=== JOB STARTED ===")
 
-        for user in results:
+        for user, fee in results:
             try:
                 if not user.email or "@" not in user.email:
                     continue
 
                 print(f"Sending to {user.email}")
 
-                await send_general_reminder(user)
-                await asyncio.sleep(1)  # throttle
+                # pass fee also if needed
+                x=db.query(Pay_email.bank_name,
+                           Pay_email.account_no,
+                           Pay_email.ifsc,
+                           Pay_email.account_name).first()
+                await send_general_reminder(user, fee, x)
+
+                await asyncio.sleep(1)
 
             except Exception as e:
                 print(f"Failed for {user.email}: {e}")
-                continue
 
     finally:
         db.close()
