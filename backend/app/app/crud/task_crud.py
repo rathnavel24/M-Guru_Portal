@@ -207,6 +207,7 @@ class Tasks(AbstractTask):
             status=data.status,
             created_by=creator,
             due_time=data.due_time,
+            description = data.description,
         )
         self.db.add(new_task)
         self.db.commit()
