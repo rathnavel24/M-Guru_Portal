@@ -390,44 +390,43 @@ def get_coding_result(db, user_id: int, question_id: int):
         Coding_Questions.question_id == question_id
     ).order_by(Coding_Questions.id).all()
 
-    # SUPPORT ONLY NEW FORMAT (dict)
+    # Build output map by index (since outputs is a flat list)
     output_map = {}
     if submission.outputs:
-        if isinstance(submission.outputs[0], dict):
-            output_map = {
-                o["testcase_id"]: o["output"]
-                for o in submission.outputs
-            }
-        else:
-            # fallback for old data
-            for i, tc in enumerate(testcases):
-                if i < len(submission.outputs):
-                    output_map[tc.id] = submission.outputs[i]
+        for i, tc in enumerate(testcases):
+            if i < len(submission.outputs):
+                output_map[tc.id] = submission.outputs[i]
 
     results = []
     passed_count = 0
 
     for tc in testcases:
+        user_output     = normalize_output(str(output_map.get(tc.id, "")))
+        expected_output = normalize_output(tc.expected_output or "")
 
-        user_output = str(output_map.get(tc.id, "")).strip()
-        expected_output = (tc.expected_output or "").strip()
-
-        result = "PASS" if user_output == expected_output else "FAIL"
-
-        if result == "PASS":
+        is_pass = user_output == expected_output
+        if is_pass:
             passed_count += 1
 
+        # Show visible, hide hidden
         if not tc.is_hidden:
             results.append({
-                "input": tc.input_data,
-                "expected_output": expected_output,
-                "user_output": user_output,
-                "result": result
+                "input":           tc.input_data,
+                "expected_output": tc.expected_output,
+                "user_output":     output_map.get(tc.id, ""),
+                "result":          "PASS" if is_pass else "FAIL"
+            })
+        else:
+            # Show hidden as masked
+            results.append({
+                "input":           "hidden",
+                "expected_output": "hidden",
+                "user_output":     "hidden",
+                "result":          "PASS" if is_pass else "FAIL"
             })
 
     total = len(testcases)
 
-    #  NEW STATUS LOGIC
     if passed_count == total and total > 0:
         final_status = "PASS"
     elif passed_count >= (total // 2):
@@ -436,12 +435,12 @@ def get_coding_result(db, user_id: int, question_id: int):
         final_status = "FAIL"
 
     return {
-        "user_id": user_id,
+        "user_id":    user_id,
         "question_id": question_id,
-        "status": final_status,
-        "passed": passed_count,
-        "total": total,
-        "test_cases": results
+        "status":     final_status,
+        "passed":     passed_count,
+        "total":      total,
+        "test_cases": results   # all 5, hidden ones masked
     }
 
 def get_all_coding_results(db, user_id: int):
@@ -687,35 +686,34 @@ def evaluate_code_judge0(code: str, test_cases, language: str) -> dict:
         "hidden_failed":   hidden_failed,
     }
  
-
 def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict:
 
     solutions = payload.get("solutions", [])
     if not solutions:
         return {"status": "ERROR", "message": "No solutions provided"}
- 
+
     results       = []
     submitted_ids = set()
- 
+
     # ── evaluate & save each submitted question ──
     for item in solutions:
         question_id = item.get("question_id")
         code        = item.get("code", "")
         language    = item.get("language", "python")
         submitted_ids.add(question_id)
- 
+
         test_cases = db.query(Coding_Questions).filter(
             Coding_Questions.question_id == question_id
         ).all()
- 
+
         result = evaluate_code_judge0(code, test_cases, language)
- 
+
         # Delete any previous submission for this question
         db.query(Coding_Submissions).filter(
-            Coding_Submissions.user_id  == user_id,
+            Coding_Submissions.user_id     == user_id,
             Coding_Submissions.question_id == question_id,
         ).delete()
- 
+
         db.add(Coding_Submissions(
             user_id     = user_id,
             question_id = question_id,
@@ -723,23 +721,23 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
             passed      = result["passed"],
             total       = result["total"],
             status      = result["status"],
-            outputs     = result["outputs"],   # list of flat strings
+            outputs     = result["outputs"],
         ))
- 
+
         results.append({
             "question_id": question_id,
             "status":      result["status"],
             "passed":      result["passed"],
             "total":       result["total"],
         })
- 
+
     db.commit()
- 
+
     # ── mark skipped questions ──
     all_coding_qs = db.query(Questions).filter(
         Questions.question_type == "coding"
     ).all()
- 
+
     for q in all_coding_qs:
         if q.question_id not in submitted_ids:
             existing = db.query(Coding_Submissions).filter(
@@ -756,18 +754,18 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
                     status      = "SKIPPED",
                     outputs     = [],
                 ))
- 
+
     db.commit()
- 
+
     # ── calculate coding score ──
     all_subs = db.query(Coding_Submissions).filter(
         Coding_Submissions.user_id == user_id
     ).all()
- 
+
     coding_correct  = sum(1 for c in all_subs if c.status == "PASS")
     coding_wrong    = sum(1 for c in all_subs if c.status in ("FAIL", "PARTIAL_PASS"))
     coding_skipped  = sum(1 for c in all_subs if c.status == "SKIPPED")
- 
+
     programming_score = sum(
         (5 if c.status == "PASS"
          else int((c.passed / c.total) * 5) if c.total > 0
@@ -775,46 +773,53 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
         for c in all_subs
         if c.status != "SKIPPED"
     )
- 
-    # ── update attempt ──
-    # ── update attempt ──
+
+    # ── fetch active attempt ──
     attempt = db.query(Attempts).filter(
         Attempts.user_id == user_id,
         Attempts.status.in_(["STARTED", "in_progress"]),
     ).order_by(Attempts.attempt_id.desc()).first()
 
-    aptitude_score  = (attempt.aptitude_score  or 0) if attempt else 0
-    technical_score = (attempt.technical_score or 0) if attempt else 0
-    total_score     = aptitude_score + technical_score + programming_score
+    if not attempt:
+        return {"status": "ERROR", "message": "No active attempt found"}
 
-    num_coding_qs  = db.query(Questions).filter(Questions.question_type == "coding").count()
+    # ── read aptitude & technical from attempt ──
+    aptitude_score  = attempt.aptitude_score  or 0
+    technical_score = attempt.technical_score or 0
+
+    # ── calculate totals using local variables ──
+    total_score = aptitude_score + technical_score + programming_score
+
+    num_coding_qs   = db.query(Questions).filter(Questions.question_type == "coding").count()
     MAX_PROGRAMMING = num_coding_qs * 5
     MAX_TOTAL       = 15 + 15 + MAX_PROGRAMMING
     percentage      = int((total_score / MAX_TOTAL) * 100) if MAX_TOTAL > 0 else 0
 
-    if attempt:
-        attempt.programming_score = programming_score
-        attempt.coding_correct    = coding_correct
-        attempt.coding_wrong      = coding_wrong
-        attempt.coding_skipped    = coding_skipped
-        attempt.total_score       = total_score
-        attempt.total_percentage  = percentage
+    # ── update attempt ──
+    attempt.programming_score = programming_score
+    attempt.coding_correct    = coding_correct
+    attempt.coding_wrong      = coding_wrong
+    attempt.coding_skipped    = coding_skipped
+    attempt.total_score       = total_score
+    attempt.total_percentage  = percentage
 
-        #   Only mark completed if ALL 3 sections are submitted
-        aptitude_done  = attempt.aptitude_score  is not None
-        technical_done = attempt.technical_score is not None
-        coding_done    = True  # we just submitted coding right now
+    db.flush()  # flush so session reflects all changes before status check
 
-        if aptitude_done and technical_done and coding_done:
-            attempt.status = "completed"
-        else:
-            attempt.status = "in_progress"  # coding done but others pending
+    # ── mark completed only if ALL 3 sections done ──
+    aptitude_done  = attempt.aptitude_score    is not None
+    technical_done = attempt.technical_score   is not None
+    coding_done    = attempt.programming_score is not None
 
-        db.commit()
-        db.refresh(attempt)
-    
+    if aptitude_done and technical_done and coding_done:
+        attempt.status = "completed"
+    else:
+        attempt.status = "in_progress"
+
+    db.commit()
+    db.refresh(attempt)
+
     return {
-        "status":            "completed",
+        "status":            attempt.status,
         "aptitude_score":    aptitude_score,
         "technical_score":   technical_score,
         "programming_score": programming_score,
@@ -825,4 +830,3 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
         "percentage":        percentage,
         "results":           results,
     }
- 
