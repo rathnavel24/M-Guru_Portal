@@ -48,6 +48,7 @@ class SignUpDetails(SignUpAbstract):
         self.db = db
         self.new_user = new_user
 
+    @abstractmethod
     def user_signup(self):
 
         if not self.user_verification():
@@ -73,6 +74,8 @@ class SignUpDetails(SignUpAbstract):
             new_fee = Fee(
                 user_id=new_user.user_id,
                 total_fee=self.new_user.total_fee or 0,
+                monthly_installment =self.new_user.monthly_installment,
+                Emi_amount = self.new_user.emi_amount,
                 paid_amount=0,
                 status=1,
                 created_by="ADMIN",
