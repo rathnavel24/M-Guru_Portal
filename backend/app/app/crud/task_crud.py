@@ -123,6 +123,26 @@ class Tasks(AbstractTask):
             .first()
         )
 
+    def _get_other_active_time_log(self, task_id: int, user_id: int):
+        return (
+            self.db.query(TimeLog)
+            .filter(
+                TimeLog.user_id == user_id,
+                TimeLog.task_id != task_id,
+                TimeLog.end_time.is_(None),
+            )
+            .order_by(TimeLog.start_time.desc())
+            .first()
+        )
+
+    def _ensure_no_other_running_task(self, task_id: int, user_id: int):
+        active_log = self._get_other_active_time_log(task_id, user_id)
+        if active_log:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Another task is already running for this user. Stop or pause it before starting or resuming a different task",
+            )
+
     def _calculate_task_metrics(self, task_id: int, user_id: int):
         current_time = datetime.utcnow()
         productive_seconds = 0
@@ -207,6 +227,7 @@ class Tasks(AbstractTask):
             status=data.status,
             created_by=creator,
             due_time=data.due_time,
+            description = data.description,
         )
         self.db.add(new_task)
         self.db.commit()
@@ -303,6 +324,7 @@ class Tasks(AbstractTask):
             )
 
         user_id = task.user_id
+        self._ensure_no_other_running_task(task_id, user_id)
 
         if self._get_active_time_log(task_id, user_id):
             raise HTTPException(status_code=400, detail="Task already started")
@@ -380,6 +402,7 @@ class Tasks(AbstractTask):
         task = self._get_task_or_404(task_id)
         self._ensure_self_created_task_owner(task, current_user, "resume")
         user_id = task.user_id
+        self._ensure_no_other_running_task(task_id, user_id)
         pass_log = self._get_active_pass_log(task_id, user_id)
 
         if not pass_log:
