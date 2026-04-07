@@ -31,11 +31,11 @@ def run_auto_reminder_job():
 #  EMAIL FUNCTION (UNCHANGED)
 async def send_general_reminder(user):
     template = env.get_template("payment_delay_mail.html")
-
+    
     html_content = template.render(
         name=user.username,
         email=user.email,
-        amount="10000",
+        amount=user.emi_amount,
         invoice_id="N/A",
         note="Monthly Fee Reminder",
         date=datetime.now().strftime("%d %b %Y"),
@@ -61,21 +61,22 @@ async def send_auto_reminders():
     db: Session = get_db()
 
     try:
-        users = (
-                db.query(Users)
-                .join(Fee, Fee.user_id == Users.user_id)
-                .filter(
-                    Users.type == 2,
-                    Users.status == 1,
-                    Fee.status == 1,  # active fee
-                    Fee.paid_amount < Fee.total_fee
-                )
-                .all()
-                )
+        results = (
+            db.query(Users)
+            .join(Fee, Fee.user_id == Users.user_id)
+            .filter(
+                Users.type == 2,
+                Users.status == 1,
+                Fee.monthly_installment.is_(True),
+                Fee.status == 1,
+                Fee.paid_amount < Fee.total_fee
+            )
+            .all()
+        )
 
         print("=== JOB STARTED ===")
 
-        for user in users:
+        for user in results:
             try:
                 if not user.email or "@" not in user.email:
                     continue
