@@ -26,7 +26,7 @@ class Attempts(Base):
     technical_wrong = Column(Integer, default=0)
     technical_skipped = Column(Integer, default=0)
 
-    programming_score = Column(Integer, default=0)
+    programming_score = Column(Integer)
 
     coding_correct = Column(Integer, default=0)
     coding_wrong = Column(Integer, default=0)
