@@ -379,9 +379,18 @@ class AttemptCrud:
             raise HTTPException(400, "Invalid test_type")
 
         # ---------------- STATUS ----------------
-        if attempt.aptitude_score is not None or attempt.technical_score is not None:
-            attempt.status = "in_progress"
+        # if attempt.aptitude_score is not None or attempt.technical_score is not None:
+        #     attempt.status = "in_progress"
+        # # NEW (correct):
+        aptitude_done  = attempt.aptitude_score    is not None
+        technical_done = attempt.technical_score   is not None
+        coding_done    = attempt.programming_score is not None  # already saved if coding submitted first
 
+        if aptitude_done and technical_done and coding_done:
+            attempt.status = "completed"
+        else:
+            attempt.status = "in_progress"
+        
         self.db.commit()
         self.db.refresh(attempt)
 
@@ -591,3 +600,88 @@ class AttemptCrud:
     #         "coding_wrong": attempt.coding_wrong,
     #         "coding_skipped": attempt.coding_skipped,
     #     }
+
+
+
+    """
+JAVASCRIPT CODE SNIPPET (FOR REFERENCE)
+
+
+const lines = require("fs").readFileSync(0, "utf-8")
+  .split("\n")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const num = parseInt(lines[0], 10);
+
+// Write your logic here
+console.log(num);
+
+PYTHON CODE SNIPPET (FOR REFERENCE)
+
+import sys
+
+input_data = sys.stdin.read().split()
+
+num = int(input_data[0])
+
+# import sys
+
+# input_data = sys.stdin.read().split()
+# nums = list(map(int, input_data))
+
+# # Write your logic here
+# print(nums)
+
+# Write your logic here
+print(num)
+
+JAVA CODE SNIPPET (FOR REFERENCE)
+
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StreamTokenizer st = new StreamTokenizer(br);
+
+        st.nextToken();
+        int num = (int) st.nval;
+
+        // Write your logic here
+        System.out.println(num);
+    }
+}
+
+C++ CODE SNIPPET (FOR REFERENCE)
+
+#include <iostream>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int num;
+    cin >> num;
+
+    // Write your logic here
+    cout << num << endl;
+    return 0;
+}
+
+C CODE SNIPPET (FOR REFERENCE)
+
+#include <stdio.h>
+
+int main() {
+    int num;
+    scanf("%d", &num);
+
+    // Write your logic here
+    printf("%d\n", num);
+    return 0;
+}
+    
+    """
