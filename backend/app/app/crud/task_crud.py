@@ -239,6 +239,7 @@ class Tasks(AbstractTask):
             created_by=creator,
             due_time=data.due_time,
             description = data.description,
+            priority = data.priority
         )
         self.db.add(new_task)
         self.db.commit()
