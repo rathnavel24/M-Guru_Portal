@@ -572,7 +572,7 @@ def run_code_judge0(code: str, language: str, input_data: str = "") -> dict:
     language = language.lower().strip()
     language_id = LANGUAGE_MAP.get(language)
  
-    print("LANG RECEIVED:", repr(language))
+    #print("LANG RECEIVED:", repr(language))
  
     if not language_id:
         return {"error": f"Unsupported language: {language}"}
@@ -689,7 +689,7 @@ def evaluate_code_judge0(code: str, test_cases, language: str) -> dict:
 def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict:
 
     solutions = payload.get("solutions", [])
-    #print(solutions)
+    
     if not solutions:
         return {"status": "ERROR", "message": "No solutions provided"}
 
@@ -708,7 +708,7 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
         ).all()
 
         result = evaluate_code_judge0(code, test_cases, language)
-        print(result)
+        
 
         # Delete any previous submission for this question
         db.query(Coding_Submissions).filter(
