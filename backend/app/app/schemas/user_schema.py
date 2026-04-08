@@ -43,10 +43,11 @@ class UserUpdate(BaseModel):
     total_fee: Optional[float] = None
     paid_amount: Optional[float] = None
 
-class MentorCreate(BaseModel):
-    username: str
-    email: EmailStr
-    password: str
-    batch: Optional[int] = None   # user can send null
-    phone: Optional[str] = None
-    tech_stack: Optional[str] = None
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class AdminResetPassword(BaseModel):
+    user_id: int
+    new_password: str
