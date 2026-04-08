@@ -12,74 +12,195 @@ from backend.app.app.models.Exam_questions import Questions
 from backend.app.app.models.Exam_user import ExamUsers
 from backend.app.app.models.Submit_coding import Coding_Submissions
 
-
+APTITUDE_PASS_MARK    = 5
+TECHNICAL_PASS_MARK   = 5
+PROGRAMMING_PASS_MARK = 10
+SCHOLARSHIP_MARK      = 23
+ 
+APTITUDE_TOTAL  = 15
+TECHNICAL_TOTAL = 15
+ 
+def _build_section_statuses(aptitude_score, technical_score, programming_score):
+    return (
+        "PASS" if aptitude_score    >= APTITUDE_PASS_MARK    else "FAIL",
+        "PASS" if technical_score   >= TECHNICAL_PASS_MARK   else "FAIL",
+        "PASS" if programming_score >= PROGRAMMING_PASS_MARK else "FAIL",
+    )
+ 
 class AttemptCrud:
+
     def __init__(self, db: Session):
         self.db = db
 
     def get_user_exam_status(self, user_id: int):
-
-
-#     if attempt.status == "in_progress":
-#         return {
-#             "attempt_id": attempt.attempt_id,
-#             "status": "in_progress",
-#             "aptitude_score": attempt.aptitude_score,
-#             "technical_score": attempt.technical_score,
-#             "coding_score": attempt.programming_score,
-#             "message": "Test is in progress"
-#         }
-        attempt = self.db.query(Attempts).filter(
-            Attempts.user_id == user_id
-        ).order_by(Attempts.attempt_id.desc()).first()
-
-        # No attempt
-        # if not attempt:
-        #     return {
-        #         "status": "not_started",
-        #         "message": "User has not started any test"
-        #     }
-
-        #In Progress
-
-        if attempt.status == "STARTED":
+            attempt = (
+                self.db.query(Attempts)
+                .filter(Attempts.user_id == user_id)
+                .order_by(Attempts.attempt_id.desc())
+                .first()
+            )
+    
+            # ── No attempt at all ──
+            if not attempt:
+                return {
+                    "attempt_id":      None,
+                    "status":          "not_started",
+                    "aptitude_score":  None,
+                    "technical_score": None,
+                    "coding_score":    None,
+                    "message":         "User has not started any test",
+                }
+    
+            # ── Started but no section submitted yet ──
+            if attempt.status == "STARTED":
+                return {
+                    "attempt_id":      attempt.attempt_id,
+                    "status":          "STARTED",
+                    "aptitude_score":  None,
+                    "technical_score": None,
+                    "coding_score":    None,
+                    "message":         "Test started but no section submitted yet",
+                }
+    
+            # ── At least one section submitted ──
+            if attempt.status == "in_progress":
+                return {
+                    "attempt_id":      attempt.attempt_id,
+                    "status":          "in_progress",
+                    "aptitude_score":  attempt.aptitude_score,
+                    "technical_score": attempt.technical_score,
+                    "coding_score":    attempt.programming_score,
+                    "message":         "Test is in progress",
+                }
+    
+            # ── Fully completed ──
+            if attempt.status == "completed":
+                return self.build_final_response(attempt)
+    
+            # ── Fallback (unknown status) ──
             return {
                 "attempt_id": attempt.attempt_id,
-                "status": None,  # as you want
-                "aptitude_score": None,
-                "technical_score": None,
-                "coding_score": None,
-                "message": "Test not started"
+                "status":     attempt.status,
+                "message":    "Unknown status",
             }
+    
+    def build_final_response(self, attempt):
+            
+            aptitude_score    = attempt.aptitude_score    or 0
+            technical_score   = attempt.technical_score   or 0
+            programming_score = attempt.programming_score or 0
+    
+            aptitude_status, technical_status, programming_status = _build_section_statuses(
+                aptitude_score, technical_score, programming_score
+            )
+    
+            final_result = (
+                "PASS"
+                if aptitude_status == "PASS"
+                and technical_status == "PASS"
+                and programming_status == "PASS"
+                else "FAIL"
+            )
+    
+            scholarship_eligible = (attempt.total_score or 0) >= SCHOLARSHIP_MARK
+    
+            return {
+                # ── STATUS IS NOW ALWAYS PRESENT ──
+                "attempt_id": attempt.attempt_id,
+                "status":     "completed",              # ← THIS WAS MISSING
+    
+                # Scores
+                "aptitude_score":      aptitude_score,
+                "aptitude_status":     aptitude_status,
+                "technical_score":     technical_score,
+                "technical_status":    technical_status,
+                "coding_score":   programming_score,
+                "programming_status":  programming_status,
+    
+                # Totals
+                "total_score":         attempt.total_score       or 0,
+                "percentage":          attempt.total_percentage  or 0,
+                "final_result":        final_result,
+                "scholarship_eligible": scholarship_eligible,
+    
+                # Aptitude breakdown
+                "aptitude_correct":    attempt.aptitude_correct  or 0,
+                "aptitude_wrong":      attempt.aptitude_wrong    or 0,
+                "aptitude_skipped":    attempt.aptitude_skipped  or 0,
+    
+                # Technical breakdown
+                "technical_correct":   attempt.technical_correct or 0,
+                "technical_wrong":     attempt.technical_wrong   or 0,
+                "technical_skipped":   attempt.technical_skipped or 0,
+    
+                # Coding breakdown
+                "coding_correct":      attempt.coding_correct    or 0,
+                "coding_wrong":        attempt.coding_wrong      or 0,
+                "coding_skipped":      attempt.coding_skipped    or 0,
+            }
+#     def get_user_exam_status(self, user_id: int):
+
+
+# #     if attempt.status == "in_progress":
+# #         return {
+# #             "attempt_id": attempt.attempt_id,
+# #             "status": "in_progress",
+# #             "aptitude_score": attempt.aptitude_score,
+# #             "technical_score": attempt.technical_score,
+# #             "coding_score": attempt.programming_score,
+# #             "message": "Test is in progress"
+# #         }
+#         attempt = self.db.query(Attempts).filter(
+#             Attempts.user_id == user_id
+#         ).order_by(Attempts.attempt_id.desc()).first()
+
+#         # No attempt
+#         # if not attempt:
+#         #     return {
+#         #         "status": "not_started",
+#         #         "message": "User has not started any test"
+#         #     }
+
+#         #In Progress
+
+#         if attempt.status == "STARTED":
+#             return {
+#                 "attempt_id": attempt.attempt_id,
+#                 "status": None,  # as you want
+#                 "aptitude_score": None,
+#                 "technical_score": None,
+#                 "coding_score": None,
+#                 "message": "Test not started"
+#             }
         
-        if attempt.status == "in_progress":
-            # if attempt.aptitude_score == None and attempt.technical_score == None and attempt.programming_score == None:
-            #     progress = None
-            # else:
-            #     progress = "in_progress"
-            return {
-                "attempt_id": attempt.attempt_id,
-                "status": "in_progress",
-                "aptitude_score": attempt.aptitude_score ,
-                "technical_score": attempt.technical_score ,
-                "coding_score": attempt.programming_score ,
-                "message": "Test is in progress"
-            }
+#         if attempt.status == "in_progress":
+#             # if attempt.aptitude_score == None and attempt.technical_score == None and attempt.programming_score == None:
+#             #     progress = None
+#             # else:
+#             #     progress = "in_progress"
+#             return {
+#                 "attempt_id": attempt.attempt_id,
+#                 "status": "in_progress",
+#                 "aptitude_score": attempt.aptitude_score ,
+#                 "technical_score": attempt.technical_score ,
+#                 "coding_score": attempt.programming_score ,
+#                 "message": "Test is in progress"
+#             }
 
-        # Completed
-        # if attempt.status == "completed":
-        #     return {
-        #         "attempt_id": attempt.attempt_id,
-        #         "status": "completed",
-        #         "aptitude_score": attempt.aptitude_score or 0,
-        #         "technical_score": attempt.technical_score or 0,
-        #         "coding_score": attempt.programming_score or 0,
-        #         "total_score": attempt.total_score or 0,
-        #         "percentage": attempt.total_percentage or 0,
-        #         "submitted_at": attempt.submitted_at
-        #     }
-        if attempt.status == "completed":
-            return self.build_final_response(attempt)
+#         # Completed
+#         # if attempt.status == "completed":
+#         #     return {
+#         #         "attempt_id": attempt.attempt_id,
+#         #         "status": "completed",
+#         #         "aptitude_score": attempt.aptitude_score or 0,
+#         #         "technical_score": attempt.technical_score or 0,
+#         #         "coding_score": attempt.programming_score or 0,
+#         #         "total_score": attempt.total_score or 0,
+#         #         "percentage": attempt.total_percentage or 0,
+#         #         "submitted_at": attempt.submitted_at
+#         #     }
+#         if attempt.status == "completed":
+#             return self.build_final_response(attempt)
 
     def get_exam_summary(self):
 
@@ -138,7 +259,7 @@ class AttemptCrud:
                 if row.status != 'completed':
                     rslt = row.status
                 else:
-                    rslt = "PASS" if total >= 25 else "FAIL"
+                    rslt = "PASS" if total >= 23 else "FAIL"
 
                 response.append({
                     "user_id": row.user_id,
@@ -256,11 +377,35 @@ class AttemptCrud:
 
         else:
             raise HTTPException(400, "Invalid test_type")
+        
+        aptitude_score    = attempt.aptitude_score    or 0
+        technical_score   = attempt.technical_score   or 0
+        programming_score = attempt.programming_score or 0
 
+        attempt.total_score = aptitude_score + technical_score + programming_score
+
+        # Recalculate percentage
+        num_coding_qs = self.db.query(Questions).filter(
+            Questions.question_type == "coding"
+        ).count()
+        MAX_TOTAL = 15 + 15 + (num_coding_qs * 5)
+        attempt.total_percentage = int(
+            (attempt.total_score / MAX_TOTAL) * 100
+        ) if MAX_TOTAL > 0 else 0
+        
         # ---------------- STATUS ----------------
-        if attempt.aptitude_score is not None or attempt.technical_score is not None:
-            attempt.status = "in_progress"
+        # if attempt.aptitude_score is not None or attempt.technical_score is not None:
+        #     attempt.status = "in_progress"
+        # # NEW (correct):
+        aptitude_done  = attempt.aptitude_score    is not None
+        technical_done = attempt.technical_score   is not None
+        coding_done    = attempt.programming_score is not None  # already saved if coding submitted first
 
+        if aptitude_done and technical_done and coding_done:
+            attempt.status = "completed"
+        else:
+            attempt.status = "in_progress"
+        
         self.db.commit()
         self.db.refresh(attempt)
 
@@ -269,9 +414,12 @@ class AttemptCrud:
             "attempt_id": attempt.attempt_id,
             "status": attempt.status,
             "aptitude_score": attempt.aptitude_score,
-            "technical_score": attempt.technical_score
+            "technical_score": attempt.technical_score,
+            "total_score": attempt.total_score,
+            "percentage": attempt.total_percentage
         }
         # ---------------- FINAL SUBMIT (CODING + TOTAL CALC) ----------------
+
     def submit_test(self, user_id: int):
 
         # ---------------- GET ALL CODING QUESTIONS ----------------
@@ -363,8 +511,8 @@ class AttemptCrud:
         ) if MAX_TOTAL > 0 else 0
 # ---------------- SECTION PASS/FAIL (DYNAMIC) ----------------
 
-        aptitude_status = "PASS" if aptitude_score >= 6 else "FAIL"
-        technical_status = "PASS" if technical_score >= 7 else "FAIL"
+        aptitude_status = "PASS" if aptitude_score >= 5 else "FAIL"
+        technical_status = "PASS" if technical_score >= 5 else "FAIL"
         programming_status = "PASS" if programming_score >= 10 else "FAIL"
         
         scholarship_eligible = attempt.total_score >= 23 
@@ -422,51 +570,136 @@ class AttemptCrud:
         }
     
 
-    def build_final_response(self, attempt):
+    # def build_final_response(self, attempt):
 
-        aptitude_score = attempt.aptitude_score or None
-        technical_score = attempt.technical_score or None
-        programming_score = attempt.programming_score or None
+    #     aptitude_score = attempt.aptitude_score or 0
+    #     technical_score = attempt.technical_score or 0
+    #     programming_score = attempt.programming_score or 0
 
-        aptitude_status = "PASS" if aptitude_score >= 6 else "FAIL"
-        technical_status = "PASS" if technical_score >= 7 else "FAIL"
-        programming_status = "PASS" if programming_score >= 10 else "FAIL"
+    #     aptitude_status = "PASS" if aptitude_score >= 6 else "FAIL"
+    #     technical_status = "PASS" if technical_score >= 7 else "FAIL"
+    #     programming_status = "PASS" if programming_score >= 10 else "FAIL"
 
-        final_result = (
-            "PASS"
-            if aptitude_status == "PASS"
-            and technical_status == "PASS"
-            and programming_status == "PASS"
-            else "FAIL"
-        )
+    #     final_result = (
+    #         "PASS"
+    #         if aptitude_status == "PASS"
+    #         and technical_status == "PASS"
+    #         and programming_status == "PASS"
+    #         else "FAIL"
+    #     )
 
-        scholarship_eligible = attempt.total_score >= 23
+    #     scholarship_eligible = attempt.total_score >= 23
 
-        return {
-            "user_id": attempt.user_id,
-            "attempt_id": attempt.attempt_id,
+    #     return {
+    #         "user_id": attempt.user_id,
+    #         "attempt_id": attempt.attempt_id,
 
-            "aptitude_score": aptitude_score,
-            "aptitude_status": aptitude_status,
-            "technical_score": technical_score,
-            "technical_status": technical_status,
-            "programming_score": programming_score,
-            "programming_status": programming_status,
+    #         "aptitude_score": aptitude_score,
+    #         "aptitude_status": aptitude_status,
+    #         "technical_score": technical_score,
+    #         "technical_status": technical_status,
+    #         "programming_score": programming_score,
+    #         "programming_status": programming_status,
 
-            "total_score": attempt.total_score,
-            "percentage": attempt.total_percentage,
-            "final_result": final_result,
-            "scholarship_eligible": scholarship_eligible,
+    #         "total_score": attempt.total_score,
+    #         "percentage": attempt.total_percentage,
+    #         "final_result": final_result,
+    #         "scholarship_eligible": scholarship_eligible,
 
-            "aptitude_correct": attempt.aptitude_correct or 0,
-            "aptitude_wrong": attempt.aptitude_wrong or 0,
-            "aptitude_skipped": attempt.aptitude_skipped or 0,
+    #         "aptitude_correct": attempt.aptitude_correct or 0,
+    #         "aptitude_wrong": attempt.aptitude_wrong or 0,
+    #         "aptitude_skipped": attempt.aptitude_skipped or 0,
 
-            "technical_correct": attempt.technical_correct or 0,
-            "technical_wrong": attempt.technical_wrong or 0,
-            "technical_skipped": attempt.technical_skipped or 0,
+    #         "technical_correct": attempt.technical_correct or 0,
+    #         "technical_wrong": attempt.technical_wrong or 0,
+    #         "technical_skipped": attempt.technical_skipped or 0,
 
-            "coding_correct": attempt.coding_correct,
-            "coding_wrong": attempt.coding_wrong,
-            "coding_skipped": attempt.coding_skipped,
-        }
+    #         "coding_correct": attempt.coding_correct,
+    #         "coding_wrong": attempt.coding_wrong,
+    #         "coding_skipped": attempt.coding_skipped,
+    #     }
+
+
+
+    """
+JAVASCRIPT CODE SNIPPET (FOR REFERENCE)
+
+
+const lines = require("fs").readFileSync(0, "utf-8")
+  .split("\n")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const num = parseInt(lines[0], 10);
+
+// Write your logic here
+console.log(num);
+
+PYTHON CODE SNIPPET (FOR REFERENCE)
+
+import sys
+
+input_data = sys.stdin.read().split()
+
+num = int(input_data[0])
+
+# import sys
+
+# input_data = sys.stdin.read().split()
+# nums = list(map(int, input_data))
+
+# # Write your logic here
+# print(nums)
+
+# Write your logic here
+print(num)
+
+JAVA CODE SNIPPET (FOR REFERENCE)
+
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StreamTokenizer st = new StreamTokenizer(br);
+
+        st.nextToken();
+        int num = (int) st.nval;
+
+        // Write your logic here
+        System.out.println(num);
+    }
+}
+
+C++ CODE SNIPPET (FOR REFERENCE)
+
+#include <iostream>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int num;
+    cin >> num;
+
+    // Write your logic here
+    cout << num << endl;
+    return 0;
+}
+
+C CODE SNIPPET (FOR REFERENCE)
+
+#include <stdio.h>
+
+int main() {
+    int num;
+    scanf("%d", &num);
+
+    // Write your logic here
+    printf("%d\n", num);
+    return 0;
+}
+    
+    """
