@@ -50,3 +50,12 @@ class MentorCreate(BaseModel):
     batch: Optional[int] = None   # user can send null
     phone: Optional[str] = None
     tech_stack: Optional[str] = None
+    
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class AdminResetPassword(BaseModel):
+    user_id: int
+    new_password: str
