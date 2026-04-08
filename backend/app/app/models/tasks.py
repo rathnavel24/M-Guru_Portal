@@ -12,6 +12,7 @@ class Task(Base):
     start_time = Column(TIMESTAMP, default = None)
     completion_time = Column(TIMESTAMP, default= None )
     description = Column(String(255))
+    priority = Column(Integer) # low - 3, medium - 2, high - 1
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100))
     updated_at = Column(TIMESTAMP, default=func.now())
