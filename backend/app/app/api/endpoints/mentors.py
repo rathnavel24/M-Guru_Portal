@@ -1,8 +1,11 @@
-from fastapi import APIRouter,Depends
+from fastapi import APIRouter,Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.app.app.api.deps import get_db
+# from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.get_allmentor import Getall_mentor
 from backend.app.app.api.deps import get_db, role_required
+from fastapi import Request
+from backend.app.app.schemas.user_schema import MentorCreate
+from backend.app.app.crud.get_allmentor import Add_mentor
 
 router = APIRouter(tags=["Mentor"])
 
@@ -13,3 +16,24 @@ def get_mentors(db:Session = Depends(get_db),
         return Getall_mentor(db).get_all_mentors()
     except Exception as e:
         return {"error" : str(e)}
+    
+@router.post("/add_mentor")
+def add_mentor(
+    mentor: MentorCreate,
+    db: Session = Depends(get_db),
+    user = Depends(role_required([1, 4]))
+):
+    try:
+        result = Add_mentor(db).add_mentor(mentor)
+
+        # custom error from CRUD
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+
+        return result
+
+    except HTTPException as e:
+        raise e
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
