@@ -203,13 +203,13 @@ class AttemptCrud:
 #         #     }
 #         if attempt.status == "completed":
 #             return self.build_final_response(attempt)
-
     def get_exam_summary(self):
 
+        # ── Use max(attempt_id) instead of submitted_at — submitted_at can be NULL ──
         latest_attempt_subq = (
             self.db.query(
                 Attempts.user_id,
-                func.max(Attempts.submitted_at).label("latest_submitted")
+                func.max(Attempts.attempt_id).label("latest_attempt_id")  # ← FIXED
             )
             .group_by(Attempts.user_id)
             .subquery()
@@ -236,8 +236,8 @@ class AttemptCrud:
             .outerjoin(
                 latest_attempt,
                 and_(
-                    latest_attempt.user_id      == latest_attempt_subq.c.user_id,
-                    latest_attempt.submitted_at == latest_attempt_subq.c.latest_submitted
+                    latest_attempt.user_id     == latest_attempt_subq.c.user_id,
+                    latest_attempt.attempt_id  == latest_attempt_subq.c.latest_attempt_id  # ← FIXED
                 )
             )
         )
@@ -246,29 +246,23 @@ class AttemptCrud:
         response = []
 
         for row in results:
-            aptitude = row.aptitude_score or 0
+            aptitude  = row.aptitude_score or 0
             technical = row.technical_score or 0
-            coding   = row.coding_score   or 0
-            total    = row.total_score    or 0
+            coding    = row.coding_score   or 0
+            total     = row.total_score    or 0
 
-            
             if row.status == "completed":
                 aptitude_result  = "PASS" if aptitude  >= APTITUDE_PASS_MARK    else "FAIL"
                 technical_result = "PASS" if technical >= TECHNICAL_PASS_MARK   else "FAIL"
                 coding_result    = "PASS" if coding    >= PROGRAMMING_PASS_MARK else "FAIL"
 
-                all_pass = (
-                    aptitude_result  == "PASS" and
-                    technical_result == "PASS" and
-                    coding_result    == "PASS"
-                )
-                overall_result      = "PASS" if all_pass else "FAIL"
+                overall_result       = "PASS" if (aptitude_result == "PASS" and technical_result == "PASS" and coding_result == "PASS") else "FAIL"
                 scholarship_eligible = total >= SCHOLARSHIP_MARK
             else:
                 aptitude_result      = None
                 technical_result     = None
                 coding_result        = None
-                overall_result       = row.status   # "STARTED" / "in_progress" / "not_started"
+                overall_result       = row.status
                 scholarship_eligible = False
 
             response.append({
@@ -277,20 +271,18 @@ class AttemptCrud:
                 "name":     row.name,
                 "email":    row.email,
 
-                # Scores
                 "aptitude_score":       aptitude,
                 "aptitude_percentage":  round((aptitude  / APTITUDE_TOTAL)  * 100, 2),
                 "aptitude_result":      aptitude_result,
 
                 "technical_score":      technical,
-                "technical_percentage": round((technical / TECHNICAL_TOTAL) * 100, 2),
+                "technical_percentage": round((technical / TECHNICAL_TOTAL) * 100,2),
                 "technical_result":     technical_result,
 
                 "coding_score":         coding,
                 "coding_percentage":    round((coding    / CODING_TOTAL)    * 100, 2),
                 "coding_result":        coding_result,
 
-                # Totals
                 "total_score":          total,
                 "total_percentage":     round((total     / OVERALL_TOTAL)   * 100, 2),
 
@@ -299,7 +291,6 @@ class AttemptCrud:
             })
 
         return response
-    
     
     def truncate_exam_users(self):
         try:
