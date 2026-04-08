@@ -61,6 +61,21 @@ class Tasks(AbstractTask):
         if user and user.current_task_id == task_id:
             user.current_task_id = None
 
+    def _get_created_by_value(self, task: Task):
+        if str(task.created_by) == str(task.user_id):
+            return task.created_by
+
+        if task.created_by is None:
+            return None
+
+        creator = (
+            self.db.query(Users)
+            .filter(Users.user_id == task.created_by, Users.status == 1)
+            .first()
+        )
+
+        return creator.username if creator else task.created_by
+
     def _ensure_task_actor_allowed(self, task: Task, current_user: dict):
         current_user_id = current_user.get("user_id")
         current_user_role = current_user.get("role")
@@ -200,11 +215,13 @@ class Tasks(AbstractTask):
             "task_id": task.task_id,
             "user_id": task.user_id,
             "title": task.title,
+            "description": task.description,
+            "priority": task.priority,
             "status": task.status,
             "start_time": task.start_time,
             "completion_time": task.completion_time,
             "created_at": task.created_at,
-            "created_by": task.created_by,
+            "created_by": self._get_created_by_value(task),
             "updated_at": task.updated_at,
             "due_time": task.due_time,
             "is_editable": is_editable,
