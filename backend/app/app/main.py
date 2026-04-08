@@ -68,19 +68,35 @@ scheduler.add_job(safe_logout_all_users, "cron", hour=13, minute=0)
 
 @app.on_event("startup")
 def start_scheduler():
-    #print("lin 103")
+   
     """
     Start the scheduler safely. 
     Do NOT automatically log out on startup to avoid wiping all tokens.
     """
     if not scheduler.running:
-        #print("lin 108")
+     
         scheduler.start()
     logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
 
 
-from backend.app.app.crud.auto_remainder import start_scheduler
+# from backend.app.app.crud.auto_remainder import start_scheduler
+# import asyncio
 
-@app.on_event("startup")
-async def startup_event():
-    start_scheduler(test_mode = True)
+# @app.on_event("startup")
+# async def startup_event():
+#     start_scheduler(test_mode = False)
+
+
+
+# import asyncio
+# from concurrent.futures import ThreadPoolExecutor
+# from backend.app.app.crud.auto_remainder import start_scheduler
+
+# # Create a ThreadPoolExecutor
+# executor = ThreadPoolExecutor()
+
+# @app.on_event("startup")
+# async def startup_event():
+#     loop = asyncio.get_event_loop()
+#     # Run the synchronous start_scheduler function in a separate thread
+#     loop.run_in_executor(executor, start_scheduler, True)

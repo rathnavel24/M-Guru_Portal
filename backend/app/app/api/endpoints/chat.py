@@ -21,7 +21,12 @@ def _get_socket_token(websocket: WebSocket) -> Optional[str]:
     header = websocket.headers.get("authorization")
     if header and header.lower().startswith("bearer "):
         return header.split(" ", 1)[1].strip()
-    return websocket.query_params.get("token")
+    return (
+        websocket.query_params.get("token")
+        or websocket.query_params.get("access_token")
+        or websocket.query_params.get("authToken")
+        or websocket.query_params.get("authorization")
+    )
 
 
 def _get_socket_payload(raw_message: str) -> dict:
@@ -235,6 +240,7 @@ async def delete_chat_group(
 
 
 @router.websocket("/ws/{conversation_id}")
+@router.websocket("/{conversation_id}/ws")
 @router.websocket("/groups/{conversation_id}/ws", name="Group Chat WebSocket")
 async def group_chat_websocket(websocket: WebSocket, conversation_id: int):
     token = _get_socket_token(websocket)
