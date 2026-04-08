@@ -305,6 +305,7 @@ class AttemptCrud:
         try:
             self.db.execute(text("TRUNCATE TABLE exam_attempts RESTART IDENTITY CASCADE"))
             self.db.execute(text("TRUNCATE TABLE exam_user RESTART IDENTITY CASCADE"))
+            self.db.execute(text("TRUNCATE TABLE coding_submissions RESTART IDENTITY CASCADE"))
             self.db.commit()
 
             return {
