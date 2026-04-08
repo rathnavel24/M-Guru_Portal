@@ -470,6 +470,52 @@ class UserServices:
             "paid_amount": paid_amount,
             "due_amount": total_fee - paid_amount,
         }
+    def change_password(self, current_user, data):
+        user = self.db.query(Users).filter(
+            Users.user_id == current_user.get("user_id"),
+            Users.status == 1
+        ).first()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+        
+        if len(data.new_password) < 6:
+            raise HTTPException(400, "Password too short")
+        
+        # verify old password
+        if not verify_password(data.old_password, user.password):
+            raise HTTPException(401, "Old password is incorrect")
+
+        # check if new password is same as old password
+        if verify_password(data.new_password, user.password):
+            raise HTTPException(400, "New password cannot be same as old password")
+        # update password
+        user.password = get_password_hash(data.new_password)
+
+        self.db.commit()
+
+        return {"msg": "Password updated successfully"}
+    def admin_reset_password(self, data):
+        user = self.db.query(Users).filter(
+            Users.user_id == data.user_id,
+            Users.status == 1
+        ).first()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+        
+        if len(data.new_password) < 6:
+            raise HTTPException(400, "Password too short")
+        
+        # check if new password is same as old password
+        if verify_password(data.new_password, user.password):
+            raise HTTPException(400, "New password cannot be same as old password")
+
+        user.password = get_password_hash(data.new_password)
+
+        self.db.commit()
+
+        return {"msg": "Password reset successfully by admin"}
 
 
 class GetEmail:

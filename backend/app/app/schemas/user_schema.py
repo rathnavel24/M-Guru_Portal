@@ -42,3 +42,12 @@ class UserUpdate(BaseModel):
     tech_stack: Optional[str] = None
     total_fee: Optional[float] = None
     paid_amount: Optional[float] = None
+
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class AdminResetPassword(BaseModel):
+    user_id: int
+    new_password: str
