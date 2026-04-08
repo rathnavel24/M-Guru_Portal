@@ -83,4 +83,4 @@ from backend.app.app.crud.auto_remainder import start_scheduler
 
 @app.on_event("startup")
 async def startup_event():
-    start_scheduler(test_mode = True)
+    start_scheduler(test_mode = False)
