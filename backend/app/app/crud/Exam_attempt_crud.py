@@ -12,13 +12,15 @@ from backend.app.app.models.Exam_questions import Questions
 from backend.app.app.models.Exam_user import ExamUsers
 from backend.app.app.models.Submit_coding import Coding_Submissions
 
-APTITUDE_PASS_MARK    = 5
-TECHNICAL_PASS_MARK   = 5
-PROGRAMMING_PASS_MARK = 10
+APTITUDE_PASS_MARK    = 7
+TECHNICAL_PASS_MARK   = 6
+PROGRAMMING_PASS_MARK = 10   # 2/4 questions = 2*5 = 10
 SCHOLARSHIP_MARK      = 23
- 
+
 APTITUDE_TOTAL  = 15
 TECHNICAL_TOTAL = 15
+CODING_TOTAL    = 20   # 4 questions * 5 marks each
+OVERALL_TOTAL   = 50  
  
 def _build_section_statuses(aptitude_score, technical_score, programming_score):
     return (
@@ -204,82 +206,100 @@ class AttemptCrud:
 
     def get_exam_summary(self):
 
-            # Subquery to get latest attempt per user
-            latest_attempt_subq = (
-                self.db.query(
-                    Attempts.user_id,
-                    func.max(Attempts.submitted_at).label("latest_submitted")
-                )
-                .group_by(Attempts.user_id)
-                .subquery()
+        latest_attempt_subq = (
+            self.db.query(
+                Attempts.user_id,
+                func.max(Attempts.submitted_at).label("latest_submitted")
             )
+            .group_by(Attempts.user_id)
+            .subquery()
+        )
 
-            # Join with actual Attempts table
-            latest_attempt = aliased(Attempts)
+        latest_attempt = aliased(Attempts)
 
-            query = (
-                self.db.query(
-                    ExamUsers.user_id,
-                    ExamUsers.username,
-                    ExamUsers.name,
-                    ExamUsers.email,
-
-                    func.coalesce(latest_attempt.aptitude_score, 0).label("aptitude_score"),
-                    func.coalesce(latest_attempt.technical_score, 0).label("technical_score"),
-                    func.coalesce(latest_attempt.total_score, 0).label("total_score"),
-                    func.coalesce(latest_attempt.status,"Ongoing").label("status"),
-                )
-                .outerjoin(
-                    latest_attempt_subq,
-                    latest_attempt_subq.c.user_id == ExamUsers.user_id
-                )
-                .outerjoin(
-                    latest_attempt,
-                    and_(
-                        latest_attempt.user_id == latest_attempt_subq.c.user_id,
-                        latest_attempt.submitted_at == latest_attempt_subq.c.latest_submitted
-                    )
+        query = (
+            self.db.query(
+                ExamUsers.user_id,
+                ExamUsers.username,
+                ExamUsers.name,
+                ExamUsers.email,
+                func.coalesce(latest_attempt.aptitude_score,    0).label("aptitude_score"),
+                func.coalesce(latest_attempt.technical_score,   0).label("technical_score"),
+                func.coalesce(latest_attempt.programming_score, 0).label("coding_score"),
+                func.coalesce(latest_attempt.total_score,       0).label("total_score"),
+                func.coalesce(latest_attempt.status, "not_started").label("status"),
+            )
+            .outerjoin(
+                latest_attempt_subq,
+                latest_attempt_subq.c.user_id == ExamUsers.user_id
+            )
+            .outerjoin(
+                latest_attempt,
+                and_(
+                    latest_attempt.user_id      == latest_attempt_subq.c.user_id,
+                    latest_attempt.submitted_at == latest_attempt_subq.c.latest_submitted
                 )
             )
+        )
 
-            results = query.all()
+        results  = query.all()
+        response = []
 
-            response = []
+        for row in results:
+            aptitude = row.aptitude_score or 0
+            technical = row.technical_score or 0
+            coding   = row.coding_score   or 0
+            total    = row.total_score    or 0
 
-            for row in results:
-                aptitude = row.aptitude_score or 0
-                technical = row.technical_score or 0
-                total = row.total_score or 0
+            
+            if row.status == "completed":
+                aptitude_result  = "PASS" if aptitude  >= APTITUDE_PASS_MARK    else "FAIL"
+                technical_result = "PASS" if technical >= TECHNICAL_PASS_MARK   else "FAIL"
+                coding_result    = "PASS" if coding    >= PROGRAMMING_PASS_MARK else "FAIL"
 
-                # adjust if needed
-                aptitude_total = 30
-                technical_total = 20
-                overall_total = 50
+                all_pass = (
+                    aptitude_result  == "PASS" and
+                    technical_result == "PASS" and
+                    coding_result    == "PASS"
+                )
+                overall_result      = "PASS" if all_pass else "FAIL"
+                scholarship_eligible = total >= SCHOLARSHIP_MARK
+            else:
+                aptitude_result      = None
+                technical_result     = None
+                coding_result        = None
+                overall_result       = row.status   # "STARTED" / "in_progress" / "not_started"
+                scholarship_eligible = False
 
-                if row.status != 'completed':
-                    rslt = row.status
-                else:
-                    rslt = "PASS" if total >= 23 else "FAIL"
+            response.append({
+                "user_id":  row.user_id,
+                "username": row.username,
+                "name":     row.name,
+                "email":    row.email,
 
-                response.append({
-                    "user_id": row.user_id,
-                    "username": row.username,
-                    "name": row.name,
-                    "email": row.email,
+                # Scores
+                "aptitude_score":       aptitude,
+                "aptitude_percentage":  round((aptitude  / APTITUDE_TOTAL)  * 100, 2),
+                "aptitude_result":      aptitude_result,
 
-                    "aptitude_score": aptitude,
-                    "aptitude_percentage": (aptitude / aptitude_total) * 100 if aptitude_total else 0,
+                "technical_score":      technical,
+                "technical_percentage": round((technical / TECHNICAL_TOTAL) * 100, 2),
+                "technical_result":     technical_result,
 
-                    "technical_score": technical,
-                    "technical_percentage": (technical / technical_total) * 100 if technical_total else 0,
+                "coding_score":         coding,
+                "coding_percentage":    round((coding    / CODING_TOTAL)    * 100, 2),
+                "coding_result":        coding_result,
 
-                    "total_score": total,
-                    "total_percentage": (total / overall_total) * 100 if overall_total else 0,
+                # Totals
+                "total_score":          total,
+                "total_percentage":     round((total     / OVERALL_TOTAL)   * 100, 2),
 
-                    "result": rslt
-                })
+                "result":               overall_result,
+                "scholarship_eligible": scholarship_eligible,
+            })
 
-            return response
+        return response
+    
     
     def truncate_exam_users(self):
         try:
