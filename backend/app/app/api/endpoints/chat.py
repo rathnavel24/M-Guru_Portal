@@ -270,6 +270,17 @@ async def group_chat_websocket(websocket: WebSocket, conversation_id: int):
             requester_id=current_user.get("user_id"),)
         print(f"[DEBUG] User context for conversation {conversation_id}: {user_context}") 
 
+        if user_context is None:
+            await websocket.accept()
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "detail": "You are not a member of this conversation",
+                }
+            )
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+
         await chat_connection_manager.connect(
             conversation_id,
             current_user.get("user_id"),
