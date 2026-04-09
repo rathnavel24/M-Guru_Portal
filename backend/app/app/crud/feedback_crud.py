@@ -16,7 +16,19 @@ def create_feedback(db: Session, data, current_user):
     ).first()
 
     if not receiver:
-        raise HTTPException(status_code=404, detail="Admin/Mentor not found")
+        feedback = Feedback(
+        user_id=current_user["user_id"],
+        assigned_to=None,
+        category=data.category,
+        message=data.message,
+        status="pending"
+    )
+
+        db.add(feedback)
+        db.commit()
+        db.refresh(feedback)
+
+        return feedback
 
     if current_user["user_id"] == data.assigned_to:
         raise HTTPException(status_code=400, detail="Cannot send feedback to yourself")
@@ -43,7 +55,7 @@ def get_all_feedback(db: Session, current_user):
     if current_user["role"] != 1:
         raise HTTPException(status_code=403, detail="Only admin allowed")
 
-    # ✅  return ALL
+    # return ALL
     return db.query(Feedback).order_by(
         Feedback.created_at.desc()
     ).all()
@@ -63,7 +75,7 @@ def get_feedback_for_admin(db: Session, current_user):
 # Reply (Admin/Mentor)
 def reply_feedback(db: Session, data, current_user):
 
-    # ✅ Only ADMIN allowed
+    # Only ADMIN allowed
     if current_user["role"] != 1:
         raise HTTPException(
             status_code=403,
