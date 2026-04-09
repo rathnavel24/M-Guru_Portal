@@ -1,9 +1,9 @@
 import json
 from typing import Optional
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
-from starlette.websockets import WebSocketState
 
 from backend.app.app.api.deps import authenticate_token_value, get_db, role_required
 from backend.app.app.core.chat_socket import chat_connection_manager
@@ -12,6 +12,7 @@ from backend.app.app.db.session import sessionLocal
 from backend.app.app.schemas.chat_schema import MessageCreate
 
 router = APIRouter(prefix="/Chat", tags=["Chat"])
+logger = logging.getLogger(__name__)
 
 CHAT_MEMBER_ROLES = [1, 2, 3, 4]
 ADMIN_ONLY_ROLES = [1]
@@ -244,21 +245,29 @@ async def delete_chat_group(
 @router.websocket("/groups/{conversation_id}/ws", name="Group Chat WebSocket")
 async def group_chat_websocket(websocket: WebSocket, conversation_id: int):
     token = _get_socket_token(websocket)
-    print(f"[DEBUG] Extracted token: {token}")
-    if not token:
-        await websocket.accept()
-        await websocket.send_json({"type": "error", "detail": "Authentication token is required"})
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
+    logger.debug("WebSocket token extracted for conversation %s: %s", conversation_id, token)
 
     db = sessionLocal()
     service = Chat(db)
+    current_user = None
     user_context = None
     joined_conversation = False
 
     try:
+        if not token:
+            logger.debug(
+                "WebSocket authentication failed for conversation %s: missing token",
+                conversation_id,
+            )
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+
         current_user = authenticate_token_value(token, db)
-        print(f"[DEBUG] Authenticated user: {current_user}") 
+        logger.debug(
+            "WebSocket authenticated user for conversation %s: %s",
+            conversation_id,
+            current_user,
+        )
         if current_user.get("role") not in CHAT_MEMBER_ROLES:
             raise HTTPException(
                 status_code=403,
@@ -267,24 +276,20 @@ async def group_chat_websocket(websocket: WebSocket, conversation_id: int):
 
         user_context = service.get_realtime_context(
             conversation_id=conversation_id,
-            requester_id=current_user.get("user_id"),)
-        print(f"[DEBUG] User context for conversation {conversation_id}: {user_context}") 
-
-        if user_context is None:
-            await websocket.accept()
-            await websocket.send_json(
-                {
-                    "type": "error",
-                    "detail": "You are not a member of this conversation",
-                }
-            )
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return
+            requester_id=current_user.get("user_id"),
+        )
+        logger.debug(
+            "WebSocket membership check passed for conversation %s and user %s: %s",
+            conversation_id,
+            current_user.get("user_id"),
+            user_context,
+        )
 
         await chat_connection_manager.connect(
             conversation_id,
             current_user.get("user_id"),
-            websocket,)
+            websocket,
+        )
         joined_conversation = True
 
         await chat_connection_manager.send_personal_message(
@@ -357,17 +362,20 @@ async def group_chat_websocket(websocket: WebSocket, conversation_id: int):
     except WebSocketDisconnect:
         pass
     except HTTPException as exc:
-        if websocket.client_state == WebSocketState.CONNECTING:
-            await websocket.accept()
-        if websocket.client_state == WebSocketState.CONNECTED:
-            await websocket.send_json({"type": "error", "detail": str(exc.detail)})
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        logger.debug(
+            "WebSocket authorization/membership error for conversation %s and user %s: %s",
+            conversation_id,
+            current_user.get("user_id") if current_user else None,
+            exc.detail,
+        )
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
     except Exception:
-        if websocket.client_state == WebSocketState.CONNECTING:
-            await websocket.accept()
-        if websocket.client_state == WebSocketState.CONNECTED:
-            await websocket.send_json({"type": "error", "detail": "Unexpected websocket error"})
-            await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+        logger.exception(
+            "Unexpected websocket error for conversation %s and user %s",
+            conversation_id,
+            current_user.get("user_id") if current_user else None,
+        )
+        await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
     finally:
         if joined_conversation:
             await chat_connection_manager.disconnect(conversation_id, websocket)
