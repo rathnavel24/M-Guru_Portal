@@ -56,9 +56,3 @@ def add_mentor(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-<<<<<<< HEAD
-    
-
-
-=======
->>>>>>> 42caf98b23bea226313c84c9f068bcb4e6dcd9cf
