@@ -203,6 +203,7 @@ class AttemptCrud:
 #         #     }
 #         if attempt.status == "completed":
 #             return self.build_final_response(attempt)
+
     def get_exam_summary(self):
 
         # ── Use max(attempt_id) instead of submitted_at — submitted_at can be NULL ──
@@ -483,7 +484,7 @@ class AttemptCrud:
         attempt = self.db.query(Attempts).filter(
             Attempts.user_id == user_id
         ).order_by(Attempts.attempt_id.desc()).first()
-
+   
         if not attempt:
             return {"error": "Attempt not found"}
 
