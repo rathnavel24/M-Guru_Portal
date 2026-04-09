@@ -726,7 +726,7 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
             total       = result["total"],
             status      = result["status"],
             outputs     = result["outputs"],
-            submitted_at = datetime.utcnow() 
+            # submitted_at = datetime.utcnow() 
         ))
 
         results.append({
@@ -758,7 +758,7 @@ def submit_code_service_judge0(db: Session, user_id: int, payload: dict) -> dict
                     total       = 0,
                     status      = "SKIPPED",
                     outputs     = [],
-                    submitted_at = datetime.utcnow()
+                    # submitted_at = datetime.utcnow()
                 ))
 
     db.commit()

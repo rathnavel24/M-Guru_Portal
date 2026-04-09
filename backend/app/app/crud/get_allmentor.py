@@ -7,3 +7,17 @@ class Getall_mentor:
 
     def get_all_mentors(self):
         return self.db.query(Users).filter(Users.type ==4).all()
+    
+    
+    def delete_mentor(self, mentor_id: int):
+        mentor = self.db.query(Users).filter(
+            Users.user_id == mentor_id,
+            Users.type == 4
+        ).first()
+
+        if mentor:
+            self.db.delete(mentor)
+            self.db.commit()
+            return {"message": "Mentor deleted successfully"}
+        else:
+            return {"message": "Mentor not found"}
