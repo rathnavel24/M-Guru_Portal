@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from backend.app.app.models import Users
 from backend.app.app.core.security import get_password_hash, hash_password
-from backend.app.app.schemas.user_schema import MentorCreate
+from backend.app.app.schemas.user_schema import MentorCreate, MentorUpdate
 
 class Getall_mentor:
     def __init__(self,db:Session):
