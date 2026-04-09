@@ -17,7 +17,7 @@ from backend.app.app.crud.feedback_crud import (
 router = APIRouter(prefix="/feedback", tags=["Feedback"])
 
 
-# ✅ Create feedback (Intern)
+# Create feedback (Intern)
 @router.post("/", response_model=FeedbackResponse)
 def create_feedback_api(
     data: FeedbackCreate,
@@ -27,7 +27,7 @@ def create_feedback_api(
     return create_feedback(db, data, current_user)
 
 
-# ✅ Intern → View all feedback
+# Intern → View all feedback
 @router.get("/all", response_model=list[FeedbackResponse])
 def get_all_feedback_only(
     db: Session = Depends(get_db),
@@ -36,7 +36,7 @@ def get_all_feedback_only(
     return get_all_feedback(db, current_user)
 
 
-# ✅ Admin/Mentor → View assigned feedback
+# Admin/Mentor → View assigned feedback
 @router.get("/admin", response_model=list[FeedbackResponse])
 def get_admin_feedback_only(
     db: Session = Depends(get_db),
@@ -49,12 +49,12 @@ def get_admin_feedback_only(
 def reply_feedback_api(
     data: FeedbackReply,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1]))  # ✅ admin only
+    current_user=Depends(role_required([1]))  # admin only
 ):
     return reply_feedback(db, data, current_user)
 
 
-# ✅ Delete (Admin)
+#Delete (Admin)
 @router.delete("/{feedback_id}")
 def delete_feedback_api(
     feedback_id: int,

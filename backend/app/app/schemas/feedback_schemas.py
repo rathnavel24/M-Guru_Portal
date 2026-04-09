@@ -5,7 +5,7 @@ from datetime import datetime
 
 # Create
 class FeedbackCreate(BaseModel):
-    assigned_to: int
+    assigned_to: Optional[int] = None  # admin/mentor user_id   
     category: str
     message: str
 
