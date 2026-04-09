@@ -240,7 +240,7 @@ class AttemptCrud:
                     latest_attempt.user_id     == latest_attempt_subq.c.user_id,
                     latest_attempt.attempt_id  == latest_attempt_subq.c.latest_attempt_id  # ← FIXED
                 )
-            )
+            ).order_by(ExamUsers.Created_At.desc())
         )
 
         results  = query.all()

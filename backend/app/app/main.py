@@ -68,11 +68,6 @@ scheduler.add_job(safe_logout_all_users, "cron", hour=13, minute=0)
 
 @app.on_event("startup")
 def start_scheduler():
-   
-    """
-    Start the scheduler safely. 
-    Do NOT automatically log out on startup to avoid wiping all tokens.
-    """
     if not scheduler.running:
      
         scheduler.start()

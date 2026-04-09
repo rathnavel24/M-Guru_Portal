@@ -1,6 +1,8 @@
 from fastapi import APIRouter, BackgroundTasks, Depends
 from backend.app.app.models.portal_users import Users
 from backend.app.app.schemas.user_schema import (
+    AdminResetPassword,
+    ChangePassword,
     UserSignUp,
     UserLogin,
     Paymentmail,
@@ -172,3 +174,19 @@ def update_user(
 @router.post("/exam/logout")
 def exam_logout(user_id: int, db: Session = Depends(get_db)):
     return Logout(db).logout_exam_user(user_id)
+
+@router.post("/change-password")
+def change_password(
+    data: ChangePassword,
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1, 2, 4]))  # all users
+):
+    return UserServices(db, None).change_password(current_user, data)
+
+@router.post("/admin/reset-password")
+def admin_reset_password(
+    data: AdminResetPassword,
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1]))  # admin only
+):
+    return UserServices(db, None).admin_reset_password(data)

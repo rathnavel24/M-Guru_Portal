@@ -8,6 +8,7 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 from backend.app.app.schemas.task_schema import createTask, editTaskDetails, updateTask
 from fastapi import status
+from typing import Optional
 
 class AbstractTask(ABC):
 
@@ -49,6 +50,31 @@ class Tasks(AbstractTask):
         if not task:
             raise HTTPException(status_code=404, detail="task not found")
         return task
+
+    def _set_user_current_task(self, user_id: int, task_id: Optional[int]):
+        user = self.db.query(Users).filter(Users.user_id == user_id).first()
+        if user:
+            user.current_task_id = task_id
+
+    def _clear_user_current_task_if_matches(self, user_id: int, task_id: int):
+        user = self.db.query(Users).filter(Users.user_id == user_id).first()
+        if user and user.current_task_id == task_id:
+            user.current_task_id = None
+
+    def _get_created_by_value(self, task: Task):
+        if str(task.created_by) == str(task.user_id):
+            return task.created_by
+
+        if task.created_by is None:
+            return None
+
+        creator = (
+            self.db.query(Users)
+            .filter(Users.user_id == task.created_by, Users.status == 1)
+            .first()
+        )
+
+        return creator.username if creator else task.created_by
 
     def _ensure_task_actor_allowed(self, task: Task, current_user: dict):
         current_user_id = current_user.get("user_id")
@@ -189,11 +215,13 @@ class Tasks(AbstractTask):
             "task_id": task.task_id,
             "user_id": task.user_id,
             "title": task.title,
+            "description": task.description,
+            "priority": task.priority,
             "status": task.status,
             "start_time": task.start_time,
             "completion_time": task.completion_time,
             "created_at": task.created_at,
-            "created_by": task.created_by,
+            "created_by": self._get_created_by_value(task),
             "updated_at": task.updated_at,
             "due_time": task.due_time,
             "is_editable": is_editable,
@@ -228,6 +256,7 @@ class Tasks(AbstractTask):
             created_by=creator,
             due_time=data.due_time,
             description = data.description,
+            priority = data.priority
         )
         self.db.add(new_task)
         self.db.commit()
@@ -339,6 +368,7 @@ class Tasks(AbstractTask):
 
         task.status = 2
         task.updated_at = current_time
+        self._set_user_current_task(user_id, task.task_id)
 
         new_log = TimeLog(
             task_id=task.task_id,
@@ -388,6 +418,7 @@ class Tasks(AbstractTask):
 
         task.status = 4
         task.updated_at = current_time
+        self._clear_user_current_task_if_matches(user_id, task.task_id)
 
         self.db.add(pass_log)
         self.db.commit()
@@ -425,6 +456,7 @@ class Tasks(AbstractTask):
 
         task.status = 2
         task.updated_at = current_time
+        self._set_user_current_task(user_id, task.task_id)
 
         self.db.add(new_log)
         self.db.commit()
@@ -461,6 +493,7 @@ class Tasks(AbstractTask):
         if task.start_time is None:
             task.start_time = current_time
         task.updated_at = current_time
+        self._clear_user_current_task_if_matches(user_id, task.task_id)
 
         self.db.commit()
         self.db.refresh(task)
@@ -471,8 +504,10 @@ class Tasks(AbstractTask):
 
     def delete_task(self, task_id: int, current_user: dict):
         task = self._get_task_or_404(task_id)
+        user_id = task.user_id
 
         if self._is_admin_or_mentor(current_user):
+            self._clear_user_current_task_if_matches(user_id, task.task_id)
             self.db.query(PassLog).filter(PassLog.task_id == task_id).delete()
             self.db.query(TimeLog).filter(TimeLog.task_id == task_id).delete()
             self.db.delete(task)
@@ -481,6 +516,7 @@ class Tasks(AbstractTask):
 
         self._ensure_self_created_task_owner(task, current_user, "delete")
 
+        self._clear_user_current_task_if_matches(user_id, task.task_id)
         self.db.query(PassLog).filter(PassLog.task_id == task_id).delete()
         self.db.query(TimeLog).filter(TimeLog.task_id == task_id).delete()
         self.db.delete(task)

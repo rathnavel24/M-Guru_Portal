@@ -12,7 +12,6 @@ router = APIRouter(tags=["Attempts"])
 def start_attempt(user_id: int, db: Session = Depends(get_db)):
     return AttemptCrud(db).start_attempt(user_id)
 
-
 # @router.post("/save-scores/{user_id}")
 # def save_scores(
 #     user_id: int,

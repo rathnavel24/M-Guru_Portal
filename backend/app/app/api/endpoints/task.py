@@ -29,12 +29,12 @@ def get_overdue_user_tasks(db: Session = Depends(get_db),
     return service.get_overdue_tasks(current_user.get("user_id"))
 
 
-# @router.put("/{task_id}")
-# def update_task(task_id: int, data: updateTask,
-#                 db: Session = Depends(get_db),
-#                 current_user=Depends(role_required([1,2,3,4]))):
-#     service = Tasks(db)
-#     return service.update_task(task_id, data, current_user)
+@router.put("/edit/{task_id}")
+def update_task(task_id: int, data: updateTask,
+                db: Session = Depends(get_db),
+                current_user=Depends(role_required([1,2,3,4]))):
+    service = Tasks(db)
+    return service.update_task(task_id, data, current_user)
 
 
 # @router.patch("/{task_id}/details")
