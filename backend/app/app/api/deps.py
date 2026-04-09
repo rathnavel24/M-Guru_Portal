@@ -14,7 +14,7 @@ from backend.app.app.models.portal_users import Users
 
 from backend.app.app.crud.attendance import Check
 
-IDLE_TIMEOUT_MINUTES = 1
+IDLE_TIMEOUT_MINUTES = 10
 
 
 def get_db():
@@ -31,15 +31,14 @@ SECRET_KEY = "MqbU2rs3hlCKUWrt3ZvTeg7NxVTgTBPlJkRLWLpgoDttc8IG6I0NTzDwwzJsk"
 ALGORITHM = "HS256"
 
 
-def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
+def authenticate_token_value(token_value: str, db: Session):
     try:
-        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token_value, SECRET_KEY, algorithms=[ALGORITHM])
 
         db_token = (
             db.query(Token)
             .filter(
-                Token.token == token.credentials,
-                # Token.logout == None
+                Token.token == token_value,
             )
             .first()
         )
@@ -50,37 +49,17 @@ def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
         if not db_token:
             raise HTTPException(status_code=401, detail="session timeout or logged out")
 
-        # if payload.get("role")==2:
-
-        #     now = datetime.utcnow()
-        #     if db_token.last_activity:
-        #         diff_minutess = (now - db_token.last_activity).total_seconds() / 60
-        #         diff_minutes = round(diff_minutess, 2)
-
-        #         if diff_minutes <= IDLE_TIMEOUT_MINUTES:
-        #             # User is active, count time
-        #             db_token.last_activity=now
-        #             #db_token.productive_minutes += diff_minutes
-        #             db_token.productive_minutes = (db_token.productive_minutes or 0) + diff_minutes
-        #         else:
-        #             db_token.logout=now
-        #             #db_token.token=None
-
-        #             db.commit()
-        #             user_id=db_token.user_id
-        #             Check(db).checkout(user_id)
-        #             print("User Idle, logged out")
-        #             raise HTTPException(status_code=401, detail="User Idle, logged out")
-        #     #db_token.last_activity = now
-        #     db.commit()
         return payload
 
     except jwt.ExpiredSignatureError:
-        # Handle expired token explicitly
         raise HTTPException(status_code=401, detail="Token expired")
 
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+def get_current_user(token=Depends(security), db: Session = Depends(get_db)):
+    return authenticate_token_value(token.credentials, db)
 
 
 def role_required(allowed_roles: list):

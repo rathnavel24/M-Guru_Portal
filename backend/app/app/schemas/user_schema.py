@@ -8,9 +8,11 @@ class UserSignUp(BaseModel):
     password : str 
     type : Optional[int] = 2
     batch : Optional[int] = None
+    monthly_installment : Optional[bool]=True
+    emi_amount : Optional[float]
     total_fee: Optional[float] = 0
     phone: Optional[str]
-    tech_stack: str   
+    tech_stack: str  
     
 class UserLogin(BaseModel):
     email: str
@@ -40,3 +42,29 @@ class UserUpdate(BaseModel):
     tech_stack: Optional[str] = None
     total_fee: Optional[float] = None
     paid_amount: Optional[float] = None
+
+class MentorCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    batch: Optional[int] = None   # user can send null
+    phone: Optional[str] = None
+    tech_stack: Optional[str] = None
+
+class MentorUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    password : Optional[str] = None
+    batch: Optional[int] = None
+    tech_stack: Optional[str] = None
+    # fees: Optional[float] = None
+
+class ChangePassword(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class AdminResetPassword(BaseModel):
+    user_id: int
+    new_password: str

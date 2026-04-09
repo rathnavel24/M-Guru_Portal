@@ -4,428 +4,307 @@ from sqlalchemy.orm import Session, aliased
 from datetime import datetime, timedelta
 
 from yaml import Mark
+from backend.app.app import db
 from backend.app.app.models.Exam_assessment import Assessments
 from backend.app.app.models.Exam_attempt import Attempts
 from backend.app.app.models import Answers, Options
+from backend.app.app.models.Exam_questions import Questions
 from backend.app.app.models.Exam_user import ExamUsers
+from backend.app.app.models.Submit_coding import Coding_Submissions
 
-"""
-USERFLOW 
+APTITUDE_PASS_MARK    = 7
+TECHNICAL_PASS_MARK   = 6
+PROGRAMMING_PASS_MARK = 10   # 2/4 questions = 2*5 = 10
+SCHOLARSHIP_MARK      = 23
 
-START ATTEMPT
-SAVE ANSWER
-SUBMITE TEST
-GET RESULT
-
-(IF DATA FROM DB)
-
-"""
-
-"""
-FROM FROMNTEND MEANS
-
-ONLY
-
-SUBMIT FINAL RESULT API
-
-"""
-
-
+APTITUDE_TOTAL  = 15
+TECHNICAL_TOTAL = 15
+CODING_TOTAL    = 20   # 4 questions * 5 marks each
+OVERALL_TOTAL   = 50  
+ 
+def _build_section_statuses(aptitude_score, technical_score, programming_score):
+    return (
+        "PASS" if aptitude_score    >= APTITUDE_PASS_MARK    else "FAIL",
+        "PASS" if technical_score   >= TECHNICAL_PASS_MARK   else "FAIL",
+        "PASS" if programming_score >= PROGRAMMING_PASS_MARK else "FAIL",
+    )
+ 
 class AttemptCrud:
+
     def __init__(self, db: Session):
         self.db = db
 
-
-    def start_attempt(self, user_id: int, assessment_id: int):
-
-        existing_attempt = self.db.query(Attempts).filter(
-            Attempts.user_id == user_id,
-            Attempts.assessment_id == assessment_id,
-            Attempts.status == "completed"
-        ).first()
-
-        if existing_attempt:
-            return {"error": "You have already completed this test"}
-
-        in_progress_attempt = self.db.query(Attempts).filter(
-            Attempts.user_id == user_id,
-            Attempts.assessment_id == assessment_id,
-            Attempts.status == "in_progress"
-        ).first()
-
-        if in_progress_attempt:
-            return {
-                "message": "Resume your test",
-                "attempt_id": in_progress_attempt.attempt_id
-            }
-
-        attempt = Attempts(
-            user_id=user_id,
-            assessment_id=assessment_id,
-            started_at=datetime.utcnow(),
-            status="in_progress"
-        )
-
-        self.db.add(attempt)
-        self.db.commit()
-        self.db.refresh(attempt)
-
-        return attempt
-    
-    
-    def submit_test(self, user_id: int):
-
-        attempt = self.db.query(Attempts).filter(
-            Attempts.user_id == user_id,
-            Attempts.status == "in_progress"
-        ).order_by(Attempts.started_at.desc()).first()
-
-        #  check if attempt exists
-        if not attempt:
-            return {"error": "No active attempt found"}
-
-        answers = self.db.query(Answers).filter(
-            Answers.attempt_id == attempt.attempt_id
-        ).all()
-
-        aptitude_correct = 0
-        technical_correct = 0
-        wrong = 0
-        skipped = 0
-
-        for ans in answers:
-
-            # skipped
-            if ans.is_skipped:
-                skipped += 1
-                continue
-
-            options = self.db.query(Options).filter(
-                Options.question_id == ans.question_id
-            ).order_by(Options.option_id.asc()).all()
-
-            if not options:
-                continue
-
-            selected_option_id = None
-
-            for idx, opt in enumerate(options):
-                if opt.option_id == ans.selected_option_id:
-                    selected_option_id = opt.option_id
-                    break
-
-            correct_option = self.db.query(Options).filter(
-                Options.question_id == ans.question_id,
-                Options.is_correct == True
-            ).first()
-
-            if correct_option and ans.selected_option_id == correct_option.option_id:
-
-                if attempt.assessment_id == 1:
-                    aptitude_correct += 1
-                else:
-                    technical_correct += 1
-            else:
-                wrong += 1
-
-        total_questions = 30
-
-        total_score = aptitude_correct + technical_correct
-        percentage = (total_score / total_questions) * 100 if total_questions else 0
-
-        # update attempt
-        attempt.aptitude_score = aptitude_correct
-        attempt.technical_score = technical_correct
-        attempt.total_score = total_score
-        attempt.total_percentage = int(percentage)
-        attempt.submitted_at = datetime.utcnow()
-        attempt.status = "completed"
-
-        self.db.commit()
-        self.db.refresh(attempt)
-
-        return {
-            "test_type": attempt.att_assessment.name,
-            "aptitude_score": aptitude_correct,
-            "technical_score": technical_correct,
-            "correct_answers": total_score,
-            "wrong_answers": wrong,
-            "skipped_answers": skipped,
-            "total_questions": total_questions,
-            "score": total_score,
-            "percentage": int(percentage),
-            "time_taken": int(
-                (attempt.submitted_at - attempt.started_at).total_seconds()
-            )
-        }
-
-    def get_attempt_history(self, user_id: int):
-        return self.db.query(Attempts).filter(
-            Attempts.user_id == user_id
-        ).all()
-
-   
-    def get_result(self, user_id: int):
-
-        attempt = self.db.query(Attempts).filter(
-            Attempts.user_id == user_id,
-            Attempts.status == "completed"
-        ).order_by(Attempts.submitted_at.desc()).first()
-
-        if not attempt:
-            return {"error": "No completed attempt found"}
-
-        answers = self.db.query(Answers).filter(
-            Answers.attempt_id == attempt.attempt_id
-        ).all()
-
-        correct = 0
-        wrong = 0
-        skipped = 0
-
-        for ans in answers:
-
-     
-            if ans.is_skipped:
-                skipped += 1
-                continue
-
-            
-            options = self.db.query(Options).filter(
-                Options.question_id == ans.question_id
-            ).order_by(Options.option_id.asc()).all()
-
-            if not options:
-                wrong += 1
-                continue
-
-        
-            selected_option = next(
-                (opt for opt in options if opt.option_id == ans.selected_option_id),
-                None
-            )
-
-            if not selected_option:
-                wrong += 1
-                continue
-
-          
-            correct_option = next(
-                (opt for opt in options if opt.is_correct),
-                None
-            )
-
-            if correct_option and selected_option.option_id == correct_option.option_id:
-                correct += 1
-            else:
-                wrong += 1
-
-        total_questions = attempt.att_assessment.total_questions
-
-        return {
-            "test_type": attempt.att_assessment.name,
-            "aptitude_score": attempt.aptitude_score,
-            "technical_score": attempt.technical_score,
-            "correct_answers": correct,
-            "wrong_answers": wrong,
-            "skipped_answers": skipped,
-            "total_questions": total_questions,
-            "score": attempt.total_score,
-            "percentage": attempt.total_percentage,
-            "time_taken": int(
-                (attempt.submitted_at - attempt.started_at).total_seconds()
-            )
-        }
-    
-
-    def save_result_from_frontend(self, user_id: int, data: dict):
-        
-        attempt = self.db.query(Attempts).filter(
-            Attempts.user_id == user_id
-        ).first()
-
-        if not attempt:
-            raise HTTPException(404, "No attempt found. Submit sections first")
-
-        # Update based on test_type
-        test_type = data.get("test_type")
-
-        if test_type == "aptitude":
-
-            if attempt.aptitude_score is not None:
-                raise HTTPException(400, "Aptitude already submitted")
-
-            attempt.aptitude_score = data.get("score", 0)
-            attempt.aptitude_correct = data.get("correct_answers", 0)
-            attempt.aptitude_wrong = data.get("wrong_answers", 0)
-            attempt.aptitude_skipped = data.get("skipped_answers", 0)
-
-        elif test_type == "technical":
-
-            if attempt.technical_score is not None:
-                raise HTTPException(400, "Technical already submitted")
-
-            attempt.technical_score = data.get("score", 0)
-            attempt.technical_correct = data.get("correct_answers", 0)
-            attempt.technical_wrong = data.get("wrong_answers", 0)
-            attempt.technical_skipped = data.get("skipped_answers", 0)
-
-        else:
-            raise HTTPException(400, "Invalid test_type")
-
-        # Calculate totals
-        aptitude = attempt.aptitude_score or 0
-        technical = attempt.technical_score or 0
-
-        attempt.total_score = aptitude + technical
-
-        # total questions = sum of both sections
-        total_questions = data.get("total_questions", 1)
-
-        # safer percentage calc
-        if total_questions > 0:
-            attempt.total_percentage = int((attempt.total_score / total_questions) * 100)
-
-        # Mark completed only if BOTH sections submitted
-        if attempt.aptitude_score is not None and attempt.technical_score is not None:
-            attempt.status = "completed"
-            attempt.submitted_at = datetime.utcnow()
-        else:
-            attempt.status = "in_progress"
-
-        self.db.commit()
-        self.db.refresh(attempt)
-
-        return {
-            "user_id": user_id,
-            "test_type": test_type,
-            "aptitude_score": attempt.aptitude_score,
-            "technical_score": attempt.technical_score,
-            "total_score": attempt.total_score,
-            "percentage": attempt.total_percentage,
-            "status": attempt.status
-        }
     def get_user_exam_status(self, user_id: int):
-
-        attempt = self.db.query(Attempts).filter(
-            Attempts.user_id == user_id
-        ).order_by(Attempts.attempt_id.desc()).first()
-
-        # No attempt
-        if not attempt:
-            return {
-                "status": "not_started",
-                "message": "User has not started any test"
-            }
-
-        #In Progress
-        if attempt.status == "in_progress":
-            if attempt.aptitude_score == None and attempt.technical_score == None:
-                progress = None
-            else:
-                progress = "in_progress"
+            attempt = (
+                self.db.query(Attempts)
+                .filter(Attempts.user_id == user_id)
+                .order_by(Attempts.attempt_id.desc())
+                .first()
+            )
+    
+            # ── No attempt at all ──
+            if not attempt:
+                return {
+                    "attempt_id":      None,
+                    "status":          "not_started",
+                    "aptitude_score":  None,
+                    "technical_score": None,
+                    "coding_score":    None,
+                    "message":         "User has not started any test",
+                }
+    
+            # ── Started but no section submitted yet ──
+            if attempt.status == "STARTED":
+                return {
+                    "attempt_id":      attempt.attempt_id,
+                    "status":          "STARTED",
+                    "aptitude_score":  None,
+                    "technical_score": None,
+                    "coding_score":    None,
+                    "message":         "Test started but no section submitted yet",
+                }
+    
+            # ── At least one section submitted ──
+            if attempt.status == "in_progress":
+                return {
+                    "attempt_id":      attempt.attempt_id,
+                    "status":          "in_progress",
+                    "aptitude_score":  attempt.aptitude_score,
+                    "technical_score": attempt.technical_score,
+                    "coding_score":    attempt.programming_score,
+                    "message":         "Test is in progress",
+                }
+    
+            # ── Fully completed ──
+            if attempt.status == "completed":
+                return self.build_final_response(attempt)
+    
+            # ── Fallback (unknown status) ──
             return {
                 "attempt_id": attempt.attempt_id,
-                "status": progress,
-                "aptitude_score": attempt.aptitude_score ,
-                "technical_score": attempt.technical_score ,
-                "message": "Test is in progress"
+                "status":     attempt.status,
+                "message":    "Unknown status",
             }
-
-        # Completed
-        if attempt.status == "completed":
+    
+    def build_final_response(self, attempt):
+            
+            aptitude_score    = attempt.aptitude_score    or 0
+            technical_score   = attempt.technical_score   or 0
+            programming_score = attempt.programming_score or 0
+    
+            aptitude_status, technical_status, programming_status = _build_section_statuses(
+                aptitude_score, technical_score, programming_score
+            )
+    
+            final_result = (
+                "PASS"
+                if aptitude_status == "PASS"
+                and technical_status == "PASS"
+                and programming_status == "PASS"
+                else "FAIL"
+            )
+    
+            scholarship_eligible = (attempt.total_score or 0) >= SCHOLARSHIP_MARK
+    
             return {
+                # ── STATUS IS NOW ALWAYS PRESENT ──
                 "attempt_id": attempt.attempt_id,
-                "status": "completed",
-                "aptitude_score": attempt.aptitude_score or 0,
-                "technical_score": attempt.technical_score or 0,
-                "total_score": attempt.total_score or 0,
-                "percentage": attempt.total_percentage or 0,
-                "submitted_at": attempt.submitted_at
+                "status":     "completed",              # ← THIS WAS MISSING
+    
+                # Scores
+                "aptitude_score":      aptitude_score,
+                "aptitude_status":     aptitude_status,
+                "technical_score":     technical_score,
+                "technical_status":    technical_status,
+                "coding_score":   programming_score,
+                "programming_status":  programming_status,
+    
+                # Totals
+                "total_score":         attempt.total_score       or 0,
+                "percentage":          attempt.total_percentage  or 0,
+                "final_result":        final_result,
+                "scholarship_eligible": scholarship_eligible,
+    
+                # Aptitude breakdown
+                "aptitude_correct":    attempt.aptitude_correct  or 0,
+                "aptitude_wrong":      attempt.aptitude_wrong    or 0,
+                "aptitude_skipped":    attempt.aptitude_skipped  or 0,
+    
+                # Technical breakdown
+                "technical_correct":   attempt.technical_correct or 0,
+                "technical_wrong":     attempt.technical_wrong   or 0,
+                "technical_skipped":   attempt.technical_skipped or 0,
+    
+                # Coding breakdown
+                "coding_correct":      attempt.coding_correct    or 0,
+                "coding_wrong":        attempt.coding_wrong      or 0,
+                "coding_skipped":      attempt.coding_skipped    or 0,
             }
+#     def get_user_exam_status(self, user_id: int):
+
+
+# #     if attempt.status == "in_progress":
+# #         return {
+# #             "attempt_id": attempt.attempt_id,
+# #             "status": "in_progress",
+# #             "aptitude_score": attempt.aptitude_score,
+# #             "technical_score": attempt.technical_score,
+# #             "coding_score": attempt.programming_score,
+# #             "message": "Test is in progress"
+# #         }
+#         attempt = self.db.query(Attempts).filter(
+#             Attempts.user_id == user_id
+#         ).order_by(Attempts.attempt_id.desc()).first()
+
+#         # No attempt
+#         # if not attempt:
+#         #     return {
+#         #         "status": "not_started",
+#         #         "message": "User has not started any test"
+#         #     }
+
+#         #In Progress
+
+#         if attempt.status == "STARTED":
+#             return {
+#                 "attempt_id": attempt.attempt_id,
+#                 "status": None,  # as you want
+#                 "aptitude_score": None,
+#                 "technical_score": None,
+#                 "coding_score": None,
+#                 "message": "Test not started"
+#             }
+        
+#         if attempt.status == "in_progress":
+#             # if attempt.aptitude_score == None and attempt.technical_score == None and attempt.programming_score == None:
+#             #     progress = None
+#             # else:
+#             #     progress = "in_progress"
+#             return {
+#                 "attempt_id": attempt.attempt_id,
+#                 "status": "in_progress",
+#                 "aptitude_score": attempt.aptitude_score ,
+#                 "technical_score": attempt.technical_score ,
+#                 "coding_score": attempt.programming_score ,
+#                 "message": "Test is in progress"
+#             }
+
+#         # Completed
+#         # if attempt.status == "completed":
+#         #     return {
+#         #         "attempt_id": attempt.attempt_id,
+#         #         "status": "completed",
+#         #         "aptitude_score": attempt.aptitude_score or 0,
+#         #         "technical_score": attempt.technical_score or 0,
+#         #         "coding_score": attempt.programming_score or 0,
+#         #         "total_score": attempt.total_score or 0,
+#         #         "percentage": attempt.total_percentage or 0,
+#         #         "submitted_at": attempt.submitted_at
+#         #     }
+#         if attempt.status == "completed":
+#             return self.build_final_response(attempt)
 
     def get_exam_summary(self):
 
-            # Subquery to get latest attempt per user
-            latest_attempt_subq = (
-                self.db.query(
-                    Attempts.user_id,
-                    func.max(Attempts.submitted_at).label("latest_submitted")
-                )
-                .group_by(Attempts.user_id)
-                .subquery()
+        # ── Use max(attempt_id) instead of submitted_at — submitted_at can be NULL ──
+        latest_attempt_subq = (
+            self.db.query(
+                Attempts.user_id,
+                func.max(Attempts.attempt_id).label("latest_attempt_id")  # ← FIXED
             )
+            .group_by(Attempts.user_id)
+            .subquery()
+        )
 
-            # Join with actual Attempts table
-            latest_attempt = aliased(Attempts)
+        latest_attempt = aliased(Attempts)
 
-            query = (
-                self.db.query(
-                    ExamUsers.user_id,
-                    ExamUsers.username,
-                    ExamUsers.name,
-                    ExamUsers.email,
-
-                    func.coalesce(latest_attempt.aptitude_score, 0).label("aptitude_score"),
-                    func.coalesce(latest_attempt.technical_score, 0).label("technical_score"),
-                    func.coalesce(latest_attempt.total_score, 0).label("total_score"),
-                    func.coalesce(latest_attempt.status,"Ongoing").label("status"),
-                )
-                .outerjoin(
-                    latest_attempt_subq,
-                    latest_attempt_subq.c.user_id == ExamUsers.user_id
-                )
-                .outerjoin(
-                    latest_attempt,
-                    and_(
-                        latest_attempt.user_id == latest_attempt_subq.c.user_id,
-                        latest_attempt.submitted_at == latest_attempt_subq.c.latest_submitted
-                    )
-                )
+        query = (
+            self.db.query(
+                ExamUsers.user_id,
+                ExamUsers.username,
+                ExamUsers.name,
+                ExamUsers.email,
+                func.coalesce(latest_attempt.aptitude_score,    0).label("aptitude_score"),
+                func.coalesce(latest_attempt.technical_score,   0).label("technical_score"),
+                func.coalesce(latest_attempt.programming_score, 0).label("coding_score"),
+                func.coalesce(latest_attempt.total_score,       0).label("total_score"),
+                func.coalesce(latest_attempt.status, "not_started").label("status"),
             )
+            .outerjoin(
+                latest_attempt_subq,
+                latest_attempt_subq.c.user_id == ExamUsers.user_id
+            )
+            .outerjoin(
+                latest_attempt,
+                and_(
+                    latest_attempt.user_id     == latest_attempt_subq.c.user_id,
+                    latest_attempt.attempt_id  == latest_attempt_subq.c.latest_attempt_id  # ← FIXED
+                )
+            ).order_by(ExamUsers.Created_At.desc())
+        )
 
-            results = query.all()
+        results  = query.all()
+        response = []
 
-            response = []
+        for row in results:
+            aptitude  = row.aptitude_score or 0
+            technical = row.technical_score or 0
+            coding    = row.coding_score   or 0
+            total     = row.total_score    or 0
 
-            for row in results:
-                aptitude = row.aptitude_score or 0
-                technical = row.technical_score or 0
-                total = row.total_score or 0
+            if row.status == "completed":
+                aptitude_result  = "PASS" if aptitude  >= APTITUDE_PASS_MARK    else "FAIL"
+                technical_result = "PASS" if technical >= TECHNICAL_PASS_MARK   else "FAIL"
+                coding_result    = "PASS" if coding    >= PROGRAMMING_PASS_MARK else "FAIL"
 
-                # adjust if needed
-                aptitude_total = 30
-                technical_total = 20
-                overall_total = 50
+                overall_result       = "PASS" if (aptitude_result == "PASS" and technical_result == "PASS" and coding_result == "PASS") else "FAIL"
+                scholarship_eligible = total >= SCHOLARSHIP_MARK
+            else:
+                aptitude_result      = None
+                technical_result     = None
+                coding_result        = None
+                overall_result       = row.status
+                scholarship_eligible = False
 
+<<<<<<< HEAD
                 if row.status != 'completed':
                     rslt = row.status
                 else:
                     rslt = "PASS" if total >= 23 else "FAIL"
+=======
+            response.append({
+                "user_id":  row.user_id,
+                "username": row.username,
+                "name":     row.name,
+                "email":    row.email,
+>>>>>>> dev
 
-                response.append({
-                    "user_id": row.user_id,
-                    "username": row.username,
-                    "name": row.name,
-                    "email": row.email,
+                "aptitude_score":       aptitude,
+                "aptitude_percentage":  round((aptitude  / APTITUDE_TOTAL)  * 100, 2),
+                "aptitude_result":      aptitude_result,
 
-                    "aptitude_score": aptitude,
-                    "aptitude_percentage": (aptitude / aptitude_total) * 100 if aptitude_total else 0,
+                "technical_score":      technical,
+                "technical_percentage": round((technical / TECHNICAL_TOTAL) * 100,2),
+                "technical_result":     technical_result,
 
-                    "technical_score": technical,
-                    "technical_percentage": (technical / technical_total) * 100 if technical_total else 0,
+                "coding_score":         coding,
+                "coding_percentage":    round((coding    / CODING_TOTAL)    * 100, 2),
+                "coding_result":        coding_result,
 
-                    "total_score": total,
-                    "total_percentage": (total / overall_total) * 100 if overall_total else 0,
+                "total_score":          total,
+                "total_percentage":     round((total     / OVERALL_TOTAL)   * 100, 2),
 
-                    "result": rslt
-                })
+                "result":               overall_result,
+                "scholarship_eligible": scholarship_eligible,
+            })
 
-            return response
+        return response
+    
     def truncate_exam_users(self):
         try:
             self.db.execute(text("TRUNCATE TABLE exam_attempts RESTART IDENTITY CASCADE"))
             self.db.execute(text("TRUNCATE TABLE exam_user RESTART IDENTITY CASCADE"))
+            self.db.execute(text("TRUNCATE TABLE coding_submissions RESTART IDENTITY CASCADE"))
             self.db.commit()
 
             return {
@@ -435,3 +314,412 @@ class AttemptCrud:
         except Exception as e:
             self.db.rollback()
             raise e
+        
+    #######
+
+    # ---------------- START ----------------
+    def start_attempt(self, user_id: int):
+
+        existing = self.db.query(Attempts).filter(
+            Attempts.user_id == user_id,
+            Attempts.status.in_(["STARTED", "in_progress"])
+        ).order_by(Attempts.attempt_id.desc()).first()
+
+        if existing:
+            return {
+                "attempt_id": existing.attempt_id,
+                "status": "ALREADY_STARTED"
+            }
+
+        attempt = Attempts(
+            user_id=user_id,
+            status="STARTED",
+            started_at=datetime.utcnow(),
+            aptitude_score=None,
+            technical_score=None,
+            programming_score=None
+        )
+
+        self.db.add(attempt)
+        self.db.commit()
+        self.db.refresh(attempt)
+
+        return {
+            "attempt_id": attempt.attempt_id,
+            "status": "STARTED"
+        }
+    
+    def save_result_from_frontend(self, user_id: int, data: dict):
+
+        attempt = self.db.query(Attempts).filter(
+            Attempts.user_id == user_id,
+            Attempts.status.in_(["STARTED", "in_progress"])
+        ).order_by(Attempts.attempt_id.desc()).first()
+
+        if not attempt:
+            raise HTTPException(404, "No active attempt found")
+
+        print("ATTEMPT ID:", attempt.attempt_id)  # DEBUG
+
+        #  STORE OLD VALUES (VERY IMPORTANT)
+        old_aptitude = attempt.aptitude_score
+        old_technical = attempt.technical_score
+
+        test_type = data.get("test_type")
+
+        # ---------------- APTITUDE ----------------
+        if test_type == "aptitude":
+
+            if old_aptitude is not None:
+                raise HTTPException(400, "Aptitude already submitted")
+
+            attempt.aptitude_score = data.get("score", old_aptitude)
+            attempt.aptitude_correct = data.get("correct_answers", 0)
+            attempt.aptitude_wrong = data.get("wrong_answers", 0)
+            attempt.aptitude_skipped = data.get("skipped_answers", 0)
+
+            #  PRESERVE TECHNICAL
+            attempt.technical_score = old_technical
+
+        # ---------------- TECHNICAL ----------------
+        elif test_type == "technical":
+
+            if old_technical is not None:
+                raise HTTPException(400, "Technical already submitted")
+
+            attempt.technical_score = data.get("score", old_technical)
+            attempt.technical_correct = data.get("correct_answers", 0)
+            attempt.technical_wrong = data.get("wrong_answers", 0)
+            attempt.technical_skipped = data.get("skipped_answers", 0)
+
+            #  PRESERVE APTITUDE
+            attempt.aptitude_score = old_aptitude
+
+        else:
+            raise HTTPException(400, "Invalid test_type")
+        
+        aptitude_score    = attempt.aptitude_score    or 0
+        technical_score   = attempt.technical_score   or 0
+        programming_score = attempt.programming_score or 0
+
+        attempt.total_score = aptitude_score + technical_score + programming_score
+
+        # Recalculate percentage
+        num_coding_qs = self.db.query(Questions).filter(
+            Questions.question_type == "coding"
+        ).count()
+        MAX_TOTAL = 15 + 15 + (num_coding_qs * 5)
+        attempt.total_percentage = int(
+            (attempt.total_score / MAX_TOTAL) * 100
+        ) if MAX_TOTAL > 0 else 0
+        
+        # ---------------- STATUS ----------------
+        # if attempt.aptitude_score is not None or attempt.technical_score is not None:
+        #     attempt.status = "in_progress"
+        # # NEW (correct):
+        aptitude_done  = attempt.aptitude_score    is not None
+        technical_done = attempt.technical_score   is not None
+        coding_done    = attempt.programming_score is not None  # already saved if coding submitted first
+
+        if aptitude_done and technical_done and coding_done:
+            attempt.status = "completed"
+        else:
+            attempt.status = "in_progress"
+        
+        self.db.commit()
+        self.db.refresh(attempt)
+
+        return {
+            "message": "Saved successfully",
+            "attempt_id": attempt.attempt_id,
+            "status": attempt.status,
+            "aptitude_score": attempt.aptitude_score,
+            "technical_score": attempt.technical_score,
+            "total_score": attempt.total_score,
+            "percentage": attempt.total_percentage
+        }
+        # ---------------- FINAL SUBMIT (CODING + TOTAL CALC) ----------------
+
+    def submit_test(self, user_id: int):
+
+        # ---------------- GET ALL CODING QUESTIONS ----------------
+        all_questions = self.db.query(Questions).filter(
+            Questions.question_type == "coding"
+        ).all()
+
+        # total_questions = len(all_questions)
+
+        # ---------------- GET USER SUBMISSIONS ----------------
+        coding_data = self.db.query(Coding_Submissions).filter(
+            Coding_Submissions.user_id == user_id
+        ).all()
+
+        submitted_q_ids = {
+            c.question_id for c in coding_data
+            if c.code is not None and c.status != "SKIPPED"
+        }
+
+        submitted_count = len(submitted_q_ids)
+
+        # ---------------- MARK SKIPPED ----------------
+        for q in all_questions:
+            if q.question_id not in submitted_q_ids:
+
+                existing = next(
+                    (c for c in coding_data if c.question_id == q.question_id),
+                    None
+                )
+
+                if not existing:
+                    skipped = Coding_Submissions(
+                        user_id=user_id,
+                        question_id=q.question_id,
+                        code=None,
+                        passed=0,
+                        total=0,
+                        status="SKIPPED"
+                    )
+                    self.db.add(skipped)
+
+        self.db.commit()
+
+        # ---------------- REFRESH ----------------
+        coding_data = self.db.query(Coding_Submissions).filter(
+            Coding_Submissions.user_id == user_id
+        ).all()
+
+        attempt = self.db.query(Attempts).filter(
+            Attempts.user_id == user_id
+        ).order_by(Attempts.attempt_id.desc()).first()
+   
+        if not attempt:
+            return {"error": "Attempt not found"}
+
+        # ---------------- CODING STATS ----------------
+        attempt.coding_correct = sum(1 for c in coding_data if c.status == "PASS")
+        attempt.coding_wrong = sum(1 for c in coding_data if c.status == "FAIL")
+        attempt.coding_skipped = sum(1 for c in coding_data if c.status == "SKIPPED")
+
+        # Programming score (each question = 5 marks)
+        attempt.programming_score = sum(
+            (5 if c.status == "PASS"
+            else int((c.passed / c.total) * 5) if c.total > 0
+            else 0)
+            for c in coding_data
+            if c.status != "SKIPPED"
+        )
+
+        # ---------------- DEFAULTS ----------------
+        aptitude_score = attempt.aptitude_score or 0
+        technical_score = attempt.technical_score or 0
+        programming_score = attempt.programming_score or 0
+
+        # ---------------- TOTAL SCORE ----------------
+        attempt.total_score = aptitude_score + technical_score + programming_score
+
+        # ---------------- TOTAL MAX MARKS ----------------
+        # Adjust based on your system
+        APTITUDE_TOTAL = 15
+        TECHNICAL_TOTAL = 15
+        CODING_TOTAL = 4 * 5
+
+        MAX_TOTAL = APTITUDE_TOTAL + TECHNICAL_TOTAL + CODING_TOTAL
+
+        # ---------------- PERCENTAGE ----------------
+        attempt.total_percentage = int(
+            (attempt.total_score / MAX_TOTAL) * 100
+        ) if MAX_TOTAL > 0 else 0
+# ---------------- SECTION PASS/FAIL (DYNAMIC) ----------------
+
+        aptitude_status = "PASS" if aptitude_score >= 5 else "FAIL"
+        technical_status = "PASS" if technical_score >= 5 else "FAIL"
+        programming_status = "PASS" if programming_score >= 10 else "FAIL"
+        
+        scholarship_eligible = attempt.total_score >= 23 
+
+        # ---------------- FINAL RESULT ----------------
+
+        final_result = (
+            "PASS"
+            if aptitude_status == "PASS"
+            and technical_status == "PASS"
+            and programming_status == "PASS"
+            else "FAIL"
+        )
+
+        # ---------------- FINAL STATUS ----------------
+        attempt.status = "completed"
+
+        self.db.add(attempt)
+        self.db.commit()
+        self.db.refresh(attempt)
+
+        # ---------------- RESPONSE ----------------
+        return {
+            "user_id": user_id,
+            "attempt_id": attempt.attempt_id,
+
+            # Scores
+            "aptitude_score": aptitude_score,
+            "aptitude_status": aptitude_status,
+            "technical_score": technical_score,
+            "technical_status": technical_status,
+            "programming_score": programming_score,
+            "programming_status": programming_status,
+
+            # Totals
+            "total_score": attempt.total_score,
+            "percentage": attempt.total_percentage,
+            "final_result": final_result,
+            "scholarship_eligible": scholarship_eligible,
+
+            # Aptitude breakdown
+            "aptitude_correct": attempt.aptitude_correct or 0,
+            "aptitude_wrong": attempt.aptitude_wrong or 0,
+            "aptitude_skipped": attempt.aptitude_skipped or 0,
+
+            # Technical breakdown
+            "technical_correct": attempt.technical_correct or 0,
+            "technical_wrong": attempt.technical_wrong or 0,
+            "technical_skipped": attempt.technical_skipped or 0,
+
+            # Coding breakdown
+            "coding_correct": attempt.coding_correct,
+            "coding_wrong": attempt.coding_wrong,
+            "coding_skipped": attempt.coding_skipped,
+        }
+    
+
+    # def build_final_response(self, attempt):
+
+    #     aptitude_score = attempt.aptitude_score or 0
+    #     technical_score = attempt.technical_score or 0
+    #     programming_score = attempt.programming_score or 0
+
+    #     aptitude_status = "PASS" if aptitude_score >= 6 else "FAIL"
+    #     technical_status = "PASS" if technical_score >= 7 else "FAIL"
+    #     programming_status = "PASS" if programming_score >= 10 else "FAIL"
+
+    #     final_result = (
+    #         "PASS"
+    #         if aptitude_status == "PASS"
+    #         and technical_status == "PASS"
+    #         and programming_status == "PASS"
+    #         else "FAIL"
+    #     )
+
+    #     scholarship_eligible = attempt.total_score >= 23
+
+    #     return {
+    #         "user_id": attempt.user_id,
+    #         "attempt_id": attempt.attempt_id,
+
+    #         "aptitude_score": aptitude_score,
+    #         "aptitude_status": aptitude_status,
+    #         "technical_score": technical_score,
+    #         "technical_status": technical_status,
+    #         "programming_score": programming_score,
+    #         "programming_status": programming_status,
+
+    #         "total_score": attempt.total_score,
+    #         "percentage": attempt.total_percentage,
+    #         "final_result": final_result,
+    #         "scholarship_eligible": scholarship_eligible,
+
+    #         "aptitude_correct": attempt.aptitude_correct or 0,
+    #         "aptitude_wrong": attempt.aptitude_wrong or 0,
+    #         "aptitude_skipped": attempt.aptitude_skipped or 0,
+
+    #         "technical_correct": attempt.technical_correct or 0,
+    #         "technical_wrong": attempt.technical_wrong or 0,
+    #         "technical_skipped": attempt.technical_skipped or 0,
+
+    #         "coding_correct": attempt.coding_correct,
+    #         "coding_wrong": attempt.coding_wrong,
+    #         "coding_skipped": attempt.coding_skipped,
+    #     }
+
+
+
+    """
+JAVASCRIPT CODE SNIPPET (FOR REFERENCE)
+
+
+const lines = require("fs").readFileSync(0, "utf-8")
+  .split("\n")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const num = parseInt(lines[0], 10);
+
+// Write your logic here
+console.log(num);
+
+PYTHON CODE SNIPPET (FOR REFERENCE)
+
+import sys
+
+input_data = sys.stdin.read().split()
+
+num = int(input_data[0])
+
+# import sys
+
+# input_data = sys.stdin.read().split()
+# nums = list(map(int, input_data))
+
+# # Write your logic here
+# print(nums)
+
+# Write your logic here
+print(num)
+
+JAVA CODE SNIPPET (FOR REFERENCE)
+
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StreamTokenizer st = new StreamTokenizer(br);
+
+        st.nextToken();
+        int num = (int) st.nval;
+
+        // Write your logic here
+        System.out.println(num);
+    }
+}
+
+C++ CODE SNIPPET (FOR REFERENCE)
+
+#include <iostream>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int num;
+    cin >> num;
+
+    // Write your logic here
+    cout << num << endl;
+    return 0;
+}
+
+C CODE SNIPPET (FOR REFERENCE)
+
+#include <stdio.h>
+
+int main() {
+    int num;
+    scanf("%d", &num);
+
+    // Write your logic here
+    printf("%d\n", num);
+    return 0;
+}
+    
+    """

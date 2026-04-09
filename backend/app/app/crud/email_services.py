@@ -192,7 +192,7 @@ async def send_invoice_email(data: Paymentmail, current_user, db: Session):
 
     except Exception as e:
         db.rollback()
-        raise e
+        raise {"User completed their fee ", e}
 
 def payment_confirmation_service(invoice_no,reference_no, db:Session):
     records = db.query(Pay_email).filter(
