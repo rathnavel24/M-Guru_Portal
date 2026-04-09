@@ -244,6 +244,7 @@ async def delete_chat_group(
 @router.websocket("/groups/{conversation_id}/ws", name="Group Chat WebSocket")
 async def group_chat_websocket(websocket: WebSocket, conversation_id: int):
     token = _get_socket_token(websocket)
+    print(f"[DEBUG] Extracted token: {token}")
     if not token:
         await websocket.accept()
         await websocket.send_json({"type": "error", "detail": "Authentication token is required"})
@@ -257,6 +258,7 @@ async def group_chat_websocket(websocket: WebSocket, conversation_id: int):
 
     try:
         current_user = authenticate_token_value(token, db)
+        print(f"[DEBUG] Authenticated user: {current_user}") 
         if current_user.get("role") not in CHAT_MEMBER_ROLES:
             raise HTTPException(
                 status_code=403,
@@ -266,6 +268,7 @@ async def group_chat_websocket(websocket: WebSocket, conversation_id: int):
         user_context = service.get_realtime_context(
             conversation_id=conversation_id,
             requester_id=current_user.get("user_id"),)
+        print(f"[DEBUG] User context for conversation {conversation_id}: {user_context}") 
 
         await chat_connection_manager.connect(
             conversation_id,

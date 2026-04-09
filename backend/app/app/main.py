@@ -19,9 +19,16 @@ from backend.app.app.api.endpoints import mentors
 
 app = FastAPI()
 
+origins = [
+    #"https://your-frontend-url.com",
+    "http://192.168.5.100:5173",
+
+] #this is sathish bro ip ,cross  allow only this ip
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    #allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
