@@ -36,10 +36,10 @@ def create_feedback(db: Session, data, current_user):
     return feedback
 
 
-# ✅ Intern → View all feedback
+# Intern → View all feedback
 def get_all_feedback(db: Session, current_user):
 
-    # ✅ Only admin
+    # Only admin
     if current_user["role"] != 1:
         raise HTTPException(status_code=403, detail="Only admin allowed")
 
@@ -49,7 +49,7 @@ def get_all_feedback(db: Session, current_user):
     ).all()
 
 
-# ✅ Admin/Mentor → View assigned feedback
+# Admin/Mentor → View assigned feedback
 def get_feedback_for_admin(db: Session, current_user):
 
     if current_user["role"] not in [1, 4]:
@@ -60,7 +60,7 @@ def get_feedback_for_admin(db: Session, current_user):
     ).order_by(Feedback.created_at.desc()).all()
 
 
-# ✅ Reply (Admin/Mentor)
+# Reply (Admin/Mentor)
 def reply_feedback(db: Session, data, current_user):
 
     # ✅ Only ADMIN allowed
@@ -80,11 +80,11 @@ def reply_feedback(db: Session, data, current_user):
             detail="Feedback not found"
         )
 
-    # ❌ REMOVE this check (important)
+    # REMOVE this check (important)
     # if feedback.assigned_to != current_user["user_id"]:
     #     raise HTTPException(status_code=403, detail="Not assigned to you")
 
-    # ✅ Admin can reply ANY feedback
+    # Admin can reply ANY feedback
     feedback.reply = data.reply
     feedback.status = "replied"
 
@@ -94,7 +94,7 @@ def reply_feedback(db: Session, data, current_user):
     return feedback
 
 
-# ✅ Delete (Admin only)
+# Delete (Admin only)
 def delete_feedback(db: Session, feedback_id: int, current_user):
 
     if current_user["role"] != 1:
