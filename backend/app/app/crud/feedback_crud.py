@@ -10,25 +10,29 @@ def create_feedback(db: Session, data, current_user):
     if current_user["role"] != 2:
         raise HTTPException(status_code=403, detail="Only interns can send feedback")
 
+    #No assignment (allowed)
+    if data.assigned_to is None:
+        feedback = Feedback(
+            user_id=current_user["user_id"],
+            assigned_to=None,
+            category=data.category,
+            message=data.message,
+            status="pending"
+        )
+
+        db.add(feedback)
+        db.commit()
+        db.refresh(feedback)
+        return feedback
+
+    # Validate receiver
     receiver = db.query(Users).filter(
         Users.user_id == data.assigned_to,
         Users.type.in_([1, 4])
     ).first()
 
     if not receiver:
-        feedback = Feedback(
-        user_id=current_user["user_id"],
-        assigned_to=None,
-        category=data.category,
-        message=data.message,
-        status="pending"
-    )
-
-        db.add(feedback)
-        db.commit()
-        db.refresh(feedback)
-
-        return feedback
+        raise HTTPException(status_code=404, detail="Assigned user not found")
 
     if current_user["user_id"] == data.assigned_to:
         raise HTTPException(status_code=400, detail="Cannot send feedback to yourself")

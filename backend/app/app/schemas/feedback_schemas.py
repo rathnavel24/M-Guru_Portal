@@ -20,7 +20,7 @@ class FeedbackReply(BaseModel):
 class FeedbackResponse(BaseModel):
     id: int
     user_id: int
-    assigned_to: int
+    assigned_to: Optional[int] = None
     category: str
     message: str
     reply: Optional[str]
