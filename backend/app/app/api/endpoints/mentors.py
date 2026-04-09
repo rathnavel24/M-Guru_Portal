@@ -17,7 +17,7 @@ def get_mentors(db:Session = Depends(get_db),
     except Exception as e:
         return {"error" : str(e)}
     
-@router.delete("/delete_mentor")
+@router.post("/delete_mentor")
 def delete_mentor(
     mentor_id: int,
     current_user = Depends(role_required([1])),
@@ -25,6 +25,8 @@ def delete_mentor(
 ):
     mentor_service = Getall_mentor(db)
     return mentor_service.delete_mentor(mentor_id)
+
+
 @router.post("/add_mentor")
 def add_mentor(
     mentor: MentorCreate,

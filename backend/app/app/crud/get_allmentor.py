@@ -16,9 +16,10 @@ class Getall_mentor:
         ).first()
 
         if mentor:
-            self.db.delete(mentor)
+            mentor.status = 0 
             self.db.commit()
-            return {"message": "Mentor deleted successfully"}
+            self.db.refresh(mentor)
+            return {"message": "Mentor deactivated successfully"}
         else:
             return {"message": "Mentor not found"}
 
