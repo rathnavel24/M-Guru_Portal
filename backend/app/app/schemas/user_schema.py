@@ -59,3 +59,5 @@ class ChangePassword(BaseModel):
 class AdminResetPassword(BaseModel):
     user_id: int
     new_password: str
+
+
