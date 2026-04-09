@@ -65,6 +65,16 @@ def get_all_feedback(db: Session, current_user):
     ).all()
 
 
+def get_my_feedback(db: Session, current_user):
+
+    return (
+        db.query(Feedback)
+        .filter(Feedback.user_id == current_user["user_id"])
+        .order_by(Feedback.created_at.desc())
+        .all()
+    )
+
+
 # Admin/Mentor → View assigned feedback
 def get_feedback_for_admin(db: Session, current_user):
 

@@ -9,6 +9,7 @@ from backend.app.app.schemas.feedback_schemas import (
 from backend.app.app.crud.feedback_crud import (
     create_feedback,
     get_all_feedback,
+    get_my_feedback,
     get_feedback_for_admin,
     reply_feedback,
     delete_feedback
@@ -34,6 +35,14 @@ def get_all_feedback_only(
     current_user=Depends(role_required([1]))  # admin only
 ):
     return get_all_feedback(db, current_user)
+
+
+@router.get("/me", response_model=list[FeedbackResponse])
+def get_my_feedback_api(
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([2]))
+):
+    return get_my_feedback(db, current_user)
 
 
 # Admin/Mentor → View assigned feedback
