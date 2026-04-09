@@ -266,18 +266,11 @@ class AttemptCrud:
                 overall_result       = row.status
                 scholarship_eligible = False
 
-<<<<<<< HEAD
-                if row.status != 'completed':
-                    rslt = row.status
-                else:
-                    rslt = "PASS" if total >= 23 else "FAIL"
-=======
             response.append({
                 "user_id":  row.user_id,
                 "username": row.username,
                 "name":     row.name,
                 "email":    row.email,
->>>>>>> dev
 
                 "aptitude_score":       aptitude,
                 "aptitude_percentage":  round((aptitude  / APTITUDE_TOTAL)  * 100, 2),
