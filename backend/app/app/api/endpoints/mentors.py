@@ -17,7 +17,7 @@ def get_mentors(db:Session = Depends(get_db),
     except Exception as e:
         return {"error" : str(e)}
     
-@router.post("/delete_mentor")
+@router.delete("/delete_mentor")
 def delete_mentor(
     mentor_id: int,
     current_user = Depends(role_required([1])),

@@ -48,7 +48,6 @@ class SignUpDetails(SignUpAbstract):
         self.db = db
         self.new_user = new_user
 
-    @abstractmethod
     def user_signup(self):
 
         if not self.user_verification():
@@ -74,8 +73,8 @@ class SignUpDetails(SignUpAbstract):
             new_fee = Fee(
                 user_id=new_user.user_id,
                 total_fee=self.new_user.total_fee or 0,
-                monthly_installment =self.new_user.monthly_installment,
-                Emi_amount = self.new_user.emi_amount,
+                monthly_installment=self.new_user.monthly_installment,
+                emi_amount=self.new_user.emi_amount,
                 paid_amount=0,
                 status=1,
                 created_by="ADMIN",
@@ -97,7 +96,8 @@ class SignUpDetails(SignUpAbstract):
             .filter(
                 or_(
                     # Users.username == self.new_user.username,
-                    Users.email == self.new_user.email
+                    Users.email
+                    == self.new_user.email
                 ),
                 Users.status == 1,
             )
@@ -204,7 +204,11 @@ class LoginUser:
 
     def login_main_user(self, background_tasks):
 
-        user = self.db.query(Users).filter(Users.email == self.email, Users.status == 1).first()
+        user = (
+            self.db.query(Users)
+            .filter(Users.email == self.email, Users.status == 1)
+            .first()
+        )
 
         if not user:
             raise HTTPException(
@@ -314,7 +318,9 @@ class UserServices:
         """
         # total count of active users
         total_rows = (
-            self.db.query(func.count(Users.user_id)).filter(Users.status == 1,Users.type == 2).scalar()
+            self.db.query(func.count(Users.user_id))
+            .filter(Users.status == 1, Users.type == 2)
+            .scalar()
         )
 
         # pagination
@@ -335,7 +341,7 @@ class UserServices:
                 func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount"),
             )
             .outerjoin(Fee, Fee.user_id == Users.user_id)
-            .filter(Users.status == 1,Users.type == 2)
+            .filter(Users.status == 1, Users.type == 2)
             .group_by(
                 Users.user_id,
                 Users.username,
@@ -412,7 +418,11 @@ class UserServices:
         if data.email is not None:
             existing_user = (
                 self.db.query(Users)
-                .filter(Users.email == data.email, Users.user_id != user_id, Users.status == 1)
+                .filter(
+                    Users.email == data.email,
+                    Users.user_id != user_id,
+                    Users.status == 1,
+                )
                 .first()
             )
 
@@ -472,18 +482,20 @@ class UserServices:
             "paid_amount": paid_amount,
             "due_amount": total_fee - paid_amount,
         }
+
     def change_password(self, current_user, data):
-        user = self.db.query(Users).filter(
-            Users.user_id == current_user.get("user_id"),
-            Users.status == 1
-        ).first()
+        user = (
+            self.db.query(Users)
+            .filter(Users.user_id == current_user.get("user_id"), Users.status == 1)
+            .first()
+        )
 
         if not user:
             raise HTTPException(404, "User not found")
-        
+
         if len(data.new_password) < 6:
             raise HTTPException(400, "Password too short")
-        
+
         # verify old password
         if not verify_password(data.old_password, user.password):
             raise HTTPException(401, "Old password is incorrect")
@@ -497,18 +509,20 @@ class UserServices:
         self.db.commit()
 
         return {"msg": "Password updated successfully"}
+
     def admin_reset_password(self, data):
-        user = self.db.query(Users).filter(
-            Users.user_id == data.user_id,
-            Users.status == 1
-        ).first()
+        user = (
+            self.db.query(Users)
+            .filter(Users.user_id == data.user_id, Users.status == 1)
+            .first()
+        )
 
         if not user:
             raise HTTPException(404, "User not found")
-        
+
         if len(data.new_password) < 6:
             raise HTTPException(400, "Password too short")
-        
+
         # check if new password is same as old password
         if verify_password(data.new_password, user.password):
             raise HTTPException(400, "New password cannot be same as old password")
@@ -579,7 +593,9 @@ class GetEmail:
         total_rows = (
             self.db.query(func.count(Pay_email.id))
             .join(Users, Users.user_id == Pay_email.to_id)
-            .filter(Pay_email.status == 1, Users.batch == int(batch_id),Users.status == 1)
+            .filter(
+                Pay_email.status == 1, Users.batch == int(batch_id), Users.status == 1
+            )
             .scalar()
         )
 
