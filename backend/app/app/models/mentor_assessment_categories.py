@@ -12,7 +12,8 @@ class Category(Base):
 
     category_name = Column(String)   # Task Delivery
     status = Column(Integer, default = 1)
-    obtained_marks = Column(Integer) 
+
+    # obtained_marks = Column(Integer) 
     total_marks = Column(Integer)
     # criteria = Column(String)       # Timely completion
     created_at = Column(TIMESTAMP, default=func.now())

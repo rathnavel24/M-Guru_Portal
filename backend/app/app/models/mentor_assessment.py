@@ -18,7 +18,7 @@ class Assessment(Base):
     # date = Column(Date)
     remarks = Column(String)
     task_details = Column(String,nullable=True)
-    total_marks = Column(Integer, nullable=True)
+    obtained_marks = Column(Integer, nullable=True)
     status = Column(Integer, default=1)
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100))
