@@ -10,7 +10,7 @@ def create_feedback(db: Session, data, current_user):
     if current_user["role"] != 2:
         raise HTTPException(status_code=403, detail="Only interns can send feedback")
 
-    #No assignment (allowed)
+
     if data.assigned_to is None:
         feedback = Feedback(
             user_id=current_user["user_id"],
