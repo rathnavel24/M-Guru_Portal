@@ -1,12 +1,10 @@
-from decimal import Decimal
-from datetime import date, datetime
+from datetime import datetime
 from fastapi import HTTPException
-from sqlalchemy import Null, asc, desc, func
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 from backend.app.app.models import Token
 from backend.app.app.api.deps import sessionLocal
 from sqlalchemy import func, cast, Date
-from decimal import Decimal
 from datetime import datetime
 from sqlalchemy.orm import Session
 
@@ -24,16 +22,8 @@ def logout_all_users():
 
         for token in tokens:
             token.logout = now
-
-            # if token.login:
-            #     diff = now - token.login
-            #     token.ideal_time = Decimal(diff.total_seconds() / 3600).quantize(
-            #         Decimal("0.01")
-            #     )
-
             token.token = None
             db.add(token)
-            # print("all user token deleted")
         db.commit()
 
     except Exception as e:
@@ -93,7 +83,6 @@ class Check:
             .filter(
                 Token.user_id == user_id,
                 Token.token.isnot(None),  # Ensure that token is not None
-                # func.date(Token.login) == date.today()
             )
             .order_by(desc(Token.logout))  # Order by most recent logout time
             .first()
@@ -184,11 +173,11 @@ class Check:
             .first()
         )
 
-        # ✅ check if token exists
+        # check if token exists
         if not results:
             return "no_active_session"
 
-        # ✅ only for role 2 users
+        # only for role 2 users
         if current_user.get("role") == 2:
 
             if results.last_activity:
@@ -210,7 +199,7 @@ class Check:
 
                 return "time_out"
 
-            # ✅ handle first-time activity
+            # handle first-time activity
             else:
                 results.last_activity = now
                 self.db.commit()

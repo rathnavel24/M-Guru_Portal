@@ -12,14 +12,6 @@ from backend.app.app.api.deps import get_db
 
 router = APIRouter(prefix="/users", tags=["Portal_login"])
 
-# ##########
-
-# @router.get("/test-email")
-# def test_email(db: Session = Depends(get_db)):
-#     check_and_notify(db)
-#     return {"message": "Alert mail sent to Students to complete exam"}
-# ######
-
 
 @router.post("/exam-login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):

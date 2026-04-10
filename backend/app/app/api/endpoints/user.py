@@ -1,5 +1,4 @@
 from fastapi import APIRouter, BackgroundTasks, Depends
-from backend.app.app.models.portal_users import Users
 from backend.app.app.schemas.user_schema import (
     AdminResetPassword,
     ChangePassword,
