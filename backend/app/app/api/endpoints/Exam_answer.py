@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from backend.app.app.api.deps import get_db
-from backend.app.app.crud.Exam_attempt_crud import AttemptCrud
-from backend.app.app.schemas.Exam_answer_schemas import ReviewResponse, SaveAnswerRequest
+from backend.app.app.schemas.Exam_answer_schemas import SaveAnswerRequest
 from backend.app.app.crud.Exam_answer_crud import AnswerCrud
 
 router = APIRouter(tags=["Answer"])

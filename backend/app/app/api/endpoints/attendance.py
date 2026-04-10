@@ -1,6 +1,5 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, Depends
 from requests import session
-from backend.app.app.schemas.user_schema import UserSignUp, UserLogin
 from sqlalchemy.orm import Session
 from backend.app.app.crud.attendance import Attendance ,Check
 from backend.app.app.api.deps import get_db, role_required

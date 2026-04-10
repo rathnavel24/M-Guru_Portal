@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.task_crud import Tasks
 from backend.app.app.schemas.pause_request import PauseRequest
-from backend.app.app.schemas.task_schema import createTask, editTaskDetails, updateTask
+from backend.app.app.schemas.task_schema import createTask, updateTask
 
 router = APIRouter(prefix="/task", tags=["Task"])
 
