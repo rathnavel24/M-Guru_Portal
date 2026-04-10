@@ -1,10 +1,8 @@
 from fastapi import APIRouter,Depends, HTTPException
 from sqlalchemy.orm import Session
-# from backend.app.app.api.deps import get_db, role_required
 from backend.app.app.crud.get_allmentor import Getall_mentor
 from backend.app.app.api.deps import get_db, role_required
-from fastapi import Request
-from backend.app.app.schemas.user_schema import MentorCreate, MentorUpdate, UserUpdate
+from backend.app.app.schemas.user_schema import MentorCreate, MentorUpdate
 from backend.app.app.crud.get_allmentor import Add_mentor
 
 router = APIRouter(tags=["Mentor"])

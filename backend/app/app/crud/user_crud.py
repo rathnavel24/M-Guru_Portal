@@ -1,15 +1,11 @@
 from datetime import datetime as dt, timedelta
-from decimal import Decimal
-from operator import and_
-from unittest import result
 from backend.app.app.models.Exam_attempt import Attempts
 from backend.app.app.models.Exam_user import ExamUsers
-from alembic.command import current
 from backend.app.app.models.pay_email_table import Pay_email
 from backend.app.app.models.portaluserfee import Fee
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
-from sqlalchemy import Null, or_
+from sqlalchemy import  or_
 from datetime import date
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
