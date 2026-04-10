@@ -20,6 +20,6 @@ class Category(Base):
     updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
     
 
-    assessment_type = relationship("AssessmentType", back_populates="categories")
+    # assessment_type = relationship("AssessmentType", back_populates="categories")
 
     cat_assesment = relationship("Assessment", back_populates="category")

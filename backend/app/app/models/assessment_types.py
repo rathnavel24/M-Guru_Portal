@@ -14,5 +14,5 @@ class AssessmentType(Base):
     created_by = Column(String(100))
     updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
 
-    categories = relationship("Category", back_populates="assessment_type")
+    # categories = relationship("Category", back_populates="assessment_type")
     assessment = relationship("Assessment", back_populates="assessment_type")
