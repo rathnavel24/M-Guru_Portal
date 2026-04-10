@@ -15,10 +15,11 @@ class Assessment(Base):
     # date = Column(Date)
     remarks = Column(String)
     task_details = Column(String,nullable=True)
+    total_marks = Column(Integer, nullable=True)
     status = Column(Integer, default=1)
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100))
-    updated_at = Column(TIMESTAMP, default=func.now())
+    updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
 
     # intern = relationship("Users", foreign_keys=[intern_id])
     # mentor = relationship("Users", foreign_keys=[mentor_id])
@@ -26,3 +27,5 @@ class Assessment(Base):
     intern = relationship("Users",foreign_keys=[intern_id],back_populates="intern_assessments") 
 
     mentor = relationship("Users",foreign_keys=[mentor_id],back_populates="mentor_assessments")
+
+    assessment_types = relationship("AssessmentType", back_populates="assessment")

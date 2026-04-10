@@ -46,6 +46,6 @@ class Users(Base):
         back_populates="user"
     )
   
-# 🔹 Assessments where user is INTERN
+# Assessments where user is INTERN
     intern_assessments = relationship("Assessment",foreign_keys="Assessment.intern_id",back_populates="intern")
     mentor_assessments = relationship("Assessment",foreign_keys="Assessment.mentor_id",back_populates="mentor")
