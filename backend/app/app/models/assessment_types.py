@@ -7,7 +7,7 @@ class AssessmentType(Base):
     __tablename__ = "assessment_types"
 
     assessment_type_id = Column(Integer, primary_key=True, index=True)
-    assessment_id = Column(Integer, ForeignKey("assessments.Assessment_id"))
+    # assessment_id = Column(Integer, ForeignKey("assessments.Assessment_id"))
     assessment_name = Column(String)  # Technical / Presentation / Soft Skills
     status = Column(Integer, default = 1)
     created_at = Column(TIMESTAMP, default=func.now())
@@ -15,4 +15,4 @@ class AssessmentType(Base):
     updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
 
     categories = relationship("Category", back_populates="assessment_type")
-    assessment = relationship("Assessment", back_populates="assessment_types")
+    assessment = relationship("Assessment", back_populates="assessment_type")

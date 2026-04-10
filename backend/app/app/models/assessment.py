@@ -7,10 +7,13 @@ from backend.app.app.db.base import Base
 class Assessment(Base):
     __tablename__ = "assessments"
 
-    Assessment_id = Column(Integer, primary_key=True, index=True)
+    assessment_id = Column(Integer, primary_key=True, index=True)
+    assessment_type_id = Column(Integer, ForeignKey("assessment_types.assessment_type_id"))
 
     intern_id = Column(Integer, ForeignKey("users.user_id"))
     mentor_id = Column(Integer, ForeignKey("users.user_id"))
+
+    category_id = Column(Integer, ForeignKey("categories.id"))
 
     # date = Column(Date)
     remarks = Column(String)
@@ -28,4 +31,6 @@ class Assessment(Base):
 
     mentor = relationship("Users",foreign_keys=[mentor_id],back_populates="mentor_assessments")
 
-    assessment_types = relationship("AssessmentType", back_populates="assessment")
+    assessment_type = relationship("AssessmentType", back_populates="assessment")
+
+    category = relationship("Category", back_populates="cat_assesment")

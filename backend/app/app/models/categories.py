@@ -8,7 +8,7 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    assessment_type_id = Column(Integer, ForeignKey("assessment_types.assessment_type_id"))
+    # assessment_type_id = Column(Integer, ForeignKey("assessment_types.assessment_type_id"))
 
     category_name = Column(String)   # Task Delivery
     status = Column(Integer, default = 1)
@@ -21,3 +21,5 @@ class Category(Base):
     
 
     assessment_type = relationship("AssessmentType", back_populates="categories")
+
+    cat_assesment = relationship("Assessment", back_populates="category")
