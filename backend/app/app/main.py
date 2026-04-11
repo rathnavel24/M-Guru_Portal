@@ -17,6 +17,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from backend.app.app.api.endpoints import feedback
 from backend.app.app.api.endpoints import mentors
 
+
 app = FastAPI()
 
 origins = [
@@ -47,6 +48,7 @@ app.include_router(attendance.router)
 app.include_router(Exam_user.router)
 app.include_router(feedback.router)
 app.include_router(mentors.router)
+
 
 
 

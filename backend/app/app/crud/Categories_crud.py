@@ -10,20 +10,18 @@ from yaml import Mark
 from backend.app.app import db
 
 class CategoriesCrud:
-
     def __init__(self,db: Session):
         self.db=db
 
-    def create_category(self, data,current_user):
+    def create_category(self, assessment_type_id: int, category_name: str, created_by: str):
 
         category = db.Category(
-            
-            category_name=data.category_name,
-            created_by=current_user["user_id"],
-            total_marks=data.total_marks,
+            assessment_type_id=assessment_type_id,
+            category_name=category_name,
+            created_by=created_by
         )
         self.db.add(category)
         self.db.commit()
         self.db.refresh(category)
-
+        
         return category
