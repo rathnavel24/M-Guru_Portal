@@ -120,22 +120,26 @@ class AssessmentCrud:
             "assessment_name": assessment_type.assessment_name,
             "message": "Assessment type created successfully",
         }
-    
     def get_all_assessment_types(self, assessment_type_id: int = None):
 
-        types = self.db.query(AssessmentType).filter(AssessmentType.status == 1).all()
+        query = self.db.query(AssessmentType).filter(
+            AssessmentType.status == 1
+        )
 
         if assessment_type_id:
-            query = query.filter(AssessmentType.assessment_type_id == assessment_type_id)
-       
+            query = query.filter(
+                AssessmentType.assessment_type_id == assessment_type_id
+            )
+
+        types = query.all()
+
         return [
             {
                 "assessment_type_id": assessment.assessment_type_id,
                 "assessment_name": assessment.assessment_name,
             }
             for assessment in types
-        ]
-
+    ]
           
 
     # # ────────────────────────────────────────────────

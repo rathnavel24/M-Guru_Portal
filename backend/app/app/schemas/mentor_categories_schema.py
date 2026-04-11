@@ -16,12 +16,8 @@ class AssessmentTypeResponse(BaseModel):
     status: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-
-# ═══════════════════════════════════════
-#  CATEGORY
-# ═══════════════════════════════════════
 
 class CategoryCreate(BaseModel):
     assessment_type_id: int   # FIX: was 'assessment_id' — must match CRUD & DB column
