@@ -53,11 +53,17 @@ class CategoriesCrud:
         }
 
     def get_all_categories(self, assessment_type_id: int = None):
-        categories = self.db.query(Category).filter(Category.status == 1).all()
+
+        query = self.db.query(Category).filter(
+            Category.status == 1
+        )
 
         if assessment_type_id:
-            query = query.filter(Category.assessment_type_id == assessment_type_id)
+            query = query.filter(
+                Category.assessment_type_id == assessment_type_id
+            )
 
+        categories = query.all()
 
         return [
             {
@@ -69,7 +75,6 @@ class CategoriesCrud:
             }
             for cat in categories
         ]
-
 
 class AssessmentCrud:
 
