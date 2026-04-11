@@ -8,7 +8,7 @@ class Getall_mentor:
         self.db = db
 
     def get_all_mentors(self):
-        return self.db.query(Users).filter(Users.type ==4).all()
+        return self.db.query(Users).filter(Users.type ==4,Users.status!=0).all()
     
     def delete_mentor(self, mentor_id: int):
         mentor = self.db.query(Users).filter(

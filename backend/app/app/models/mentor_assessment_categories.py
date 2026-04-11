@@ -7,19 +7,23 @@ class Category(Base):
     __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)
+    assessment_type_id = Column(Integer, ForeignKey("assessment_types.assessment_type_id"))
+
 
     # assessment_type_id = Column(Integer, ForeignKey("assessment_types.assessment_type_id"))
 
     category_name = Column(String)   # Task Delivery
+    total_marks = Column(Integer)
     status = Column(Integer, default = 1)
-    obtained_marks = Column(Integer) 
-    # total_marks = Column(Integer)
+
+    # obtained_marks = Column(Integer) 
+   
     # criteria = Column(String)       # Timely completion
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100))
     updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
     
 
-    # assessment_type = relationship("AssessmentType", back_populates="categories")
+    assessment_type = relationship("AssessmentType", back_populates="categories")
 
-    cat_assesment = relationship("Assessment", back_populates="category")
+    # cat_assesment = relationship("Assessment", back_populates="category")
