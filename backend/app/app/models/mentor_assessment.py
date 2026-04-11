@@ -7,18 +7,21 @@ from backend.app.app.db.base import Base
 class Assessment(Base):
     __tablename__ = "assessments"
 
-    assessment_id = Column(Integer, primary_key=True, index=True)
+    assessment_id = Column(Integer, primary_key=True, index=True,autoincrement=True)
     assessment_type_id = Column(Integer, ForeignKey("assessment_types.assessment_type_id"))
 
     intern_id = Column(Integer, ForeignKey("users.user_id"))
     mentor_id = Column(Integer, ForeignKey("users.user_id"))
 
-    category_id = Column(Integer, ForeignKey("categories.id"))
+    # category_id = Column(Integer, ForeignKey("categories.id"))
 
     # date = Column(Date)
     remarks = Column(String)
     task_details = Column(String,nullable=True)
     obtained_marks = Column(Integer, nullable=True)
+
+    assessment_date = Column(Date, nullable=True)  
+
     status = Column(Integer, default=1)
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100))
@@ -31,6 +34,9 @@ class Assessment(Base):
 
     mentor = relationship("Users",foreign_keys=[mentor_id],back_populates="mentor_assessments")
 
-    assessment_type = relationship("AssessmentType", back_populates="assessment")
+    details = relationship("AssessmentDetail", back_populates="assessment")
+    assessment_type=relationship("AssessmentType")
 
-    category = relationship("Category", back_populates="cat_assesment")
+    # category = relationship("Category", back_populates="cat_assesment")
+
+    # categories = relationship("Category", back_populates="assessment_type")
