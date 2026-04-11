@@ -648,6 +648,7 @@ class AssessmentCrud:
             "assessment_id": assessment.assessment_id,
             "assessment_type": assessment_type.assessment_name,
             "intern_id": assessment.intern_id,
+            "batch":intern.batch,
             "total_obtained": total_obtained,
             "total_marks": total_max,
             "percentage": round((total_obtained / total_max) * 100, 2) if total_max else 0,
