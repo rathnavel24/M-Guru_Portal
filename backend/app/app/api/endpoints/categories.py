@@ -104,6 +104,18 @@ def get_my_assessments(
         mentor_id=current_user["user_id"]
     )
 
+# Mentor only - Get OWN assessments (batch filter)
+@router.get("/my/batch")
+def get_my_assessments_by_batch(
+    batch: str,   # ✅ required filter
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([4]))
+):
+    return AssessmentCrud(db).get_all_assessments(
+        mentor_id=current_user["user_id"],
+        batch=batch   # ✅ using existing CRUD
+    )
+
 
 #  Admin only - Get ALL assessments
 @router.get("/all")

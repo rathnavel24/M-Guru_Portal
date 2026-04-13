@@ -55,7 +55,138 @@ class CategoriesCrud:
             "assessment_type": assessment_type.assessment_name,
         }
 
+        
     def get_all_categories(self, assessment_type_id: int = None):
+
+    # ================================
+    # SOFT SKILLS
+    # ================================
+        SOFT_SKILLS = {
+            "Communication Skills": [
+                {"name": "Verbal Communication", "max": 5},
+                {"name": "Written Communication", "max": 5},
+                {"name": "Active Listening", "max": 5},
+                {"name": "Presentation Skills", "max": 5},
+            ],
+            "Teamwork": [
+                {"name": "Team Participation", "max": 5},
+                {"name": "Conflict Resolution", "max": 5},
+                {"name": "Peer Support & Mentoring", "max": 5},
+            ],
+            "Leadership": [
+                {"name": "Leadership Potential", "max": 5},
+                {"name": "Decision Making", "max": 5},
+                {"name": "Initiative & Proactiveness", "max": 5},
+            ],
+            "Proffessionalism": [
+                {"name": "Punctuality & Reliability", "max": 5},
+                {"name": "Attitude & Behavior", "max": 5},
+                {"name": "Professional Etiquette", "max": 5},
+            ],
+            "Emotional Intelligence": [
+                {"name": "Self-Awareness", "max": 5},
+                {"name": "Empathy & Compassion", "max": 5},
+                {"name": "Stress Management", "max": 5},
+            ],
+            "Critical Thinking": [
+                {"name": "Problem Analysis", "max": 5},
+                {"name": "Creative Thinking", "max": 5},
+                {"name": "Adaptability & Flexibility", "max": 5},
+                {"name": "Innovation & Ideation", "max": 5},
+            ],
+        }
+
+        # ================================
+        # PRESENTATION
+        # ================================
+        PRESENTATION = {
+            "Content": [
+                {"name": "Topic Understanding", "max": 5},
+                {"name": "Content Accuracy", "max": 5},
+                {"name": "Logical Flow & Organization", "max": 5},
+                {"name": "Depth of Research", "max": 5},
+            ],
+            "Delivery": [
+                {"name": "Verbal Clarity & Pace", "max": 5},
+                {"name": "Body Language & Eye Contact", "max": 5},
+                {"name": "Confidence & Stage Presence", "max": 5},
+                {"name": "Audience Engagement", "max": 5},
+            ],
+            "Visual Design": [
+                {"name": "Slide Design & Aesthetics", "max": 5},
+                {"name": "Use of Visuals & Data", "max": 5},
+                {"name": "Readability & Formatting", "max": 5},
+            ],
+            # "Q&A & Interaction": [
+            #     {"name": "Handling Questions", "max": 5},
+            #     {"name": "Critical Thinking in Response", "max": 5},
+            #     {"name": "Clarity of Answers", "max": 5},
+            # ],
+            "Time Management": [
+                {"name": "Adherence to Time Limit", "max": 5},
+                {"name": "Pacing Throughout", "max": 5},
+                {"name": "Conclusion Effectiveness", "max": 5},
+            ],
+            "Overall Impression": [
+                {"name": "Creativity & Originality", "max": 5},
+                {"name": "Professionalism", "max": 5},
+                {"name": "Impact & Key Takeaway", "max": 5},
+                {"name": "Overall Delivery Score", "max": 5},
+            ],
+        }
+
+        # ================================
+        # TECHNICAL
+        # ================================
+        TECHNICAL = {
+            "Task": [
+                {"name": "Task Accuracy", "max": 10},
+                {"name": "Timeliness", "max": 10},
+                {"name": "Responsibility & Ownership", "max": 10},
+            ],
+            "Problem-Solving": [
+                {"name": "Problem-Solving Approach", "max": 5},
+                {"name": "Initiative & Proactiveness", "max": 5},
+                {"name": "Adaptability", "max": 5},
+            ],
+            "Technical": [
+                {"name": "Code Quality / Structure", "max": 5},
+                {"name": "Use of Best Practices", "max": 5},
+                {"name": "Knowledge of Tools & Frameworks", "max": 5},
+                {"name": "Attention to Detail", "max": 5},
+            ],
+            "Testing": [
+                {"name": "Unit Testing & Test Coverage", "max": 5},
+                {"name": "Test Case Explanation", "max": 5},
+            ],
+            "Documentation": [
+                {"name": "Documentation Quality", "max": 5},
+                {"name": "Verbal Communication", "max": 5},
+            ],
+            "Learning": [
+                {"name": "Learning Ability", "max": 5},
+                {"name": "Curiosity & Willingness to Learn", "max": 5},
+                {"name": "Research Skills", "max": 5},
+            ],
+        }
+
+        # ================================
+        # MASTER MAP
+        # ================================
+        ASSESSMENT_MAP = {
+            1: SOFT_SKILLS,
+            2: TECHNICAL,
+            3: PRESENTATION
+        }
+    # ================================
+    # MASTER MAP
+    # ================================
+
+        # ASSESSMENT_MAP = {
+        #     1: SOFT_SKILLS,
+        #     2: PRESENTATION,
+        #     3: TECHNICAL
+        # }
 
         query = self.db.query(Category).filter(Category.status == 1)
 
@@ -66,12 +197,13 @@ class CategoriesCrud:
 
         categories = query.all()
 
-        #  ERROR MESSAGE
         if not categories:
             raise HTTPException(
                 status_code=404,
                 detail="No categories found"
             )
+
+        criteria_map = ASSESSMENT_MAP.get(assessment_type_id, {})
 
         return [
             {
@@ -80,9 +212,14 @@ class CategoriesCrud:
                 "total_marks": cat.total_marks,
                 "assessment_type": cat.assessment_type.assessment_name if cat.assessment_type else None,
                 "assessment_type_id": cat.assessment_type_id,
+
+                        "criteria": ASSESSMENT_MAP
+            .get(cat.assessment_type_id, {})
+            .get(cat.category_name, [])
             }
             for cat in categories
         ]
+
 
 class AssessmentCrud:
 
@@ -388,7 +525,7 @@ class AssessmentCrud:
     # ────────────────────────────────────────────────
     #  5. GET ALL ASSESSMENTS
     # ────────────────────────────────────────────────
-    def get_all_assessments(self, intern_id: int = None, mentor_id: int = None):
+    def get_all_assessments(self, intern_id: int = None, mentor_id: int = None, batch: str = None):
 
         query = self.db.query(Assessment).filter(Assessment.status == 1)
 
@@ -398,7 +535,19 @@ class AssessmentCrud:
         if mentor_id:
             query = query.filter(Assessment.mentor_id == mentor_id)
 
+        # ✅ NEW BATCH FILTER
+        if batch:
+            query = query.join(
+                Users, Users.user_id == Assessment.intern_id
+            ).filter(
+                Users.batch == batch
+            )
+
         assessments = query.all()
+
+        if not assessments:
+            raise HTTPException(status_code=404, detail="No data found for this batch")
+        
         response = []
 
         for assessment in assessments:
@@ -422,6 +571,7 @@ class AssessmentCrud:
                 "assessment_type": assessment.assessment_type.assessment_name if assessment.assessment_type else None,
 
                 "intern_name": intern.username if intern else None,
+                "batch": intern.batch if intern else None, 
                 "mentor_name": mentor.username if mentor else None,
 
                 "total_obtained": total_obtained,
