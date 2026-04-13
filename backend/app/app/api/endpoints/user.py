@@ -102,7 +102,7 @@ async def get_bankdetails(
 async def get_userby_batch(
     batch_id,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1])),  # only admin
+    current_user=Depends(role_required([1,4])), 
 ):
     return UserServices(db, None).get_usersby_batch(batch_id)
 
@@ -139,7 +139,7 @@ async def get_emails(
 
 @router.get("/batches")
 async def get_batches(
-    db: Session = Depends(get_db), current_user=Depends(role_required([1]))
+    db: Session = Depends(get_db), current_user=Depends(role_required([1,4]))
 ):
     return UserServices(db, None).get_all_batches()
 
@@ -149,7 +149,7 @@ async def get_all_users(
     page_no: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1])),  # only admin
+    current_user=Depends(role_required([1,4])),
 ):
     return UserServices(db, None).get_all_users(page_no, page_size)
 

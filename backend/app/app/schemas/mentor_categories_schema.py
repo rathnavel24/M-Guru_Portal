@@ -162,10 +162,12 @@ class CategoryMark(BaseModel):
 
 
 class SaveAssessmentSchema(BaseModel):
+    
     intern_id: int
     mentor_id: int
     assessment_type_id: int
     assessment_date: Optional[datetime] = None
+    batch: Optional[str] = None
 
     remarks: Optional[str] = None
     task_details: Optional[str] = None
