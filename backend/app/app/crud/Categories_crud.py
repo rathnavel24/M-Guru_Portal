@@ -78,7 +78,7 @@ class CategoriesCrud:
                 {"name": "Decision Making", "max": 5},
                 {"name": "Initiative & Proactiveness", "max": 5},
             ],
-            "Proffessionalism": [
+            "Proffesionalism": [
                 {"name": "Punctuality & Reliability", "max": 5},
                 {"name": "Attitude & Behavior", "max": 5},
                 {"name": "Professional Etiquette", "max": 5},
@@ -129,7 +129,7 @@ class CategoriesCrud:
             ],
             "Overall Impression": [
                 {"name": "Creativity & Originality", "max": 5},
-                {"name": "Professionalism", "max": 5},
+                {"name": "Proffessionalism", "max": 5},
                 {"name": "Impact & Key Takeaway", "max": 5},
                 {"name": "Overall Delivery Score", "max": 5},
             ],
