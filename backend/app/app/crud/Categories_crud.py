@@ -78,7 +78,7 @@ class CategoriesCrud:
                 {"name": "Decision Making", "max": 5},
                 {"name": "Initiative & Proactiveness", "max": 5},
             ],
-            "Proffessionalism": [
+            "Proffesionalism": [
                 {"name": "Punctuality & Reliability", "max": 5},
                 {"name": "Attitude & Behavior", "max": 5},
                 {"name": "Professional Etiquette", "max": 5},
