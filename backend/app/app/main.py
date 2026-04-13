@@ -20,6 +20,7 @@ from backend.app.app.api.endpoints import categories
 from backend.app.app.api.deps import get_db
 from backend.app.app.crud.user_crud import UserServices
 from backend.app.app.db.session import sessionLocal 
+import logging
 
 
 app = FastAPI()
@@ -60,7 +61,7 @@ app.include_router(categories.router)
 
 
 
-import logging
+
 
 scheduler = BackgroundScheduler()
 
