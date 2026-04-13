@@ -129,7 +129,7 @@ class CategoriesCrud:
             ],
             "Overall Impression": [
                 {"name": "Creativity & Originality", "max": 5},
-                {"name": "Professionalism", "max": 5},
+                {"name": "Proffessionalism", "max": 5},
                 {"name": "Impact & Key Takeaway", "max": 5},
                 {"name": "Overall Delivery Score", "max": 5},
             ],
