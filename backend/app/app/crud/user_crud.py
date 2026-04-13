@@ -21,6 +21,7 @@ import re
 
 from backend.app.app.core.security import (
     get_password_hash,
+    hash_password,
     verify_password,
     create_access_token,
 )
@@ -301,7 +302,7 @@ class UserServices:
         # Fetch distinct batches, excluding batch 0, and sort them in ascending order
         result = (
             self.db.query(Users.batch)
-            .filter(Users.batch != None, Users.batch != 0)
+            .filter(Users.batch != None, Users.batch > 0)
             .distinct()
             .order_by(Users.batch.asc())
             .all()
@@ -528,6 +529,26 @@ class UserServices:
         self.db.commit()
 
         return {"msg": "Password reset successfully by admin"}
+
+    def create_default_admin(self):
+        admin_email = "info@mguru.org"
+
+        existing_admin = self.db.query(Users).filter(
+            Users.email == admin_email
+        ).first()
+
+        if not existing_admin:
+            admin = Users(
+                username="admin",
+                email=admin_email,
+                password=hash_password("Mvel@2026"),
+                role=1
+            )
+            self.db.add(admin)
+            self.db.commit()
+            print("Default admin created")
+        else:
+            print("Admin already exists")
 
 
 class GetEmail:

@@ -25,10 +25,12 @@ class Assessment(Base):
     status = Column(Integer, default=1)
     created_at = Column(TIMESTAMP, default=func.now())
     created_by = Column(String(100))
-    updated_at = Column(TIMESTAMP, default=func.now(), onupdate=func.now())
+    updated_at = Column(TIMESTAMP, default=func.now())
 
     # intern = relationship("Users", foreign_keys=[intern_id])
     # mentor = relationship("Users", foreign_keys=[mentor_id])
+
+    # scores = relationship("AssessmentScore", back_populates="assessment", cascade="all, delete")
 
     intern = relationship("Users",foreign_keys=[intern_id],back_populates="intern_assessments") 
 

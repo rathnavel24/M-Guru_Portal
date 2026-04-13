@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from backend.app.app.api.endpoints import user
 from backend.app.app.api.endpoints import Exam_assessment
 from backend.app.app.api.endpoints import Exam_question
@@ -17,12 +17,17 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from backend.app.app.api.endpoints import feedback
 from backend.app.app.api.endpoints import mentors
 from backend.app.app.api.endpoints import categories
+from backend.app.app.api.deps import get_db
+from backend.app.app.crud.user_crud import UserServices
+from backend.app.app.db.session import sessionLocal 
+
 
 app = FastAPI()
 
 origins = [
     #"https://your-frontend-url.com",
     "http://192.168.5.100:5173",
+    "http://192.168.5.112:5173"
 
 ] #this is sathish bro ip ,cross  allow only this ip
 
@@ -54,6 +59,7 @@ app.include_router(categories.router)
 
 
 
+
 import logging
 
 scheduler = BackgroundScheduler()
@@ -74,6 +80,7 @@ def safe_logout_all_users():
     last_global_logout_date = today
     logging.info("logout_all_users() executed at %s", now.replace(microsecond=0))
 
+
 # Scheduled daily at 13:00 UTC
 scheduler.add_job(safe_logout_all_users, "cron", hour=13, minute=0)
 
@@ -85,24 +92,17 @@ def start_scheduler():
     logging.info("Scheduler started at %s", datetime.utcnow().replace(microsecond=0))
 
 
-# from backend.app.app.crud.auto_remainder import start_scheduler
-# import asyncio
+@app.on_event("startup")
+def startup_event():
+    db = sessionLocal()   
+    try:
+        UserServices(db, None).create_default_admin()
+    finally:
+        db.close()      
+
+
+
 
 # @app.on_event("startup")
 # async def startup_event():
 #     start_scheduler(test_mode = False)
-
-
-
-# import asyncio
-# from concurrent.futures import ThreadPoolExecutor
-# from backend.app.app.crud.auto_remainder import start_scheduler
-
-# # Create a ThreadPoolExecutor
-# executor = ThreadPoolExecutor()
-
-# @app.on_event("startup")
-# async def startup_event():
-#     loop = asyncio.get_event_loop()
-#     # Run the synchronous start_scheduler function in a separate thread
-#     loop.run_in_executor(executor, start_scheduler, True)

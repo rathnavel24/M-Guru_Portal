@@ -29,6 +29,9 @@ def get_dashboard(
 # INTERN FETCH (Frontend types name + batch)
 # ═══════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════
+# INTERN FETCH (Admin + Mentor)
+# ═══════════════════════════════════════
 @router.get("/intern")
 def get_intern_details(
     name: str,
@@ -39,19 +42,21 @@ def get_intern_details(
     return AssessmentCrud(db).get_intern_by_name_batch(name, batch)
 
 
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 # ASSESSMENT TYPES
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 
+#  Create (Mentor only)
 @router.post("/types")
 def create_assessment_type(
     data: AssessmentTypeCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1, 4]))
+    current_user=Depends(role_required([4]))
 ):
     return AssessmentCrud(db).create_assessment_type(data, current_user)
 
 
+#  Get (Admin + Mentor)
 @router.get("/types")
 def get_assessment_types(
     assessment_type_id: Optional[int] = None,
@@ -61,19 +66,21 @@ def get_assessment_types(
     return AssessmentCrud(db).get_all_assessment_types(assessment_type_id)
 
 
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 # CATEGORIES
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 
+#  Create (Mentor only)
 @router.post("/categories")
 def create_category(
     payload: CategoryCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1, 4]))
+    current_user=Depends(role_required([4]))
 ):
     return CategoriesCrud(db).create_category(payload, current_user)
 
 
+#  Get (Admin + Mentor)
 @router.get("/categories")
 def get_categories(
     assessment_type_id: Optional[int] = None,
@@ -83,38 +90,57 @@ def get_categories(
     return CategoriesCrud(db).get_all_categories(assessment_type_id)
 
 
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 # ASSESSMENTS
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 
-@router.get("/")
+#  Mentor only - Get OWN assessments
+@router.get("/my")
+def get_my_assessments(
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([4]))
+):
+    return AssessmentCrud(db).get_all_assessments(
+        mentor_id=current_user["user_id"]
+    )
+
+
+#  Admin only - Get ALL assessments
+@router.get("/all")
 def get_all_assessments(
     intern_id: Optional[int] = None,
     mentor_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1, 4]))
+    current_user=Depends(role_required([1]))
 ):
     return AssessmentCrud(db).get_all_assessments(intern_id, mentor_id)
 
 
+#  Admin + Mentor - Get by ID
+# Mentor → only their data
+# Admin → all data
 @router.get("/{assessment_id}")
 def get_assessment_by_id(
     assessment_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(role_required([1, 4]))
 ):
-    return AssessmentCrud(db).get_assessment_by_id(assessment_id)
+    return AssessmentCrud(db).get_assessment_by_id(
+        assessment_id,
+        current_user
+    )
 
 
-# ═══════════════════════════════════════════════════════
-# SAVE ASSESSMENT (MAIN API)
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
+# SAVE ASSESSMENT
+# ═══════════════════════════════════════
 
+#  Mentor only - Create / Update assessment
 @router.post("/save")
 def save_assessment(
     data: SaveAssessmentSchema,
     db: Session = Depends(get_db),
-    current_user=Depends(role_required([1, 4]))
+    current_user=Depends(role_required([4]))
 ):
     return AssessmentCrud(db).save_assessment(data, current_user)
 
