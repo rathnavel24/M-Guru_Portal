@@ -1,6 +1,5 @@
 from datetime import datetime
 from fastapi import Depends, FastAPI
-from sqlalchemy.orm import Session
 from backend.app.app.api.endpoints import user
 from backend.app.app.api.endpoints import Exam_assessment
 from backend.app.app.api.endpoints import Exam_question
@@ -18,7 +17,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from backend.app.app.api.endpoints import feedback
 from backend.app.app.api.endpoints import mentors
 from backend.app.app.api.endpoints import categories
-from backend.app.app.crud.auto_remainder import start_scheduler
 from backend.app.app.api.deps import get_db
 from backend.app.app.crud.user_crud import UserServices
 from backend.app.app.db.session import sessionLocal 
@@ -28,6 +26,7 @@ app = FastAPI()
 origins = [
     #"https://your-frontend-url.com",
     "http://192.168.5.100:5173",
+    "http://192.168.5.112:5173"
 
 ] #this is sathish bro ip ,cross  allow only this ip
 
