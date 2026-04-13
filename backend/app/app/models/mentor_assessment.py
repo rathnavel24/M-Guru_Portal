@@ -30,7 +30,7 @@ class Assessment(Base):
     # intern = relationship("Users", foreign_keys=[intern_id])
     # mentor = relationship("Users", foreign_keys=[mentor_id])
 
-    scores = relationship("AssessmentScore", back_populates="assessment", cascade="all, delete")
+    # scores = relationship("AssessmentScore", back_populates="assessment", cascade="all, delete")
 
     intern = relationship("Users",foreign_keys=[intern_id],back_populates="intern_assessments") 
 

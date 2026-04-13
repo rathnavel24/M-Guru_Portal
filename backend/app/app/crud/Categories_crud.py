@@ -27,6 +27,9 @@ class CategoriesCrud:
             Users.user_id == current_user["user_id"]
         ).first()
 
+        if not user:   
+           raise HTTPException(status_code=404, detail="User not found")
+
         assessment_type = self.db.query(AssessmentType).filter(
             AssessmentType.assessment_type_id == data.assessment_type_id
         ).first()
@@ -53,11 +56,20 @@ class CategoriesCrud:
         }
 
     def get_all_categories(self, assessment_type_id: int = None):
-        categories = self.db.query(Category).filter(Category.status == 1).all()
+
+        query = self.db.query(Category).filter(Category.status == 1)
 
         if assessment_type_id:
             query = query.filter(Category.assessment_type_id == assessment_type_id)
 
+        categories = query.all()
+
+        #  ERROR MESSAGE
+        if not categories:
+            raise HTTPException(
+                status_code=404,
+                detail="No categories found"
+            )
 
         return [
             {
@@ -69,7 +81,6 @@ class CategoriesCrud:
             }
             for cat in categories
         ]
-
 
 class AssessmentCrud:
 
@@ -108,7 +119,7 @@ class AssessmentCrud:
 
         assessment_type = AssessmentType(
             assessment_name=data.assessment_name,
-            created_by="MENTOR" if current_user["type"] == 4 else "ADMIN",
+            created_by="MENTOR" if current_user["role"] == 4 else "ADMIN",
         )
 
         self.db.add(assessment_type)
@@ -133,6 +144,8 @@ class AssessmentCrud:
 
         types = query.all()
 
+        if not types:
+            raise HTTPException(status_code=404, detail="No assessment types found")
         return [
             {
                 "assessment_type_id": assessment.assessment_type_id,
@@ -297,7 +310,7 @@ class AssessmentCrud:
     #  4. GET ASSESSMENT BY ID  
     # ────────────────────────────────────────────────
 
-    def get_assessment_by_id(self, assessment_id: int):
+    def get_assessment_by_id(self, assessment_id: int, current_user):
 
         assessment = self.db.query(Assessment).filter(
             Assessment.assessment_id == assessment_id,
@@ -307,14 +320,25 @@ class AssessmentCrud:
         if not assessment:
             raise HTTPException(status_code=404, detail="Assessment not found")
 
-        intern = self.db.query(Users).filter(Users.user_id == assessment.intern_id).first()
-        mentor = self.db.query(Users).filter(Users.user_id == assessment.mentor_id).first()
+        #  ROLE CHECK
+        if current_user["role"] == 4:   # Mentor
+            if assessment.mentor_id != current_user["user_id"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You can only view your own assessments"
+                )
 
+        # Fetch users
+        mentor = self.db.query(Users).filter(Users.user_id == assessment.mentor_id).first()
+        intern = self.db.query(Users).filter(Users.user_id == assessment.intern_id).first()
+
+        # Fetch categories
         categories = self.db.query(Category).filter(
             Category.assessment_type_id == assessment.assessment_type_id,
             Category.status == 1,
         ).all()
 
+        # Fetch marks
         details = self.db.query(AssessmentDetail).filter(
             AssessmentDetail.assessment_id == assessment_id
         ).all()
@@ -359,7 +383,6 @@ class AssessmentCrud:
 
             "categories": category_list,
         }
-
     # ────────────────────────────────────────────────
     #  5. GET ALL ASSESSMENTS
     # ────────────────────────────────────────────────
@@ -396,10 +419,7 @@ class AssessmentCrud:
                 "assessment_id": assessment.assessment_id,
                 "assessment_type": assessment.assessment_type.assessment_name if assessment.assessment_type else None,
 
-                # "intern_id": assessment.intern_id,
                 "intern_name": intern.username if intern else None,
-
-                # "mentor_id": assessment.mentor_id,
                 "mentor_name": mentor.username if mentor else None,
 
                 "total_obtained": total_obtained,
@@ -505,20 +525,25 @@ class AssessmentCrud:
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-
+        
+        if user.type != 4:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied: Only mentors can create or update assessments"
+            )
         assessment_type = self.db.query(AssessmentType).filter(
             AssessmentType.assessment_type_id == data.assessment_type_id
         ).first()
 
         if not assessment_type:
-            raise HTTPException(status_code=404, detail="Assessment type not found")
+            raise HTTPException(status_code=404, detail="Invalid assessment type ID")
 
         intern = self.db.query(Users).filter(
             Users.user_id == data.intern_id
         ).first()
 
         if not intern:
-            raise HTTPException(status_code=404, detail="Intern not found")
+            raise HTTPException(status_code=404, detail="Invalid intern ID")
 
         # ────────────────────────────────────────────────
         # 2. CHECK EXISTING (IMPORTANT)
@@ -567,11 +592,15 @@ class AssessmentCrud:
         valid_category_map = {cat.id: cat for cat in categories}
 
         # Optional strict validation
-        if len(data.category_marks) != len(categories):
+        input_ids = {item.category_id for item in data.category_marks}
+        db_ids = {cat.id for cat in categories}
+
+        if not input_ids.issubset(db_ids):
             raise HTTPException(
                 status_code=400,
-                detail="All categories must be scored"
+                detail="Category mismatch. Provide valid categories only"
             )
+       
 
         # ────────────────────────────────────────────────
         # 5. SAVE / UPDATE MARKS
@@ -588,13 +617,14 @@ class AssessmentCrud:
             if not cat:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid category_id: {category_id}"
+                    detail=f"Invalid category_id: {category_id} for this assessment type"
                 )
 
+            #  CHANGE THIS LINE (FIX ERROR)
             if obtained_marks > cat.total_marks:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Marks ({obtained_marks}) exceed total ({cat.total_marks}) for {cat.category_name}"
+                    detail=f"Marks ({obtained_marks}) exceed maximum ({cat.total_marks}) for category '{cat.category_name}'"
                 )
 
             detail = self.db.query(AssessmentDetail).filter(
