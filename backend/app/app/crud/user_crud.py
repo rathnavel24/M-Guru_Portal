@@ -584,7 +584,7 @@ class GetEmail:
                     Users.email.label("receiver_email"),
                     Users.batch,
                 )
-                .join(Users, Users.user_id == Pay_email.from_id)  # ✅ corrected
+                .join(Users, Users.user_id == Pay_email.from_id)  # corrected
                 .where(Pay_email.status == 1)
                 .order_by(desc(Pay_email.created_at))
                 .offset(offset)
