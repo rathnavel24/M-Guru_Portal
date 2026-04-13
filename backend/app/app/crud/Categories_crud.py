@@ -700,3 +700,241 @@ class AssessmentCrud:
             "categories_saved": saved,
             "message": "Assessment saved successfully"
         }
+    
+
+
+from backend.app.app.models.mentor_assessment import Assessment
+from backend.app.app.models.mentor_assessment_types import AssessmentType
+from backend.app.app.models.portal_users import Users
+from backend.app.app.models.mentor_assesment_details import AssessmentDetail
+
+class DashboardCrud:
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_dashboard(self, mentor_id: int, batch: str = None):  # ← batch param added
+
+        # ─────────────────────────────
+        # BASE INTERN IDS FOR THIS BATCH (if filtered)
+        # ─────────────────────────────
+        intern_ids = None
+
+        if batch:
+            intern_ids = [
+                u.user_id for u in self.db.query(Users).filter(
+                    Users.batch == batch,
+                    Users.type == 2,
+                    Users.status == 1
+                ).all()
+            ]
+
+        def base_filter(query, model=Assessment):
+            query = query.filter(
+                model.mentor_id == mentor_id,
+                model.status == 1
+            )
+            if intern_ids is not None:
+                query = query.filter(model.intern_id.in_(intern_ids))
+            return query
+
+        # ─────────────────────────────
+        # TOTAL ASSESSMENTS
+        # ─────────────────────────────
+        total_assessments = base_filter(
+            self.db.query(Assessment)
+        ).count()
+
+        # ─────────────────────────────
+        # INTERNS (DISTINCT)
+        # ─────────────────────────────
+        interns_assessed = base_filter(
+            self.db.query(func.count(func.distinct(Assessment.intern_id)))
+        ).scalar()
+
+        # ─────────────────────────────
+        # BATCH COUNT
+        # ─────────────────────────────
+        batches_q = self.db.query(
+            func.count(func.distinct(Users.batch))
+        ).join(
+            Assessment, Assessment.intern_id == Users.user_id
+        ).filter(
+            Assessment.mentor_id == mentor_id,
+            Assessment.status == 1
+        )
+        if intern_ids is not None:
+            batches_q = batches_q.filter(Assessment.intern_id.in_(intern_ids))
+
+        batches = batches_q.scalar() or 0
+
+        # ─────────────────────────────
+        # OVERALL AVG
+        # ─────────────────────────────
+        overall_subq_q = self.db.query(
+            func.sum(AssessmentDetail.obtained_marks).label("total")
+        ).join(
+            Assessment, Assessment.assessment_id == AssessmentDetail.assessment_id
+        ).filter(
+            Assessment.mentor_id == mentor_id,
+            Assessment.status == 1
+        )
+        if intern_ids is not None:
+            overall_subq_q = overall_subq_q.filter(Assessment.intern_id.in_(intern_ids))
+
+        overall_subq = overall_subq_q.group_by(
+            AssessmentDetail.assessment_id
+        ).subquery()
+
+        overall_avg = self.db.query(
+            func.avg(overall_subq.c.total)
+        ).scalar() or 0
+
+        overall_avg = round(float(overall_avg), 2)
+
+        # ─────────────────────────────
+        # AVG TECHNICAL SCORE
+        # ─────────────────────────────
+        tech_subq_q = self.db.query(
+            func.sum(AssessmentDetail.obtained_marks).label("total")
+        ).join(
+            Assessment, Assessment.assessment_id == AssessmentDetail.assessment_id
+        ).filter(
+            Assessment.assessment_type_id == 2,
+            Assessment.mentor_id == mentor_id,
+            Assessment.status == 1
+        )
+        if intern_ids is not None:
+            tech_subq_q = tech_subq_q.filter(Assessment.intern_id.in_(intern_ids))
+
+        tech_subq = tech_subq_q.group_by(
+            AssessmentDetail.assessment_id
+        ).subquery()
+
+        avg_technical_score = self.db.query(
+            func.avg(tech_subq.c.total)
+        ).scalar() or 0
+
+        avg_technical_score = round(float(avg_technical_score), 2)
+
+        # ─────────────────────────────
+        # SECTION CARDS
+        # ─────────────────────────────
+        section_data = []
+
+        types = self.db.query(AssessmentType).filter(
+            AssessmentType.status == 1
+        ).all()
+
+        for t in types:
+
+            count_q = self.db.query(Assessment).filter(
+                Assessment.assessment_type_id == t.assessment_type_id,
+                Assessment.mentor_id == mentor_id,
+                Assessment.status == 1
+            )
+            if intern_ids is not None:
+                count_q = count_q.filter(Assessment.intern_id.in_(intern_ids))
+            total_assessments_type = count_q.count()
+
+            batch_q = self.db.query(
+                func.count(func.distinct(Users.batch))
+            ).join(
+                Assessment, Assessment.intern_id == Users.user_id
+            ).filter(
+                Assessment.assessment_type_id == t.assessment_type_id,
+                Assessment.mentor_id == mentor_id,
+                Assessment.status == 1
+            )
+            if intern_ids is not None:
+                batch_q = batch_q.filter(Assessment.intern_id.in_(intern_ids))
+            batches_for_type = batch_q.scalar() or 0
+
+            type_subq_q = self.db.query(
+                func.sum(AssessmentDetail.obtained_marks).label("total")
+            ).join(
+                Assessment, Assessment.assessment_id == AssessmentDetail.assessment_id
+            ).filter(
+                Assessment.assessment_type_id == t.assessment_type_id,
+                Assessment.mentor_id == mentor_id,
+                Assessment.status == 1
+            )
+            if intern_ids is not None:
+                type_subq_q = type_subq_q.filter(Assessment.intern_id.in_(intern_ids))
+
+            type_subq = type_subq_q.group_by(
+                AssessmentDetail.assessment_id
+            ).subquery()
+
+            avg_score_type = self.db.query(
+                func.avg(type_subq.c.total)
+            ).scalar() or 0
+
+            avg_score = (
+                round(float(avg_score_type), 2)
+                if total_assessments_type
+                else 0
+            )
+
+            section_data.append({
+                "assessment_type": t.assessment_name,
+                "assessments": total_assessments_type,
+                "avg_score": avg_score,
+                "batches": batches_for_type
+            })
+
+        # ─────────────────────────────
+        # RECENT ASSESSMENTS
+        # ─────────────────────────────
+        recent_q = self.db.query(Assessment).filter(
+            Assessment.mentor_id == mentor_id,
+            Assessment.status == 1
+        )
+        if intern_ids is not None:
+            recent_q = recent_q.filter(Assessment.intern_id.in_(intern_ids))
+
+        recent = recent_q.order_by(
+            Assessment.created_at.desc()
+        ).limit(5).all()
+
+        recent_data = []
+
+        for r in recent:
+            intern = self.db.query(Users).filter(
+                Users.user_id == r.intern_id
+            ).first()
+
+            recent_data.append({
+                "assessment_id": r.assessment_id,
+                "intern_name": intern.username if intern else None,
+                "type": r.assessment_type.assessment_name if r.assessment_type else None,
+                "date": r.created_at.isoformat() if r.created_at else None
+            })
+
+        # ─────────────────────────────
+        # ALL BATCHES FOR DROPDOWN
+        # ─────────────────────────────
+        all_batches = [
+            u.batch for u in self.db.query(Users.batch).join(
+                Assessment, Assessment.intern_id == Users.user_id
+            ).filter(
+                Assessment.mentor_id == mentor_id,
+                Assessment.status == 1,
+                Users.batch.isnot(None)
+            ).distinct().all()
+        ]
+
+        # ─────────────────────────────
+        # FINAL RESPONSE
+        # ─────────────────────────────
+        return {
+            "total_assessments": total_assessments,
+            "interns_assessed": interns_assessed,
+            "avg_technical_score": avg_technical_score,
+            "batches": batches,
+            "overall_avg": overall_avg,
+            "sections": section_data,
+            "recent_assessments": recent_data,
+            "all_batches": all_batches,       # ← dropdown options for frontend
+            "active_batch": batch or "all"    # ← currently selected batch
+        }

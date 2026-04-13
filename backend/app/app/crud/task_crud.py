@@ -311,7 +311,8 @@ class Tasks(AbstractTask):
                 )
             self._ensure_admin_task_edit_allowed(task, current_user)
         else:
-            self._ensure_self_created_task_owner(task, current_user, "edit")
+            pass
+            #self._ensure_self_created_task_owner(task, current_user, "edit")
 
         return self._apply_task_updates(task, update_data)
 
@@ -328,13 +329,14 @@ class Tasks(AbstractTask):
         if self._is_admin_or_mentor(current_user):
             self._ensure_admin_task_edit_allowed(task, current_user)
         else:
-            self._ensure_self_created_task_owner(task, current_user, "edit")
+            pass
+            #self._ensure_self_created_task_owner(task, current_user, "edit")
 
         return self._apply_task_updates(task, update_data)
 
     def change_task_status(self, task_id: int, status: int, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_self_created_task_owner(task, current_user, "change the status of")
+        #self._ensure_self_created_task_owner(task, current_user, "change the status of")
         task.status = status
         task.updated_at = datetime.utcnow()
         self.db.commit()
@@ -343,7 +345,7 @@ class Tasks(AbstractTask):
 
     def start_task(self, task_id: int, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_self_created_task_owner(task, current_user, "start")
+        #self._ensure_self_created_task_owner(task, current_user, "start")
 
         # Prevent restarting completed task
         if task.status == 3:
@@ -391,7 +393,7 @@ class Tasks(AbstractTask):
 
     def pause_task(self, task_id: int, reason: str, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_self_created_task_owner(task, current_user, "pause")
+        #self._ensure_self_created_task_owner(task, current_user, "pause")
         user_id = task.user_id
         log = self._get_active_time_log(task_id, user_id)
 
@@ -431,7 +433,7 @@ class Tasks(AbstractTask):
     
     def resume_task(self, task_id: int, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_self_created_task_owner(task, current_user, "resume")
+        #self._ensure_self_created_task_owner(task, current_user, "resume")
         user_id = task.user_id
         self._ensure_no_other_running_task(task_id, user_id)
         pass_log = self._get_active_pass_log(task_id, user_id)
@@ -468,7 +470,7 @@ class Tasks(AbstractTask):
 
     def stop_task(self, task_id: int, current_user: dict):
         task = self._get_task_or_404(task_id)
-        self._ensure_self_created_task_owner(task, current_user, "stop")
+        #self._ensure_self_created_task_owner(task, current_user, "stop")
         user_id = task.user_id
         current_time = datetime.utcnow()
 

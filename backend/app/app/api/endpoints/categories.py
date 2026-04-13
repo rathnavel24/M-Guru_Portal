@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from backend.app.app.api.deps import get_db, role_required
-from backend.app.app.crud.Categories_crud import CategoriesCrud, AssessmentCrud
+from backend.app.app.crud.Categories_crud import CategoriesCrud, AssessmentCrud,DashboardCrud
 from backend.app.app.schemas.mentor_categories_schema import (
     AssessmentTypeCreate,
     CategoryCreate,
@@ -14,6 +14,20 @@ router = APIRouter(
     prefix="/mentor_assessment",
     tags=["Mentor Assessments"]
 )
+
+@router.get("/dashboard")
+def get_dashboard(
+    batch: str = None,  # ← optional batch filter
+    db: Session = Depends(get_db),
+    current_user=Depends(role_required([1, 4]))
+):
+    return DashboardCrud(db).get_dashboard(
+        mentor_id=current_user["user_id"],
+        batch=batch
+    )
+# ═══════════════════════════════════════════════════════
+# INTERN FETCH (Frontend types name + batch)
+# ═══════════════════════════════════════════════════════
 
 # ═══════════════════════════════════════
 # INTERN FETCH (Admin + Mentor)
@@ -141,3 +155,14 @@ def save_assessment(
     current_user=Depends(role_required([4]))
 ):
     return AssessmentCrud(db).save_assessment(data, current_user)
+
+
+
+# @router.get("/dashboard")
+# def get_dashboard(
+#     db: Session = Depends(get_db),
+#     current_user=Depends(role_required([1, 4]))
+# ):
+#     return DashboardCrud(db).get_dashboard(
+#         mentor_id=current_user["user_id"]
+#     )
