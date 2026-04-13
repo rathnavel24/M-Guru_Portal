@@ -42,7 +42,7 @@ async def login(
 # this is for view all user
 @router.post("/logout")
 async def log_out(
-    current_user=Depends(role_required([1, 2])), db: Session = Depends(get_db)
+    current_user=Depends(role_required([1, 2, 4])), db: Session = Depends(get_db)
 ):
     return Logout(db).logout(current_user)
 
