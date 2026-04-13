@@ -525,7 +525,7 @@ class AssessmentCrud:
     # ────────────────────────────────────────────────
     #  5. GET ALL ASSESSMENTS
     # ────────────────────────────────────────────────
-    def get_all_assessments(self, intern_id: int = None, mentor_id: int = None):
+    def get_all_assessments(self, intern_id: int = None, mentor_id: int = None, batch: str = None):
 
         query = self.db.query(Assessment).filter(Assessment.status == 1)
 
@@ -535,7 +535,19 @@ class AssessmentCrud:
         if mentor_id:
             query = query.filter(Assessment.mentor_id == mentor_id)
 
+        # ✅ NEW BATCH FILTER
+        if batch:
+            query = query.join(
+                Users, Users.user_id == Assessment.intern_id
+            ).filter(
+                Users.batch == batch
+            )
+
         assessments = query.all()
+
+        if not assessments:
+            raise HTTPException(status_code=404, detail="No data found for this batch")
+        
         response = []
 
         for assessment in assessments:
@@ -559,6 +571,7 @@ class AssessmentCrud:
                 "assessment_type": assessment.assessment_type.assessment_name if assessment.assessment_type else None,
 
                 "intern_name": intern.username if intern else None,
+                "batch": intern.batch if intern else None, 
                 "mentor_name": mentor.username if mentor else None,
 
                 "total_obtained": total_obtained,
