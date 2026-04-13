@@ -302,7 +302,7 @@ class UserServices:
         # Fetch distinct batches, excluding batch 0, and sort them in ascending order
         result = (
             self.db.query(Users.batch)
-            .filter(Users.batch != None, Users.batch >= 0)
+            .filter(Users.batch != None, Users.batch > 0)
             .distinct()
             .order_by(Users.batch.asc())
             .all()
