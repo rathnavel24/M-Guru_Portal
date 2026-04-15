@@ -18,3 +18,6 @@ from .time_log import TimeLog
 from .conversationmembers import *
 from .message import *
 from .feedback import Feedback
+from .mentor_assessment import Assessment
+from .mentor_assessment_types import AssessmentType
+from .mentor_assessment_categories import Category

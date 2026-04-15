@@ -1,15 +1,11 @@
 from datetime import datetime as dt, timedelta
-from decimal import Decimal
-from operator import and_
-from unittest import result
 from backend.app.app.models.Exam_attempt import Attempts
 from backend.app.app.models.Exam_user import ExamUsers
-from alembic.command import current
 from backend.app.app.models.pay_email_table import Pay_email
 from backend.app.app.models.portaluserfee import Fee
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
-from sqlalchemy import Null, or_
+from sqlalchemy import  or_
 from datetime import date
 from backend.app.app.models.user_token import Token
 from fastapi import HTTPException
@@ -25,6 +21,7 @@ import re
 
 from backend.app.app.core.security import (
     get_password_hash,
+    hash_password,
     verify_password,
     create_access_token,
 )
@@ -48,7 +45,6 @@ class SignUpDetails(SignUpAbstract):
         self.db = db
         self.new_user = new_user
 
-    @abstractmethod
     def user_signup(self):
 
         if not self.user_verification():
@@ -74,8 +70,8 @@ class SignUpDetails(SignUpAbstract):
             new_fee = Fee(
                 user_id=new_user.user_id,
                 total_fee=self.new_user.total_fee or 0,
-                monthly_installment =self.new_user.monthly_installment,
-                Emi_amount = self.new_user.emi_amount,
+                monthly_installment=self.new_user.monthly_installment,
+                emi_amount=self.new_user.emi_amount,
                 paid_amount=0,
                 status=1,
                 created_by="ADMIN",
@@ -97,7 +93,8 @@ class SignUpDetails(SignUpAbstract):
             .filter(
                 or_(
                     # Users.username == self.new_user.username,
-                    Users.email == self.new_user.email
+                    Users.email
+                    == self.new_user.email
                 ),
                 Users.status == 1,
             )
@@ -204,7 +201,11 @@ class LoginUser:
 
     def login_main_user(self, background_tasks):
 
-        user = self.db.query(Users).filter(Users.email == self.email, Users.status == 1).first()
+        user = (
+            self.db.query(Users)
+            .filter(Users.email == self.email, Users.status == 1)
+            .first()
+        )
 
         if not user:
             raise HTTPException(
@@ -267,20 +268,39 @@ class UserServices:
         result = self.db.query(Users).filter(Users.batch == batch).all()
 
     def get_usersby_batch(self, batch_id):
-        result = self.db.execute(
+        users = (
             self.db.query(
                 Users.user_id,
                 Users.username,
                 Users.email,
-                Users.batch,
                 Users.phone,
+                Users.batch,
+                Users.tech_stack,
+                func.coalesce(func.sum(Fee.total_fee), 0).label("total_fee"),
+                func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount"),
+            )
+            .outerjoin(Fee, Fee.user_id == Users.user_id)
+            .filter(Users.batch == batch_id, Users.status == 1)
+            .group_by(
+                Users.user_id,
+                Users.username,
+                Users.email,
+                Users.phone,
+                Users.batch,
                 Users.tech_stack,
             )
-            .filter(Users.batch == batch_id, Users.status == 1)
-            .statement
+            .all()
         )
 
-        return result.mappings().all()
+        result = []
+        for row in users:
+            row_dict = row._asdict()
+            total_fee = row_dict["total_fee"]
+            paid_amount = row_dict["paid_amount"]
+            row_dict["due_amount"] = total_fee - paid_amount
+            result.append(row_dict)
+
+        return result
 
     def soft_delete_user(self, user_id: int):
         user = (
@@ -301,7 +321,7 @@ class UserServices:
         # Fetch distinct batches, excluding batch 0, and sort them in ascending order
         result = (
             self.db.query(Users.batch)
-            .filter(Users.batch != None, Users.batch != 0)
+            .filter(Users.batch != None, Users.batch > 0)
             .distinct()
             .order_by(Users.batch.asc())
             .all()
@@ -314,7 +334,9 @@ class UserServices:
         """
         # total count of active users
         total_rows = (
-            self.db.query(func.count(Users.user_id)).filter(Users.status == 1,Users.type == 2).scalar()
+            self.db.query(func.count(Users.user_id))
+            .filter(Users.status == 1, Users.type == 2)
+            .scalar()
         )
 
         # pagination
@@ -335,7 +357,7 @@ class UserServices:
                 func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount"),
             )
             .outerjoin(Fee, Fee.user_id == Users.user_id)
-            .filter(Users.status == 1,Users.type == 2)
+            .filter(Users.status == 1, Users.type == 2)
             .group_by(
                 Users.user_id,
                 Users.username,
@@ -412,7 +434,11 @@ class UserServices:
         if data.email is not None:
             existing_user = (
                 self.db.query(Users)
-                .filter(Users.email == data.email, Users.user_id != user_id, Users.status == 1)
+                .filter(
+                    Users.email == data.email,
+                    Users.user_id != user_id,
+                    Users.status == 1,
+                )
                 .first()
             )
 
@@ -472,18 +498,20 @@ class UserServices:
             "paid_amount": paid_amount,
             "due_amount": total_fee - paid_amount,
         }
+
     def change_password(self, current_user, data):
-        user = self.db.query(Users).filter(
-            Users.user_id == current_user.get("user_id"),
-            Users.status == 1
-        ).first()
+        user = (
+            self.db.query(Users)
+            .filter(Users.user_id == current_user.get("user_id"), Users.status == 1)
+            .first()
+        )
 
         if not user:
             raise HTTPException(404, "User not found")
-        
+
         if len(data.new_password) < 6:
             raise HTTPException(400, "Password too short")
-        
+
         # verify old password
         if not verify_password(data.old_password, user.password):
             raise HTTPException(401, "Old password is incorrect")
@@ -497,18 +525,20 @@ class UserServices:
         self.db.commit()
 
         return {"msg": "Password updated successfully"}
+
     def admin_reset_password(self, data):
-        user = self.db.query(Users).filter(
-            Users.user_id == data.user_id,
-            Users.status == 1
-        ).first()
+        user = (
+            self.db.query(Users)
+            .filter(Users.user_id == data.user_id, Users.status == 1)
+            .first()
+        )
 
         if not user:
             raise HTTPException(404, "User not found")
-        
+
         if len(data.new_password) < 6:
             raise HTTPException(400, "Password too short")
-        
+
         # check if new password is same as old password
         if verify_password(data.new_password, user.password):
             raise HTTPException(400, "New password cannot be same as old password")
@@ -518,6 +548,26 @@ class UserServices:
         self.db.commit()
 
         return {"msg": "Password reset successfully by admin"}
+
+    def create_default_admin(self):
+        admin_email = "info@mguru.org"
+
+        existing_admin = self.db.query(Users).filter(
+            Users.email == admin_email
+        ).first()
+
+        if not existing_admin:
+            admin = Users(
+                username="admin",
+                email=admin_email,
+                password=hash_password("Mvel@2026"),
+                role=1
+            )
+            self.db.add(admin)
+            self.db.commit()
+            print("Default admin created")
+        else:
+            print("Admin already exists")
 
 
 class GetEmail:
@@ -553,7 +603,7 @@ class GetEmail:
                     Users.email.label("receiver_email"),
                     Users.batch,
                 )
-                .join(Users, Users.user_id == Pay_email.from_id)  # ✅ corrected
+                .join(Users, Users.user_id == Pay_email.from_id)  # corrected
                 .where(Pay_email.status == 1)
                 .order_by(desc(Pay_email.created_at))
                 .offset(offset)
@@ -579,7 +629,9 @@ class GetEmail:
         total_rows = (
             self.db.query(func.count(Pay_email.id))
             .join(Users, Users.user_id == Pay_email.to_id)
-            .filter(Pay_email.status == 1, Users.batch == int(batch_id),Users.status == 1)
+            .filter(
+                Pay_email.status == 1, Users.batch == int(batch_id), Users.status == 1
+            )
             .scalar()
         )
 
