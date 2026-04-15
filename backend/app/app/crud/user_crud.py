@@ -268,20 +268,39 @@ class UserServices:
         result = self.db.query(Users).filter(Users.batch == batch).all()
 
     def get_usersby_batch(self, batch_id):
-        result = self.db.execute(
+        users = (
             self.db.query(
                 Users.user_id,
                 Users.username,
                 Users.email,
-                Users.batch,
                 Users.phone,
+                Users.batch,
+                Users.tech_stack,
+                func.coalesce(func.sum(Fee.total_fee), 0).label("total_fee"),
+                func.coalesce(func.sum(Fee.paid_amount), 0).label("paid_amount"),
+            )
+            .outerjoin(Fee, Fee.user_id == Users.user_id)
+            .filter(Users.batch == batch_id, Users.status == 1)
+            .group_by(
+                Users.user_id,
+                Users.username,
+                Users.email,
+                Users.phone,
+                Users.batch,
                 Users.tech_stack,
             )
-            .filter(Users.batch == batch_id, Users.status == 1)
-            .statement
+            .all()
         )
 
-        return result.mappings().all()
+        result = []
+        for row in users:
+            row_dict = row._asdict()
+            total_fee = row_dict["total_fee"]
+            paid_amount = row_dict["paid_amount"]
+            row_dict["due_amount"] = total_fee - paid_amount
+            result.append(row_dict)
+
+        return result
 
     def soft_delete_user(self, user_id: int):
         user = (
