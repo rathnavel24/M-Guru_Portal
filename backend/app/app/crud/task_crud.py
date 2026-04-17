@@ -249,16 +249,42 @@ class Tasks(AbstractTask):
         if not self._is_admin_or_mentor(current_user):
             creator = str(current_user.get("user_id"))
 
+        current_time = datetime.utcnow()
+        task_status = data.status or 1
+        if task_status == 2:
+            self._ensure_no_other_running_task(0, data.user_id)
+
         new_task = Task(
             user_id=data.user_id,
             title=data.title,
-            status=data.status,
+            status=task_status,
+            start_time=current_time if task_status in [2, 3] else None,
+            completion_time=current_time if task_status == 3 else None,
             created_by=creator,
             due_time=data.due_time,
             description = data.description,
             priority = data.priority
         )
         self.db.add(new_task)
+        self.db.flush()
+
+        if task_status in [2, 3]:
+            time_log = TimeLog(
+                task_id=new_task.task_id,
+                user_id=data.user_id,
+                start_time=current_time,
+                end_time=current_time if task_status == 3 else None,
+                total_time=0 if task_status == 3 else None,
+                productive=True,
+                status=3 if task_status == 3 else 1,
+                created_by=str(current_user.get("user_id")),
+                updated_at=current_time,
+            )
+            self.db.add(time_log)
+
+        if task_status == 2:
+            self._set_user_current_task(data.user_id, new_task.task_id)
+
         self.db.commit()
         self.db.refresh(new_task)
         return {"message": "task created successfully", "task": self._serialize_task(new_task)}
